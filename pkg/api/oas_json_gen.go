@@ -157,10 +157,12 @@ func (s *CreateDatasourceRequestType) Decode(d *jx.Decoder) error {
 	}
 	// Try to use constant string.
 	switch CreateDatasourceRequestType(v) {
-	case CreateDatasourceRequestTypeVictoriaMetrics:
-		*s = CreateDatasourceRequestTypeVictoriaMetrics
+	case CreateDatasourceRequestTypePrometheus:
+		*s = CreateDatasourceRequestTypePrometheus
 	case CreateDatasourceRequestTypeVictoriaLogs:
 		*s = CreateDatasourceRequestTypeVictoriaLogs
+	case CreateDatasourceRequestTypeLoki:
+		*s = CreateDatasourceRequestTypeLoki
 	default:
 		*s = CreateDatasourceRequestType(v)
 	}
@@ -456,10 +458,12 @@ func (s *DatasourceResponseType) Decode(d *jx.Decoder) error {
 	}
 	// Try to use constant string.
 	switch DatasourceResponseType(v) {
-	case DatasourceResponseTypeVictoriaMetrics:
-		*s = DatasourceResponseTypeVictoriaMetrics
+	case DatasourceResponseTypePrometheus:
+		*s = DatasourceResponseTypePrometheus
 	case DatasourceResponseTypeVictoriaLogs:
 		*s = DatasourceResponseTypeVictoriaLogs
+	case DatasourceResponseTypeLoki:
+		*s = DatasourceResponseTypeLoki
 	default:
 		*s = DatasourceResponseType(v)
 	}

@@ -32,9 +32,11 @@ func (s *CreateDatasourceRequest) Validate() error {
 
 func (s CreateDatasourceRequestType) Validate() error {
 	switch s {
-	case "victoria-metrics":
+	case "prometheus":
 		return nil
 	case "victoria-logs":
+		return nil
+	case "loki":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)
@@ -66,9 +68,11 @@ func (s *DatasourceResponse) Validate() error {
 
 func (s DatasourceResponseType) Validate() error {
 	switch s {
-	case "victoria-metrics":
+	case "prometheus":
 		return nil
 	case "victoria-logs":
+		return nil
+	case "loki":
 		return nil
 	default:
 		return errors.Errorf("invalid value: %v", s)

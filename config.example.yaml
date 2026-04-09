@@ -12,12 +12,18 @@ store:
   path: postgresql://localhost:5432/inspector?sslmode=disable
 
 datasources:
-  - name: victoria-metrics
-    type: victoria-metrics
+  - name: vm
+    type: prometheus
     url: http://localhost:8428
-  - name: victoria-logs
+  - name: vl
     type: victoria-logs
     url: http://localhost:9428
+  # - name: prom
+  #   type: prometheus
+  #   url: http://localhost:9090
+  # - name: loki
+  #   type: loki
+  #   url: http://localhost:3100
 
 analyzer:
   # provider: openai (default) or anthropic

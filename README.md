@@ -86,17 +86,28 @@ make test      # run tests
 make build     # build binary
 ```
 
+## Supported Datasources
+
+| Type | Query Language | Supports |
+|------|---------------|----------|
+| `prometheus` | PromQL | Victoria Metrics, Prometheus, Thanos, Cortex, Mimir |
+| `victoria-logs` | LogsQL | Victoria Logs |
+| `loki` | LogQL | Grafana Loki |
+
+## Architecture
+
+```
+Tool (query_metrics, query_logs)
+  → ProviderRegistry.Get(name) → Provider
+    → Provider.MetricsQuerier() / Provider.LogsQuerier()
+      → Provider implementations (Prometheus, Victoria Logs, Loki)
+```
+
+Adding a new provider: implement `MetricsQuerier` and/or `LogsQuerier` interfaces, register in `newProvider()`.
+
 ## TODO
 
-### Datasource 쿼리 레이어 리팩토링
+### API 확장
 
-현재 `QueryMetricsTool` / `QueryLogsTool`이 raw HTTP로 VM/VL API를 직접 호출하고 응답을 string으로 반환 중.
-collector.go와 builtin_tools.go에 중복된 HTTP 로직이 있음.
-
-개선 방향:
-
-1. **datasource name 기반 조회** — tool parameter에서 `datasource_url` 제거, datasource name만 받아서 시스템이 URL 매핑. 현재 LLM이 URL을 직접 다루는 건 잘못된 설계
-2. **공통 응답 타입 정의** — VM 응답 구조(`QueryResult`, `TimeSeries`, `LogResult` 등)를 파싱하는 타입 추가. 현재 raw string을 LLM에 전달
-3. **collector.go + builtin_tools.go 중복 제거** — HTTP 호출 로직을 하나로 합치고 collector를 tool 내부에서 재사용
-4. **VM API 확장** — `/api/v1/query_range` (범위 쿼리), `/api/v1/series` (시리즈 매칭) 지원. 현재 instant query만 가능
-5. **공식 SDK 불필요** — Victoria Metrics/Logs는 HTTP API. Prometheus client library는 있지만 VM 직접 쿼리엔 표준 HTTP 클라이언트로 충분
+- `query_range` (범위 쿼리) 지원 — 현재 instant query만 가능
+- `series` (시리즈 매칭) 엔드포인트 지원

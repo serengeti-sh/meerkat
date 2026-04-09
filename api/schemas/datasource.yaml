@@ -7,7 +7,7 @@ DatasourceResponse:
       type: string
     type:
       type: string
-      enum: [victoria-metrics, victoria-logs]
+      enum: [prometheus, victoria-logs, loki]
     url:
       type: string
     created_at:
@@ -26,7 +26,7 @@ CreateDatasourceRequest:
       type: string
     type:
       type: string
-      enum: [victoria-metrics, victoria-logs]
+      enum: [prometheus, victoria-logs, loki]
     url:
       type: string
   required:

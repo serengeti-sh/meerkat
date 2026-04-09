@@ -49,24 +49,28 @@ func (s *CreateDatasourceRequest) SetURL(val string) {
 type CreateDatasourceRequestType string
 
 const (
-	CreateDatasourceRequestTypeVictoriaMetrics CreateDatasourceRequestType = "victoria-metrics"
-	CreateDatasourceRequestTypeVictoriaLogs    CreateDatasourceRequestType = "victoria-logs"
+	CreateDatasourceRequestTypePrometheus   CreateDatasourceRequestType = "prometheus"
+	CreateDatasourceRequestTypeVictoriaLogs CreateDatasourceRequestType = "victoria-logs"
+	CreateDatasourceRequestTypeLoki         CreateDatasourceRequestType = "loki"
 )
 
 // AllValues returns all CreateDatasourceRequestType values.
 func (CreateDatasourceRequestType) AllValues() []CreateDatasourceRequestType {
 	return []CreateDatasourceRequestType{
-		CreateDatasourceRequestTypeVictoriaMetrics,
+		CreateDatasourceRequestTypePrometheus,
 		CreateDatasourceRequestTypeVictoriaLogs,
+		CreateDatasourceRequestTypeLoki,
 	}
 }
 
 // MarshalText implements encoding.TextMarshaler.
 func (s CreateDatasourceRequestType) MarshalText() ([]byte, error) {
 	switch s {
-	case CreateDatasourceRequestTypeVictoriaMetrics:
+	case CreateDatasourceRequestTypePrometheus:
 		return []byte(s), nil
 	case CreateDatasourceRequestTypeVictoriaLogs:
+		return []byte(s), nil
+	case CreateDatasourceRequestTypeLoki:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -76,11 +80,14 @@ func (s CreateDatasourceRequestType) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *CreateDatasourceRequestType) UnmarshalText(data []byte) error {
 	switch CreateDatasourceRequestType(data) {
-	case CreateDatasourceRequestTypeVictoriaMetrics:
-		*s = CreateDatasourceRequestTypeVictoriaMetrics
+	case CreateDatasourceRequestTypePrometheus:
+		*s = CreateDatasourceRequestTypePrometheus
 		return nil
 	case CreateDatasourceRequestTypeVictoriaLogs:
 		*s = CreateDatasourceRequestTypeVictoriaLogs
+		return nil
+	case CreateDatasourceRequestTypeLoki:
+		*s = CreateDatasourceRequestTypeLoki
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)
@@ -187,24 +194,28 @@ func (*DatasourceResponse) createDatasourceRes() {}
 type DatasourceResponseType string
 
 const (
-	DatasourceResponseTypeVictoriaMetrics DatasourceResponseType = "victoria-metrics"
-	DatasourceResponseTypeVictoriaLogs    DatasourceResponseType = "victoria-logs"
+	DatasourceResponseTypePrometheus   DatasourceResponseType = "prometheus"
+	DatasourceResponseTypeVictoriaLogs DatasourceResponseType = "victoria-logs"
+	DatasourceResponseTypeLoki         DatasourceResponseType = "loki"
 )
 
 // AllValues returns all DatasourceResponseType values.
 func (DatasourceResponseType) AllValues() []DatasourceResponseType {
 	return []DatasourceResponseType{
-		DatasourceResponseTypeVictoriaMetrics,
+		DatasourceResponseTypePrometheus,
 		DatasourceResponseTypeVictoriaLogs,
+		DatasourceResponseTypeLoki,
 	}
 }
 
 // MarshalText implements encoding.TextMarshaler.
 func (s DatasourceResponseType) MarshalText() ([]byte, error) {
 	switch s {
-	case DatasourceResponseTypeVictoriaMetrics:
+	case DatasourceResponseTypePrometheus:
 		return []byte(s), nil
 	case DatasourceResponseTypeVictoriaLogs:
+		return []byte(s), nil
+	case DatasourceResponseTypeLoki:
 		return []byte(s), nil
 	default:
 		return nil, errors.Errorf("invalid value: %q", s)
@@ -214,11 +225,14 @@ func (s DatasourceResponseType) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *DatasourceResponseType) UnmarshalText(data []byte) error {
 	switch DatasourceResponseType(data) {
-	case DatasourceResponseTypeVictoriaMetrics:
-		*s = DatasourceResponseTypeVictoriaMetrics
+	case DatasourceResponseTypePrometheus:
+		*s = DatasourceResponseTypePrometheus
 		return nil
 	case DatasourceResponseTypeVictoriaLogs:
 		*s = DatasourceResponseTypeVictoriaLogs
+		return nil
+	case DatasourceResponseTypeLoki:
+		*s = DatasourceResponseTypeLoki
 		return nil
 	default:
 		return errors.Errorf("invalid value: %q", data)

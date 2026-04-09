@@ -30,7 +30,7 @@ func (s *CreateDatasourceRequest) SetFake() {
 
 // SetFake set fake values.
 func (s *CreateDatasourceRequestType) SetFake() {
-	*s = CreateDatasourceRequestTypeVictoriaMetrics
+	*s = CreateDatasourceRequestTypePrometheus
 }
 
 // SetFake set fake values.
@@ -83,7 +83,7 @@ func (s *DatasourceResponse) SetFake() {
 
 // SetFake set fake values.
 func (s *DatasourceResponseType) SetFake() {
-	*s = DatasourceResponseTypeVictoriaMetrics
+	*s = DatasourceResponseTypePrometheus
 }
 
 // SetFake set fake values.
