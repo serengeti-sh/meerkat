@@ -1,0 +1,35 @@
+DatasourceResponse:
+  type: object
+  properties:
+    id:
+      type: string
+    name:
+      type: string
+    type:
+      type: string
+      enum: [victoria-metrics, victoria-logs]
+    url:
+      type: string
+    created_at:
+      type: string
+      format: date-time
+  required:
+    - id
+    - name
+    - type
+    - url
+
+CreateDatasourceRequest:
+  type: object
+  properties:
+    name:
+      type: string
+    type:
+      type: string
+      enum: [victoria-metrics, victoria-logs]
+    url:
+      type: string
+  required:
+    - name
+    - type
+    - url

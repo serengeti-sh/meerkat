@@ -1,0 +1,65 @@
+app:
+  name: inspector
+  env: development
+  debug: true
+
+http:
+  host: 0.0.0.0
+  port: 8080
+
+store:
+  driver: postgres
+  path: postgresql://localhost:5432/inspector?sslmode=disable
+
+datasources:
+  - name: victoria-metrics
+    type: victoria-metrics
+    url: http://localhost:8428
+  - name: victoria-logs
+    type: victoria-logs
+    url: http://localhost:9428
+
+analyzer:
+  # provider: openai (default) or anthropic
+  # openai works with any OpenAI-compatible API:
+  #   OpenAI, Ollama, vLLM, Groq, Together AI, Mistral, LiteLLM, etc.
+  provider: openai
+  url: https://api.openai.com
+  api_key: ${OPENAI_API_KEY}
+  model: gpt-4o
+  max_iterations: 10
+  max_tokens: 4096
+  temperature: 0.3
+
+  # Anthropic example:
+  # provider: anthropic
+  # url: https://api.anthropic.com
+  # api_key: ${ANTHROPIC_API_KEY}
+  # model: claude-sonnet-4-20250514
+
+  # Ollama example (uses openai provider):
+  # provider: openai
+  # url: http://localhost:11434
+  # api_key: ""
+  # model: llama3
+
+scheduler:
+  enabled: false
+  jobs:
+    - name: error-spike-check
+      interval: 5m
+      metric_query: "rate(http_errors_total[5m])"
+      log_query: "level:error"
+    - name: latency-check
+      interval: 10m
+      metric_query: "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))"
+      log_query: ""
+
+reporter:
+  channels:
+    - type: slack
+      webhook_url: ${SLACK_WEBHOOK_URL}
+      min_severity: warning
+    # - type: webhook
+    #   url: http://localhost:9090/alerts
+    #   min_severity: critical

@@ -1,0 +1,10 @@
+.*
+!.gitignore
+!.github
+!.mockery.yaml
+!.goreleaser.yaml
+cover*.out
+
+/bin
+
+api/openapi.bundled.json
