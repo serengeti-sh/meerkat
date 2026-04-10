@@ -1,0 +1,23 @@
+apiVersion: v2
+name: meerkat
+description: A Helm chart for Meerkat AI-powered observability agent
+
+type: application
+
+version: 0.1.0
+
+appVersion: "0.1.0"
+
+keywords:
+  - meerkat
+  - observability
+  - ai
+  - monitoring
+
+maintainers:
+  - name: sauce
+    email: sauce@mandacode.com
+
+home: https://github.com/serengeti-sh/meerkat
+sources:
+  - https://github.com/serengeti-sh/meerkat

@@ -1,0 +1,169 @@
+# Default values for meerkat.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/serengeti-sh/meerkat-server
+  pullPolicy: IfNotPresent
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1001
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1001
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: meerkat.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+startupProbe:
+  httpGet:
+    path: /v1/health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 30
+
+livenessProbe:
+  httpGet:
+    path: /v1/health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /v1/health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Application configuration
+config:
+  app:
+    name: meerkat
+    env: production
+    debug: false
+
+  http:
+    host: "0.0.0.0"
+    port: 8080
+
+  store:
+    driver: postgres
+    host: ""
+    port: 5432
+    name: meerkat
+    user: meerkat
+    sslmode: disable
+
+  datasources: []
+  #  - name: vm
+  #    type: prometheus
+  #    url: http://victoria-metrics:8428
+
+  analyzer:
+    provider: openai
+    url: https://api.openai.com
+    model: gpt-4o
+    max_iterations: 10
+    max_tokens: 4096
+    temperature: 0.3
+
+  scheduler:
+    enabled: false
+    jobs: []
+
+  reporter:
+    channels: []
+    #  - type: slack
+    #    webhook_url: ""
+    #    min_severity: warning
+
+# Secrets (passed as environment variables)
+secrets:
+  database:
+    password: ""
+    existingSecret: ""
+    existingSecretKey: database-password
+  analyzer:
+    apiKey: ""
+    existingSecret: ""
+    existingSecretKey: analyzer-api-key
+  reporter:
+    slackWebhookURL: ""
+    existingSecret: ""
+
+# Additional environment variables
+extraEnv: []
+
+# Additional environment variables from ConfigMap or Secret
+extraEnvFrom: []
+
+# Additional volume mounts
+extraVolumeMounts: []
+
+# Additional volumes
+extraVolumes: []
+
+# Migration job settings (ArgoCD PreSync hook)
+migration:
+  enabled: true
