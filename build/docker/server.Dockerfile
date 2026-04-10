@@ -53,9 +53,8 @@ LABEL org.opencontainers.image.title="Inspector Server" \
 RUN apk add --no-cache \
       ca-certificates=20251003-r0 \
       tzdata=2026a-r0 \
-      curl=8.17.0-r1
-
-RUN adduser -D -u 1001 inspector
+      curl=8.17.0-r1 && \
+    adduser -D -u 1001 inspector
 
 WORKDIR /app
 
