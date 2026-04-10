@@ -7,281 +7,41 @@ info:
 servers:
   - url: /v1
 
-paths:
-  /health:
-    get:
-      operationId: getHealth
-      summary: Health check
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                required:
-                  - status
-
-  /inspect:
-    post:
-      operationId: createInspect
-      summary: Trigger a manual inspection
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                query:
-                  type: string
-                metric_query:
-                  type: string
-                log_query:
-                  type: string
-      responses:
-        '202':
-          description: Inspection accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReportResponse'
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /webhook/{source}:
-    post:
-      operationId: receiveWebhook
-      summary: Receive a webhook trigger
-      parameters:
-        - name: source
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                source:
-                  type: string
-                alert:
-                  type: string
-                message:
-                  type: string
-                data:
-                  type: object
-                  additionalProperties: true
-      responses:
-        '202':
-          description: Webhook accepted
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReportResponse'
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /reports:
-    get:
-      operationId: listReports
-      summary: List inspection reports
-      parameters:
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 50
-      responses:
-        '200':
-          description: List of reports
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ReportResponse'
-
-  /reports/{id}:
-    get:
-      operationId: getReport
-      summary: Get a specific report
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Report details
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReportResponse'
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /datasources:
-    get:
-      operationId: listDatasources
-      summary: List datasources
-      responses:
-        '200':
-          description: List of datasources
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DatasourceResponse'
-    post:
-      operationId: createDatasource
-      summary: Add a datasource
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateDatasourceRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DatasourceResponse'
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /datasources/{id}/test:
-    get:
-      operationId: testDatasource
-      summary: Test datasource connection
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Connection OK
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                required:
-                  - status
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
 components:
   schemas:
+    Error:
+      $ref: "./schemas/common.yaml#/Error"
+
     ReportResponse:
-      type: object
-      properties:
-        id:
-          type: string
-        trigger:
-          type: string
-          enum: [manual, webhook, scheduled]
-        trigger_id:
-          type: string
-        status:
-          type: string
-          enum: [pending, running, completed, failed]
-        severity:
-          type: string
-          enum: [info, warning, critical]
-        summary:
-          type: string
-        detail:
-          type: string
-        datasources:
-          type: array
-          items:
-            type: string
-        iterations:
-          type: integer
-        created_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - trigger
-        - trigger_id
-        - status
+      $ref: "./schemas/report.yaml#/ReportResponse"
 
     DatasourceResponse:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        type:
-          type: string
-          enum: [prometheus, victoria-logs, loki]
-        url:
-          type: string
-        created_at:
-          type: string
-          format: date-time
-      required:
-        - id
-        - name
-        - type
-        - url
-
+      $ref: "./schemas/datasource.yaml#/DatasourceResponse"
     CreateDatasourceRequest:
-      type: object
-      properties:
-        name:
-          type: string
-        type:
-          type: string
-          enum: [prometheus, victoria-logs, loki]
-        url:
-          type: string
-      required:
-        - name
-        - type
-        - url
+      $ref: "./schemas/datasource.yaml#/CreateDatasourceRequest"
 
-    ErrorResponse:
-      type: object
-      properties:
-        error:
-          type: string
-      required:
-        - error
+    CreateInspectReq:
+      $ref: "./schemas/inspect.yaml#/CreateInspectReq"
+
+    ReceiveWebhookReq:
+      $ref: "./schemas/webhook.yaml#/ReceiveWebhookReq"
+
+paths:
+  /health:
+    $ref: "./paths/health.yaml#/~1health"
+
+  /inspect:
+    $ref: "./paths/inspect.yaml#/~1inspect"
+
+  /webhook/{source}:
+    $ref: "./paths/webhook.yaml#/~1webhook~1{source}"
+
+  /reports:
+    $ref: "./paths/reports.yaml#/~1reports"
+  /reports/{id}:
+    $ref: "./paths/reports.yaml#/~1reports~1{id}"
+
+  /datasources:
+    $ref: "./paths/datasources.yaml#/~1datasources"
+  /datasources/{id}/test:
+    $ref: "./paths/datasources.yaml#/~1datasources~1{id}~1test"

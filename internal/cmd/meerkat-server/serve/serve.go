@@ -1,4 +1,4 @@
-package server
+package serve
 
 import (
 	"context"
@@ -196,6 +196,7 @@ func WaitForShutdown(lc fx.Lifecycle) {
 	})
 }
 
+// NewFXApp creates a new fx application.
 func NewFXApp(cfgFile string, port int) *fx.App {
 	return fx.New(
 		fx.Supply(fx.Annotate(cfgFile, fx.ResultTags(`name:"cfgFile"`))),
@@ -227,26 +228,4 @@ func NewFXApp(cfgFile string, port int) *fx.App {
 		fx.StartTimeout(30*1e9),
 		fx.StopTimeout(30*1e9),
 	)
-}
-
-func ApplyMigrations(cfgFile string) error {
-	var cfg *config.Config
-	var err error
-
-	if cfgFile != "" {
-		cfg, err = config.LoadFromPath(cfgFile)
-	} else {
-		cfg, err = config.Load()
-	}
-	if err != nil {
-		return err
-	}
-
-	client, err := store.NewEntClient(cfg)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = client.Close() }()
-
-	return store.Migrate(context.Background(), client)
 }

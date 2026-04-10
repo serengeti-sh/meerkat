@@ -37,7 +37,7 @@ func encodeCreateDatasourceResponse(response CreateDatasourceRes, w http.Respons
 
 		return nil
 
-	case *ErrorResponseStatusCode:
+	case *ErrorStatusCode:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		code := response.StatusCode
 		if code == 0 {
@@ -90,7 +90,7 @@ func encodeCreateInspectResponse(response CreateInspectRes, w http.ResponseWrite
 
 		return nil
 
-	case *ErrorResponseStatusCode:
+	case *ErrorStatusCode:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		code := response.StatusCode
 		if code == 0 {
@@ -157,7 +157,7 @@ func encodeGetReportResponse(response GetReportRes, w http.ResponseWriter, span 
 
 		return nil
 
-	case *ErrorResponseStatusCode:
+	case *ErrorStatusCode:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		code := response.StatusCode
 		if code == 0 {
@@ -296,7 +296,7 @@ func encodeReceiveWebhookResponse(response ReceiveWebhookRes, w http.ResponseWri
 
 		return nil
 
-	case *ErrorResponseStatusCode:
+	case *ErrorStatusCode:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		code := response.StatusCode
 		if code == 0 {
@@ -341,7 +341,7 @@ func encodeTestDatasourceResponse(response TestDatasourceRes, w http.ResponseWri
 
 		return nil
 
-	case *ErrorResponseStatusCode:
+	case *ErrorStatusCode:
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		code := response.StatusCode
 		if code == 0 {

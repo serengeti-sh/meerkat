@@ -1,0 +1,45 @@
+/reports:
+  get:
+    operationId: listReports
+    summary: List inspection reports
+    tags: [Reports]
+    parameters:
+      - name: limit
+        in: query
+        schema:
+          type: integer
+          default: 50
+    responses:
+      "200":
+        description: List of reports
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: "../openapi.yaml#/components/schemas/ReportResponse"
+
+/reports/{id}:
+  get:
+    operationId: getReport
+    summary: Get a specific report
+    tags: [Reports]
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      "200":
+        description: Report details
+        content:
+          application/json:
+            schema:
+              $ref: "../openapi.yaml#/components/schemas/ReportResponse"
+      default:
+        description: Error
+        content:
+          application/json:
+            schema:
+              $ref: "../openapi.yaml#/components/schemas/Error"

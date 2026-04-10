@@ -1,9 +1,8 @@
-WebhookPayload:
+ReceiveWebhookReq:
   type: object
   properties:
     source:
       type: string
-      description: Webhook source (grafana, custom)
     alert:
       type: string
     message:

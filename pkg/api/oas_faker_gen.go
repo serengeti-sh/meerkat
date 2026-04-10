@@ -87,7 +87,7 @@ func (s *DatasourceResponseType) SetFake() {
 }
 
 // SetFake set fake values.
-func (s *ErrorResponse) SetFake() {
+func (s *Error) SetFake() {
 	{
 		{
 			s.Error = "string"
@@ -219,6 +219,11 @@ func (s *ReportResponse) SetFake() {
 	{
 		{
 			s.Detail.SetFake()
+		}
+	}
+	{
+		{
+			s.Query.SetFake()
 		}
 	}
 	{

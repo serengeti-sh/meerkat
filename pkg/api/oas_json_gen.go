@@ -485,28 +485,28 @@ func (s *DatasourceResponseType) UnmarshalJSON(data []byte) error {
 }
 
 // Encode implements json.Marshaler.
-func (s *ErrorResponse) Encode(e *jx.Encoder) {
+func (s *Error) Encode(e *jx.Encoder) {
 	e.ObjStart()
 	s.encodeFields(e)
 	e.ObjEnd()
 }
 
 // encodeFields encodes fields.
-func (s *ErrorResponse) encodeFields(e *jx.Encoder) {
+func (s *Error) encodeFields(e *jx.Encoder) {
 	{
 		e.FieldStart("error")
 		e.Str(s.Error)
 	}
 }
 
-var jsonFieldsNameOfErrorResponse = [1]string{
+var jsonFieldsNameOfError = [1]string{
 	0: "error",
 }
 
-// Decode decodes ErrorResponse from json.
-func (s *ErrorResponse) Decode(d *jx.Decoder) error {
+// Decode decodes Error from json.
+func (s *Error) Decode(d *jx.Decoder) error {
 	if s == nil {
-		return errors.New("invalid: unable to decode ErrorResponse to nil")
+		return errors.New("invalid: unable to decode Error to nil")
 	}
 	var requiredBitSet [1]uint8
 
@@ -529,7 +529,7 @@ func (s *ErrorResponse) Decode(d *jx.Decoder) error {
 		}
 		return nil
 	}); err != nil {
-		return errors.Wrap(err, "decode ErrorResponse")
+		return errors.Wrap(err, "decode Error")
 	}
 	// Validate required fields.
 	var failures []validate.FieldError
@@ -546,8 +546,8 @@ func (s *ErrorResponse) Decode(d *jx.Decoder) error {
 				bitIdx := bits.TrailingZeros8(result)
 				fieldIdx := i*8 + bitIdx
 				var name string
-				if fieldIdx < len(jsonFieldsNameOfErrorResponse) {
-					name = jsonFieldsNameOfErrorResponse[fieldIdx]
+				if fieldIdx < len(jsonFieldsNameOfError) {
+					name = jsonFieldsNameOfError[fieldIdx]
 				} else {
 					name = strconv.Itoa(fieldIdx)
 				}
@@ -568,14 +568,14 @@ func (s *ErrorResponse) Decode(d *jx.Decoder) error {
 }
 
 // MarshalJSON implements stdjson.Marshaler.
-func (s *ErrorResponse) MarshalJSON() ([]byte, error) {
+func (s *Error) MarshalJSON() ([]byte, error) {
 	e := jx.Encoder{}
 	s.Encode(&e)
 	return e.Bytes(), nil
 }
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *ErrorResponse) UnmarshalJSON(data []byte) error {
+func (s *Error) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }
@@ -1064,6 +1064,12 @@ func (s *ReportResponse) encodeFields(e *jx.Encoder) {
 		}
 	}
 	{
+		if s.Query.Set {
+			e.FieldStart("query")
+			s.Query.Encode(e)
+		}
+	}
+	{
 		if s.Datasources != nil {
 			e.FieldStart("datasources")
 			e.ArrStart()
@@ -1087,17 +1093,18 @@ func (s *ReportResponse) encodeFields(e *jx.Encoder) {
 	}
 }
 
-var jsonFieldsNameOfReportResponse = [10]string{
-	0: "id",
-	1: "trigger",
-	2: "trigger_id",
-	3: "status",
-	4: "severity",
-	5: "summary",
-	6: "detail",
-	7: "datasources",
-	8: "iterations",
-	9: "created_at",
+var jsonFieldsNameOfReportResponse = [11]string{
+	0:  "id",
+	1:  "trigger",
+	2:  "trigger_id",
+	3:  "status",
+	4:  "severity",
+	5:  "summary",
+	6:  "detail",
+	7:  "query",
+	8:  "datasources",
+	9:  "iterations",
+	10: "created_at",
 }
 
 // Decode decodes ReportResponse from json.
@@ -1182,6 +1189,16 @@ func (s *ReportResponse) Decode(d *jx.Decoder) error {
 				return nil
 			}(); err != nil {
 				return errors.Wrap(err, "decode field \"detail\"")
+			}
+		case "query":
+			if err := func() error {
+				s.Query.Reset()
+				if err := s.Query.Decode(d); err != nil {
+					return err
+				}
+				return nil
+			}(); err != nil {
+				return errors.Wrap(err, "decode field \"query\"")
 			}
 		case "datasources":
 			if err := func() error {
