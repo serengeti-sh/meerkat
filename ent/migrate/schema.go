@@ -49,6 +49,7 @@ var (
 		{Name: "severity", Type: field.TypeEnum, Enums: []string{"info", "warning", "critical"}, Default: "info"},
 		{Name: "summary", Type: field.TypeString, Default: ""},
 		{Name: "detail", Type: field.TypeString, Size: 2147483647, Default: ""},
+		{Name: "query", Type: field.TypeString, Nullable: true, Size: 2147483647, Default: ""},
 		{Name: "datasources", Type: field.TypeJSON},
 		{Name: "iterations", Type: field.TypeInt, Default: 0},
 	}

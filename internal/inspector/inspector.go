@@ -37,6 +37,7 @@ type Report struct {
 	severity    Severity
 	summary     string
 	detail      string
+	query       string // original request query for dedup
 	datasources []string
 	iterations  int
 	createdAt   time.Time
@@ -50,6 +51,7 @@ func NewReport(
 	severity Severity,
 	summary string,
 	detail string,
+	query string,
 	datasources []string,
 	iterations int,
 	createdAt time.Time,
@@ -62,6 +64,7 @@ func NewReport(
 		severity:    severity,
 		summary:     summary,
 		detail:      detail,
+		query:       query,
 		datasources: datasources,
 		iterations:  iterations,
 		createdAt:   createdAt,
@@ -75,6 +78,7 @@ func (r *Report) Status() Status        { return r.status }
 func (r *Report) Severity() Severity    { return r.severity }
 func (r *Report) Summary() string       { return r.summary }
 func (r *Report) Detail() string        { return r.detail }
+func (r *Report) Query() string         { return r.query }
 func (r *Report) Datasources() []string { return r.datasources }
 func (r *Report) Iterations() int       { return r.iterations }
 func (r *Report) CreatedAt() time.Time  { return r.createdAt }
@@ -100,6 +104,7 @@ type ReportRepository interface {
 	Update(ctx context.Context, report *Report) error
 	GetByID(ctx context.Context, id string) (*Report, error)
 	List(ctx context.Context, limit int) ([]*Report, error)
+	FindActiveByQuery(ctx context.Context, trigger string, query string, since time.Time) (*Report, error)
 }
 
 // InspectorService orchestrates inspections.

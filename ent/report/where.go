@@ -89,6 +89,11 @@ func Detail(v string) predicate.Report {
 	return predicate.Report(sql.FieldEQ(FieldDetail, v))
 }
 
+// Query applies equality check predicate on the "query" field. It's identical to QueryEQ.
+func Query(v string) predicate.Report {
+	return predicate.Report(sql.FieldEQ(FieldQuery, v))
+}
+
 // Iterations applies equality check predicate on the "iterations" field. It's identical to IterationsEQ.
 func Iterations(v int) predicate.Report {
 	return predicate.Report(sql.FieldEQ(FieldIterations, v))
@@ -427,6 +432,81 @@ func DetailEqualFold(v string) predicate.Report {
 // DetailContainsFold applies the ContainsFold predicate on the "detail" field.
 func DetailContainsFold(v string) predicate.Report {
 	return predicate.Report(sql.FieldContainsFold(FieldDetail, v))
+}
+
+// QueryEQ applies the EQ predicate on the "query" field.
+func QueryEQ(v string) predicate.Report {
+	return predicate.Report(sql.FieldEQ(FieldQuery, v))
+}
+
+// QueryNEQ applies the NEQ predicate on the "query" field.
+func QueryNEQ(v string) predicate.Report {
+	return predicate.Report(sql.FieldNEQ(FieldQuery, v))
+}
+
+// QueryIn applies the In predicate on the "query" field.
+func QueryIn(vs ...string) predicate.Report {
+	return predicate.Report(sql.FieldIn(FieldQuery, vs...))
+}
+
+// QueryNotIn applies the NotIn predicate on the "query" field.
+func QueryNotIn(vs ...string) predicate.Report {
+	return predicate.Report(sql.FieldNotIn(FieldQuery, vs...))
+}
+
+// QueryGT applies the GT predicate on the "query" field.
+func QueryGT(v string) predicate.Report {
+	return predicate.Report(sql.FieldGT(FieldQuery, v))
+}
+
+// QueryGTE applies the GTE predicate on the "query" field.
+func QueryGTE(v string) predicate.Report {
+	return predicate.Report(sql.FieldGTE(FieldQuery, v))
+}
+
+// QueryLT applies the LT predicate on the "query" field.
+func QueryLT(v string) predicate.Report {
+	return predicate.Report(sql.FieldLT(FieldQuery, v))
+}
+
+// QueryLTE applies the LTE predicate on the "query" field.
+func QueryLTE(v string) predicate.Report {
+	return predicate.Report(sql.FieldLTE(FieldQuery, v))
+}
+
+// QueryContains applies the Contains predicate on the "query" field.
+func QueryContains(v string) predicate.Report {
+	return predicate.Report(sql.FieldContains(FieldQuery, v))
+}
+
+// QueryHasPrefix applies the HasPrefix predicate on the "query" field.
+func QueryHasPrefix(v string) predicate.Report {
+	return predicate.Report(sql.FieldHasPrefix(FieldQuery, v))
+}
+
+// QueryHasSuffix applies the HasSuffix predicate on the "query" field.
+func QueryHasSuffix(v string) predicate.Report {
+	return predicate.Report(sql.FieldHasSuffix(FieldQuery, v))
+}
+
+// QueryIsNil applies the IsNil predicate on the "query" field.
+func QueryIsNil() predicate.Report {
+	return predicate.Report(sql.FieldIsNull(FieldQuery))
+}
+
+// QueryNotNil applies the NotNil predicate on the "query" field.
+func QueryNotNil() predicate.Report {
+	return predicate.Report(sql.FieldNotNull(FieldQuery))
+}
+
+// QueryEqualFold applies the EqualFold predicate on the "query" field.
+func QueryEqualFold(v string) predicate.Report {
+	return predicate.Report(sql.FieldEqualFold(FieldQuery, v))
+}
+
+// QueryContainsFold applies the ContainsFold predicate on the "query" field.
+func QueryContainsFold(v string) predicate.Report {
+	return predicate.Report(sql.FieldContainsFold(FieldQuery, v))
 }
 
 // IterationsEQ applies the EQ predicate on the "iterations" field.

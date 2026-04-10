@@ -30,6 +30,8 @@ const (
 	FieldSummary = "summary"
 	// FieldDetail holds the string denoting the detail field in the database.
 	FieldDetail = "detail"
+	// FieldQuery holds the string denoting the query field in the database.
+	FieldQuery = "query"
 	// FieldDatasources holds the string denoting the datasources field in the database.
 	FieldDatasources = "datasources"
 	// FieldIterations holds the string denoting the iterations field in the database.
@@ -49,6 +51,7 @@ var Columns = []string{
 	FieldSeverity,
 	FieldSummary,
 	FieldDetail,
+	FieldQuery,
 	FieldDatasources,
 	FieldIterations,
 }
@@ -74,6 +77,8 @@ var (
 	DefaultSummary string
 	// DefaultDetail holds the default value on creation for the "detail" field.
 	DefaultDetail string
+	// DefaultQuery holds the default value on creation for the "query" field.
+	DefaultQuery string
 	// DefaultIterations holds the default value on creation for the "iterations" field.
 	DefaultIterations int
 )
@@ -203,6 +208,11 @@ func BySummary(opts ...sql.OrderTermOption) OrderOption {
 // ByDetail orders the results by the detail field.
 func ByDetail(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDetail, opts...).ToFunc()
+}
+
+// ByQuery orders the results by the query field.
+func ByQuery(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldQuery, opts...).ToFunc()
 }
 
 // ByIterations orders the results by the iterations field.

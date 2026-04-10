@@ -119,6 +119,26 @@ func (_u *ReportUpdate) SetNillableDetail(v *string) *ReportUpdate {
 	return _u
 }
 
+// SetQuery sets the "query" field.
+func (_u *ReportUpdate) SetQuery(v string) *ReportUpdate {
+	_u.mutation.SetQuery(v)
+	return _u
+}
+
+// SetNillableQuery sets the "query" field if the given value is not nil.
+func (_u *ReportUpdate) SetNillableQuery(v *string) *ReportUpdate {
+	if v != nil {
+		_u.SetQuery(*v)
+	}
+	return _u
+}
+
+// ClearQuery clears the value of the "query" field.
+func (_u *ReportUpdate) ClearQuery() *ReportUpdate {
+	_u.mutation.ClearQuery()
+	return _u
+}
+
 // SetDatasources sets the "datasources" field.
 func (_u *ReportUpdate) SetDatasources(v []string) *ReportUpdate {
 	_u.mutation.SetDatasources(v)
@@ -246,6 +266,12 @@ func (_u *ReportUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Detail(); ok {
 		_spec.SetField(report.FieldDetail, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.Query(); ok {
+		_spec.SetField(report.FieldQuery, field.TypeString, value)
+	}
+	if _u.mutation.QueryCleared() {
+		_spec.ClearField(report.FieldQuery, field.TypeString)
+	}
 	if value, ok := _u.mutation.Datasources(); ok {
 		_spec.SetField(report.FieldDatasources, field.TypeJSON, value)
 	}
@@ -367,6 +393,26 @@ func (_u *ReportUpdateOne) SetNillableDetail(v *string) *ReportUpdateOne {
 	if v != nil {
 		_u.SetDetail(*v)
 	}
+	return _u
+}
+
+// SetQuery sets the "query" field.
+func (_u *ReportUpdateOne) SetQuery(v string) *ReportUpdateOne {
+	_u.mutation.SetQuery(v)
+	return _u
+}
+
+// SetNillableQuery sets the "query" field if the given value is not nil.
+func (_u *ReportUpdateOne) SetNillableQuery(v *string) *ReportUpdateOne {
+	if v != nil {
+		_u.SetQuery(*v)
+	}
+	return _u
+}
+
+// ClearQuery clears the value of the "query" field.
+func (_u *ReportUpdateOne) ClearQuery() *ReportUpdateOne {
+	_u.mutation.ClearQuery()
 	return _u
 }
 
@@ -526,6 +572,12 @@ func (_u *ReportUpdateOne) sqlSave(ctx context.Context) (_node *Report, err erro
 	}
 	if value, ok := _u.mutation.Detail(); ok {
 		_spec.SetField(report.FieldDetail, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Query(); ok {
+		_spec.SetField(report.FieldQuery, field.TypeString, value)
+	}
+	if _u.mutation.QueryCleared() {
+		_spec.ClearField(report.FieldQuery, field.TypeString)
 	}
 	if value, ok := _u.mutation.Datasources(); ok {
 		_spec.SetField(report.FieldDatasources, field.TypeJSON, value)

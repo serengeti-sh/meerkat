@@ -13,7 +13,6 @@ import (
 
 func TestE2E_Inspect_Manual(t *testing.T) {
 	suite := SetupSuite(t)
-	// Reset mock state
 	suite.MockOpenAI.Reset()
 
 	t.Run("inspect triggers analysis and returns completed report", func(t *testing.T) {
@@ -90,7 +89,6 @@ func TestE2E_Inspect_Webhook(t *testing.T) {
 
 func TestE2E_Inspect_DirectAnswer(t *testing.T) {
 	suite := SetupSuite(t)
-	// Configure mock to answer immediately without tool calls
 	suite.MockOpenAI.Reset()
 	suite.MockOpenAI.SetResponses(
 		mock.DirectAnswerScenario("info", "All systems normal", "No anomalies detected in the monitored services."),
@@ -117,7 +115,61 @@ func TestE2E_Inspect_DirectAnswer(t *testing.T) {
 		assert.Equal(t, "info", report["severity"])
 		assert.Contains(t, report["summary"], "All systems normal")
 
-		// Should only be 1 call since no tools were used
 		assert.Equal(t, 1, len(suite.MockOpenAI.Calls))
+	})
+}
+
+func TestE2E_Inspect_Dedup(t *testing.T) {
+	suite := SetupSuite(t)
+	suite.MockOpenAI.Reset()
+
+	query := "Check for error spikes in the last hour"
+
+	t.Run("duplicate request returns 409 conflict", func(t *testing.T) {
+		// Use a slow mock so the analysis is still running when the second request arrives
+		suite.MockOpenAI.SetResponses(
+			func(callIdx int, reqBody map[string]any) map[string]any {
+				time.Sleep(3 * time.Second) // keep report in "running" state
+				return map[string]any{
+					"choices": []map[string]any{
+						{
+							"message": map[string]any{
+								"role":    "assistant",
+								"content": `{"severity":"info","summary":"Done","detail":"Analysis complete."}`,
+							},
+							"finish_reason": "stop",
+						},
+					},
+				}
+			},
+		)
+
+		// First request succeeds
+		resp, err := suite.Post("/v1/inspect", map[string]string{"query": query})
+		require.NoError(t, err)
+		_ = resp.Body.Close()
+		assert.Equal(t, http.StatusAccepted, resp.StatusCode)
+
+		// Second identical request should be rejected (report still running)
+		resp2, err := suite.Post("/v1/inspect", map[string]string{"query": query})
+		require.NoError(t, err)
+		defer func() { _ = resp2.Body.Close() }()
+
+		assert.Equal(t, http.StatusConflict, resp2.StatusCode)
+
+		var errResult map[string]any
+		require.NoError(t, suite.ReadJSON(resp2, &errResult))
+		assert.Contains(t, errResult["error"], "already in progress")
+	})
+
+	t.Run("different query succeeds after conflict", func(t *testing.T) {
+		suite.MockOpenAI.Reset()
+		suite.MockOpenAI.SetResponses(
+			mock.DirectAnswerScenario("info", "OK", "No issues."),
+		)
+		resp, err := suite.Post("/v1/inspect", map[string]string{"query": "Check memory usage"})
+		require.NoError(t, err)
+		_ = resp.Body.Close()
+		assert.Equal(t, http.StatusAccepted, resp.StatusCode)
 	})
 }

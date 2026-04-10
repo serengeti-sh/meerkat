@@ -46,6 +46,9 @@ func (Report) Fields() []ent.Field {
 			Default(""),
 		field.Text("detail").
 			Default(""),
+		field.Text("query").
+			Default("").
+			Optional(),
 		field.Strings("datasources"),
 		field.Int("iterations").
 			Default(0),

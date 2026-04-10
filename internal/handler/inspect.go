@@ -32,6 +32,7 @@ func mapReport(r *inspector.Report) map[string]any {
 		"severity":    string(r.Severity()),
 		"summary":     r.Summary(),
 		"detail":      r.Detail(),
+		"query":       r.Query(),
 		"datasources": r.Datasources(),
 		"iterations":  r.Iterations(),
 		"created_at":  r.CreatedAt(),

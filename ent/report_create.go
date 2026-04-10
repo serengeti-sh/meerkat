@@ -116,6 +116,20 @@ func (_c *ReportCreate) SetNillableDetail(v *string) *ReportCreate {
 	return _c
 }
 
+// SetQuery sets the "query" field.
+func (_c *ReportCreate) SetQuery(v string) *ReportCreate {
+	_c.mutation.SetQuery(v)
+	return _c
+}
+
+// SetNillableQuery sets the "query" field if the given value is not nil.
+func (_c *ReportCreate) SetNillableQuery(v *string) *ReportCreate {
+	if v != nil {
+		_c.SetQuery(*v)
+	}
+	return _c
+}
+
 // SetDatasources sets the "datasources" field.
 func (_c *ReportCreate) SetDatasources(v []string) *ReportCreate {
 	_c.mutation.SetDatasources(v)
@@ -200,6 +214,10 @@ func (_c *ReportCreate) defaults() {
 	if _, ok := _c.mutation.Detail(); !ok {
 		v := report.DefaultDetail
 		_c.mutation.SetDetail(v)
+	}
+	if _, ok := _c.mutation.Query(); !ok {
+		v := report.DefaultQuery
+		_c.mutation.SetQuery(v)
 	}
 	if _, ok := _c.mutation.Iterations(); !ok {
 		v := report.DefaultIterations
@@ -320,6 +338,10 @@ func (_c *ReportCreate) createSpec() (*Report, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Detail(); ok {
 		_spec.SetField(report.FieldDetail, field.TypeString, value)
 		_node.Detail = value
+	}
+	if value, ok := _c.mutation.Query(); ok {
+		_spec.SetField(report.FieldQuery, field.TypeString, value)
+		_node.Query = value
 	}
 	if value, ok := _c.mutation.Datasources(); ok {
 		_spec.SetField(report.FieldDatasources, field.TypeJSON, value)

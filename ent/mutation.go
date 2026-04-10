@@ -699,6 +699,7 @@ type ReportMutation struct {
 	severity          *report.Severity
 	summary           *string
 	detail            *string
+	query             *string
 	datasources       *[]string
 	appenddatasources []string
 	iterations        *int
@@ -1101,6 +1102,55 @@ func (m *ReportMutation) ResetDetail() {
 	m.detail = nil
 }
 
+// SetQuery sets the "query" field.
+func (m *ReportMutation) SetQuery(s string) {
+	m.query = &s
+}
+
+// Query returns the value of the "query" field in the mutation.
+func (m *ReportMutation) Query() (r string, exists bool) {
+	v := m.query
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuery returns the old "query" field's value of the Report entity.
+// If the Report object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ReportMutation) OldQuery(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuery is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuery requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuery: %w", err)
+	}
+	return oldValue.Query, nil
+}
+
+// ClearQuery clears the value of the "query" field.
+func (m *ReportMutation) ClearQuery() {
+	m.query = nil
+	m.clearedFields[report.FieldQuery] = struct{}{}
+}
+
+// QueryCleared returns if the "query" field was cleared in this mutation.
+func (m *ReportMutation) QueryCleared() bool {
+	_, ok := m.clearedFields[report.FieldQuery]
+	return ok
+}
+
+// ResetQuery resets all changes to the "query" field.
+func (m *ReportMutation) ResetQuery() {
+	m.query = nil
+	delete(m.clearedFields, report.FieldQuery)
+}
+
 // SetDatasources sets the "datasources" field.
 func (m *ReportMutation) SetDatasources(s []string) {
 	m.datasources = &s
@@ -1242,7 +1292,7 @@ func (m *ReportMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ReportMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.create_time != nil {
 		fields = append(fields, report.FieldCreateTime)
 	}
@@ -1266,6 +1316,9 @@ func (m *ReportMutation) Fields() []string {
 	}
 	if m.detail != nil {
 		fields = append(fields, report.FieldDetail)
+	}
+	if m.query != nil {
+		fields = append(fields, report.FieldQuery)
 	}
 	if m.datasources != nil {
 		fields = append(fields, report.FieldDatasources)
@@ -1297,6 +1350,8 @@ func (m *ReportMutation) Field(name string) (ent.Value, bool) {
 		return m.Summary()
 	case report.FieldDetail:
 		return m.Detail()
+	case report.FieldQuery:
+		return m.Query()
 	case report.FieldDatasources:
 		return m.Datasources()
 	case report.FieldIterations:
@@ -1326,6 +1381,8 @@ func (m *ReportMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldSummary(ctx)
 	case report.FieldDetail:
 		return m.OldDetail(ctx)
+	case report.FieldQuery:
+		return m.OldQuery(ctx)
 	case report.FieldDatasources:
 		return m.OldDatasources(ctx)
 	case report.FieldIterations:
@@ -1395,6 +1452,13 @@ func (m *ReportMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetDetail(v)
 		return nil
+	case report.FieldQuery:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuery(v)
+		return nil
 	case report.FieldDatasources:
 		v, ok := value.([]string)
 		if !ok {
@@ -1453,7 +1517,11 @@ func (m *ReportMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *ReportMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(report.FieldQuery) {
+		fields = append(fields, report.FieldQuery)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -1466,6 +1534,11 @@ func (m *ReportMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *ReportMutation) ClearField(name string) error {
+	switch name {
+	case report.FieldQuery:
+		m.ClearQuery()
+		return nil
+	}
 	return fmt.Errorf("unknown Report nullable field %s", name)
 }
 
@@ -1496,6 +1569,9 @@ func (m *ReportMutation) ResetField(name string) error {
 		return nil
 	case report.FieldDetail:
 		m.ResetDetail()
+		return nil
+	case report.FieldQuery:
+		m.ResetQuery()
 		return nil
 	case report.FieldDatasources:
 		m.ResetDatasources()

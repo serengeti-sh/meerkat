@@ -72,8 +72,12 @@ func init() {
 	reportDescDetail := reportFields[6].Descriptor()
 	// report.DefaultDetail holds the default value on creation for the detail field.
 	report.DefaultDetail = reportDescDetail.Default.(string)
+	// reportDescQuery is the schema descriptor for query field.
+	reportDescQuery := reportFields[7].Descriptor()
+	// report.DefaultQuery holds the default value on creation for the query field.
+	report.DefaultQuery = reportDescQuery.Default.(string)
 	// reportDescIterations is the schema descriptor for iterations field.
-	reportDescIterations := reportFields[8].Descriptor()
+	reportDescIterations := reportFields[9].Descriptor()
 	// report.DefaultIterations holds the default value on creation for the iterations field.
 	report.DefaultIterations = reportDescIterations.Default.(int)
 }

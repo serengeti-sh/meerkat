@@ -12,11 +12,14 @@ import (
 	"github.com/mandacode-labs/inspector/internal/reporter"
 )
 
+const defaultDedupWindow = 5 * time.Minute
+
 type service struct {
 	analyzerSvc analyzer.AnalyzerService
 	reportRepo  ReportRepository
 	reporterSvc reporter.ReporterService
 	registry    DatasourceRegistry
+	dedupWindow time.Duration
 }
 
 // DatasourceRegistry provides access to datasource info for building refs.
@@ -41,6 +44,7 @@ func NewService(
 		reportRepo:  reportRepo,
 		reporterSvc: reporterSvc,
 		registry:    registry,
+		dedupWindow: defaultDedupWindow,
 	}
 }
 
@@ -59,6 +63,16 @@ func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, app
 		query += fmt.Sprintf("\nCheck logs: %s", req.LogQuery)
 	}
 
+	// Dedup: check for an active report with the same query
+	existing, err := s.reportRepo.FindActiveByQuery(ctx, "manual", query, time.Now().Add(-s.dedupWindow))
+	if err != nil {
+		log.Printf("[inspector] dedup check failed: %v", err)
+	}
+	if existing != nil {
+		return nil, apperrors.New(apperrors.ErrConflict,
+			fmt.Sprintf("a similar analysis is already in progress (report %s)", existing.ID()))
+	}
+
 	triggerID := uuid.New().String()
 	report := NewReport(
 		uuid.New().String(),
@@ -68,6 +82,7 @@ func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, app
 		SeverityInfo,
 		"",
 		"",
+		query,
 		nil,
 		0,
 		time.Now(),
@@ -95,6 +110,16 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 		return nil, apperrors.New(apperrors.ErrInvalidInput, "no datasources configured")
 	}
 
+	// Dedup: check for an active report with the same alert
+	existing, err := s.reportRepo.FindActiveByQuery(ctx, "webhook", payload.Alert, time.Now().Add(-s.dedupWindow))
+	if err != nil {
+		log.Printf("[inspector] dedup check failed: %v", err)
+	}
+	if existing != nil {
+		return nil, apperrors.New(apperrors.ErrConflict,
+			fmt.Sprintf("a similar analysis is already in progress (report %s)", existing.ID()))
+	}
+
 	triggerID := uuid.New().String()
 	report := NewReport(
 		uuid.New().String(),
@@ -104,6 +129,7 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 		SeverityInfo,
 		"",
 		"",
+		payload.Alert,
 		nil,
 		0,
 		time.Now(),
@@ -129,7 +155,7 @@ func (s *service) runAnalysis(ctx context.Context, report *Report, input *analyz
 	report = NewReport(
 		report.ID(), report.Trigger(), report.TriggerID(),
 		StatusRunning, report.Severity(), report.Summary(),
-		report.Detail(), report.Datasources(), report.Iterations(),
+		report.Detail(), report.Query(), report.Datasources(), report.Iterations(),
 		report.CreatedAt(),
 	)
 	if err := s.reportRepo.Update(ctx, report); err != nil {
@@ -145,13 +171,13 @@ func (s *service) runAnalysis(ctx context.Context, report *Report, input *analyz
 		finalReport = NewReport(
 			report.ID(), report.Trigger(), report.TriggerID(),
 			StatusFailed, SeverityInfo, fmt.Sprintf("Analysis failed: %v", err),
-			report.Detail(), report.Datasources(), 0, report.CreatedAt(),
+			report.Detail(), report.Query(), report.Datasources(), 0, report.CreatedAt(),
 		)
 	} else {
 		finalReport = NewReport(
 			report.ID(), report.Trigger(), report.TriggerID(),
 			StatusCompleted, result.Severity, result.Summary,
-			result.Detail, result.Datasources, result.Iterations, report.CreatedAt(),
+			result.Detail, report.Query(), result.Datasources, result.Iterations, report.CreatedAt(),
 		)
 	}
 

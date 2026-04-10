@@ -29,8 +29,8 @@ func New(name, baseURL string) datasource.Provider {
 	}
 }
 
-func (p *provider) Name() string                         { return p.name }
-func (p *provider) Type() datasource.Type                { return p.dsType }
+func (p *provider) Name() string                                { return p.name }
+func (p *provider) Type() datasource.Type                       { return p.dsType }
 func (p *provider) LogsQuerier() (datasource.LogsQuerier, bool) { return nil, false }
 
 func (p *provider) MetricsQuerier() (datasource.MetricsQuerier, bool) {

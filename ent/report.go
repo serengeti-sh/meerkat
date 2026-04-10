@@ -34,6 +34,8 @@ type Report struct {
 	Summary string `json:"summary,omitempty"`
 	// Detail holds the value of the "detail" field.
 	Detail string `json:"detail,omitempty"`
+	// Query holds the value of the "query" field.
+	Query string `json:"query,omitempty"`
 	// Datasources holds the value of the "datasources" field.
 	Datasources []string `json:"datasources,omitempty"`
 	// Iterations holds the value of the "iterations" field.
@@ -50,7 +52,7 @@ func (*Report) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case report.FieldIterations:
 			values[i] = new(sql.NullInt64)
-		case report.FieldID, report.FieldTrigger, report.FieldTriggerID, report.FieldStatus, report.FieldSeverity, report.FieldSummary, report.FieldDetail:
+		case report.FieldID, report.FieldTrigger, report.FieldTriggerID, report.FieldStatus, report.FieldSeverity, report.FieldSummary, report.FieldDetail, report.FieldQuery:
 			values[i] = new(sql.NullString)
 		case report.FieldCreateTime, report.FieldUpdateTime:
 			values[i] = new(sql.NullTime)
@@ -122,6 +124,12 @@ func (_m *Report) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field detail", values[i])
 			} else if value.Valid {
 				_m.Detail = value.String
+			}
+		case report.FieldQuery:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field query", values[i])
+			} else if value.Valid {
+				_m.Query = value.String
 			}
 		case report.FieldDatasources:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -196,6 +204,9 @@ func (_m *Report) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("detail=")
 	builder.WriteString(_m.Detail)
+	builder.WriteString(", ")
+	builder.WriteString("query=")
+	builder.WriteString(_m.Query)
 	builder.WriteString(", ")
 	builder.WriteString("datasources=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Datasources))
