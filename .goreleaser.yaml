@@ -35,20 +35,18 @@ builds:
 
 archives:
   - id: meerkat
-    builds:
+    ids:
       - meerkat
     name_template: "meerkat_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    format: tar.gz
-    files:
-      - none*
+    formats:
+      - tar.gz
 
   - id: meerkat-server
-    builds:
+    ids:
       - meerkat-server
     name_template: "meerkat-server_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-    format: tar.gz
-    files:
-      - none*
+    formats:
+      - tar.gz
 
 checksum:
   name_template: "checksums.txt"
