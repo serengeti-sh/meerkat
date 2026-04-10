@@ -97,10 +97,7 @@ jobs:
         uses: helm/chart-testing-action@v2.8.0
 
       - name: Run ct lint
-        run: |
-          ct lint \
-            --target-branch=main \
-            --chart-dirs=deployment/charts
+        run: ct lint --all --chart-dirs=deployment/charts
 
       - name: Helm Template
         run: helm template meerkat ./deployment/charts/meerkat
