@@ -78,7 +78,7 @@ jobs:
         uses: docker/setup-buildx-action@v4.0.0
 
       - name: Build Docker image
-        uses: docker/build-push-action@v6.9.0
+        uses: docker/build-push-action@v7.0.0
         with:
           context: .
           file: build/docker/server.Dockerfile
@@ -93,19 +93,14 @@ jobs:
     steps:
       - uses: actions/checkout@v6.0.2
 
-      - name: Helm Lint
+      - name: Set up chart-testing
         uses: helm/chart-testing-action@v2.8.0
 
       - name: Run ct lint
-        uses: helm/chart-testing-action@v2.8.0
-        with:
-          command: ct lint
-          config: |
-            charts:
-              - deployment/charts/meerkat
-            chart-yaml-schema: ""
-            validate-maintainers: false
-            check-version-increment: false
+        run: |
+          ct lint \
+            --target-branch=main \
+            --chart-dirs=deployment/charts
 
       - name: Helm Template
         run: helm template meerkat ./deployment/charts/meerkat
