@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "meerkat.fullname" . }}
+  labels:
+    {{- include "meerkat.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-weight: "-1"
+data:
+  config.yaml: |
+    app:
+      name: {{ .Values.config.app.name }}
+      env: {{ .Values.config.app.env }}
+      debug: {{ .Values.config.app.debug }}
+    http:
+      host: {{ .Values.config.http.host | quote }}
+      port: {{ .Values.config.http.port }}
+      openapi_path: /app/api/openapi.bundled.json
+    store:
+      driver: {{ .Values.config.store.driver }}
+      path: "postgresql://{{ .Values.config.store.user }}:$(DATABASE_PASSWORD)@{{ .Values.config.store.host }}:{{ .Values.config.store.port }}/{{ .Values.config.store.name }}?sslmode={{ .Values.config.store.sslmode }}"
+    {{- if .Values.config.datasources }}
+    datasources:
+      {{- toYaml .Values.config.datasources | nindent 6 }}
+    {{- end }}
+    analyzer:
+      provider: {{ .Values.config.analyzer.provider }}
+      url: {{ .Values.config.analyzer.url }}
+      api_key: $(LLM_API_KEY)
+      model: {{ .Values.config.analyzer.model }}
+      max_iterations: {{ .Values.config.analyzer.max_iterations }}
+      max_tokens: {{ .Values.config.analyzer.max_tokens }}
+      temperature: {{ .Values.config.analyzer.temperature }}
+    {{- if .Values.config.scheduler.enabled }}
+    scheduler:
+      enabled: {{ .Values.config.scheduler.enabled }}
+      {{- if .Values.config.scheduler.jobs }}
+      jobs:
+        {{- toYaml .Values.config.scheduler.jobs | nindent 8 }}
+      {{- end }}
+    {{- end }}
+    {{- if .Values.config.reporter.channels }}
+    reporter:
+      channels:
+        {{- toYaml .Values.config.reporter.channels | nindent 8 }}
+    {{- end }}
