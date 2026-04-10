@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	apperrors "github.com/mandacode-labs/inspector/internal/errors"
+	apperrors "github.com/serengeti-sh/meerkat/internal/errors"
 )
 
 type DatasourceID string

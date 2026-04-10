@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/mandacode-labs/inspector/internal/datasource"
-	"github.com/mandacode-labs/inspector/internal/datasource/provider/victorialogs"
+	"github.com/serengeti-sh/meerkat/internal/datasource"
+	"github.com/serengeti-sh/meerkat/internal/datasource/provider/victorialogs"
 )
 
 func TestQueryLogs_JSONResponse(t *testing.T) {

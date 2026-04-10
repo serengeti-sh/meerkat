@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	apperrors "github.com/mandacode-labs/inspector/internal/errors"
+	apperrors "github.com/serengeti-sh/meerkat/internal/errors"
 
-	"github.com/mandacode-labs/inspector/internal/datasource"
-	"github.com/mandacode-labs/inspector/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/datasource"
+	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
 
 type Handler struct {

@@ -17,18 +17,18 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/mandacode-labs/inspector/ent"
-	"github.com/mandacode-labs/inspector/internal/analyzer"
-	"github.com/mandacode-labs/inspector/internal/config"
-	"github.com/mandacode-labs/inspector/internal/datasource"
-	"github.com/mandacode-labs/inspector/internal/datasource/provider/prometheus"
-	"github.com/mandacode-labs/inspector/internal/handler"
-	"github.com/mandacode-labs/inspector/internal/inspector"
-	insprepo "github.com/mandacode-labs/inspector/internal/inspector/repository"
-	"github.com/mandacode-labs/inspector/internal/reporter"
-	"github.com/mandacode-labs/inspector/internal/scheduler"
-	"github.com/mandacode-labs/inspector/internal/store"
-	"github.com/mandacode-labs/inspector/test/e2e/mock"
+	"github.com/serengeti-sh/meerkat/ent"
+	"github.com/serengeti-sh/meerkat/internal/analyzer"
+	"github.com/serengeti-sh/meerkat/internal/config"
+	"github.com/serengeti-sh/meerkat/internal/datasource"
+	"github.com/serengeti-sh/meerkat/internal/datasource/provider/prometheus"
+	"github.com/serengeti-sh/meerkat/internal/handler"
+	"github.com/serengeti-sh/meerkat/internal/inspector"
+	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
+	"github.com/serengeti-sh/meerkat/internal/reporter"
+	"github.com/serengeti-sh/meerkat/internal/scheduler"
+	"github.com/serengeti-sh/meerkat/internal/store"
+	"github.com/serengeti-sh/meerkat/test/e2e/mock"
 
 	_ "github.com/lib/pq"
 )
@@ -64,9 +64,9 @@ func (s *Suite) Start(ctx context.Context) error {
 	// 1. Start PostgreSQL container
 	c, err := postgres.Run(ctx,
 		"postgres:17-alpine",
-		postgres.WithDatabase("inspector_test"),
-		postgres.WithUsername("inspector"),
-		postgres.WithPassword("inspector"),
+		postgres.WithDatabase("meerkat_test"),
+		postgres.WithUsername("meerkat"),
+		postgres.WithPassword("meerkat"),
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
@@ -92,7 +92,7 @@ func (s *Suite) Start(ctx context.Context) error {
 	// 4. Build config with mock URLs
 	cfg := &config.Config{
 		App: config.AppConfig{
-			Name: "inspector",
+			Name: "meerkat",
 			Env:  "test",
 		},
 		HTTP: config.HTTPConfig{

@@ -11,19 +11,19 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mandacode-labs/inspector/ent"
-	"github.com/mandacode-labs/inspector/internal/analyzer"
-	"github.com/mandacode-labs/inspector/internal/config"
-	"github.com/mandacode-labs/inspector/internal/datasource"
-	"github.com/mandacode-labs/inspector/internal/datasource/provider/loki"
-	"github.com/mandacode-labs/inspector/internal/datasource/provider/prometheus"
-	"github.com/mandacode-labs/inspector/internal/datasource/provider/victorialogs"
-	"github.com/mandacode-labs/inspector/internal/handler"
-	"github.com/mandacode-labs/inspector/internal/inspector"
-	insprepo "github.com/mandacode-labs/inspector/internal/inspector/repository"
-	"github.com/mandacode-labs/inspector/internal/reporter"
-	"github.com/mandacode-labs/inspector/internal/scheduler"
-	"github.com/mandacode-labs/inspector/internal/store"
+	"github.com/serengeti-sh/meerkat/ent"
+	"github.com/serengeti-sh/meerkat/internal/analyzer"
+	"github.com/serengeti-sh/meerkat/internal/config"
+	"github.com/serengeti-sh/meerkat/internal/datasource"
+	"github.com/serengeti-sh/meerkat/internal/datasource/provider/loki"
+	"github.com/serengeti-sh/meerkat/internal/datasource/provider/prometheus"
+	"github.com/serengeti-sh/meerkat/internal/datasource/provider/victorialogs"
+	"github.com/serengeti-sh/meerkat/internal/handler"
+	"github.com/serengeti-sh/meerkat/internal/inspector"
+	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
+	"github.com/serengeti-sh/meerkat/internal/reporter"
+	"github.com/serengeti-sh/meerkat/internal/scheduler"
+	"github.com/serengeti-sh/meerkat/internal/store"
 	"go.uber.org/fx"
 )
 
@@ -86,7 +86,7 @@ func newProvider(ds config.DatasourceConfig) datasource.Provider {
 	case "loki":
 		return loki.New(ds.Name, ds.URL)
 	default:
-		log.Printf("[inspector] unknown datasource type %q for %q, skipping", ds.Type, ds.Name)
+		log.Printf("[meerkat] unknown datasource type %q for %q, skipping", ds.Type, ds.Name)
 		return nil
 	}
 }
@@ -158,7 +158,7 @@ func ProvideHTTPServer(
 				return fmt.Errorf("failed to listen on %s: %w", addr, err)
 			}
 
-			log.Printf("Starting inspector server on %s", addr)
+			log.Printf("Starting meerkat server on %s", addr)
 
 			go func() { _ = srv.Serve(ln) }()
 

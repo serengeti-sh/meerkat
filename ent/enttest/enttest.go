@@ -5,12 +5,12 @@ package enttest
 import (
 	"context"
 
-	"github.com/mandacode-labs/inspector/ent"
+	"github.com/serengeti-sh/meerkat/ent"
 	// required by schema hooks.
-	_ "github.com/mandacode-labs/inspector/ent/runtime"
+	_ "github.com/serengeti-sh/meerkat/ent/runtime"
 
 	"entgo.io/ent/dialect/sql/schema"
-	"github.com/mandacode-labs/inspector/ent/migrate"
+	"github.com/serengeti-sh/meerkat/ent/migrate"
 )
 
 type (

@@ -1,27 +1,37 @@
-# Inspector
+# Meerkat
 
-AI-powered observability agent that queries Victoria Metrics/Logs using an agentic AI loop.
+AI-powered observability agent that watches your infrastructure like a meerkat on sentinel duty.
 
 ## Architecture
 
 ```
-Request (manual/webhook/scheduled)
-  → Handler
-    → Inspector Service (creates pending report, spawns goroutine)
-      → Analyzer Service (agentic loop)
-        → LLM Provider (OpenAI-compatible / Anthropic)
-        → Tools (query_metrics, query_logs)
-          → Victoria Metrics / Victoria Logs HTTP API
-      → Reporter Service (Slack, Webhook channels)
+Request (manual / webhook / scheduled)
+    → Meerkat Service (creates pending report, spawns goroutine)
+        → Analyzer (agentic AI loop with tool calls)
+            → Datasources (Prometheus, Victoria Metrics, Loki, etc.)
+        → Reporter (Slack, webhook, etc.)
+    → Report (completed/failed)
+```
+
+## Quick Start
+
+```bash
+# Copy and edit config
+cp config.example.yaml config.yaml
+
+# Run migrations
+go run ./cmd/meerkat-server migrate apply
+
+# Start server
+go run ./cmd/meerkat-server serve
 ```
 
 ## Configuration
 
 ```yaml
 app:
-  name: inspector
+  name: meerkat
   env: development
-  debug: false
 
 http:
   host: 0.0.0.0
@@ -29,85 +39,53 @@ http:
 
 store:
   driver: postgres
-  path: postgresql://localhost:5432/inspector?sslmode=disable
+  path: postgresql://localhost:5432/meerkat?sslmode=disable
 
 datasources:
   - name: vm
-    type: victoria-metrics
+    type: prometheus
     url: http://localhost:8428
-  - name: vl
-    type: victoria-logs
-    url: http://localhost:9428
 
 analyzer:
-  provider: openai          # openai (default), anthropic
+  provider: openai
   url: https://api.openai.com
-  api_key: ${LLM_API_KEY}
+  api_key: ${OPENAI_API_KEY}
   model: gpt-4o
   max_iterations: 10
-  max_tokens: 4096
-  temperature: 0.3
-  system_prompt_file: ""    # optional: external system prompt file (falls back to built-in default)
-
-scheduler:
-  enabled: false
-  jobs:
-    - name: error-spike-check
-      interval: "*/5 * * * *"
-      metric_query: 'rate(http_errors_total[5m])'
-      log_query: 'level:error'
-
-reporter:
-  channels:
-    - type: slack
-      webhook_url: https://hooks.slack.com/services/xxx
-      min_severity: warning   # info, warning, critical
 ```
 
-## API
+## CLI
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | /v1/health | Health check |
-| POST | /v1/inspect | Start manual analysis |
-| POST | /v1/webhook/{source} | Receive webhook alert |
-| GET | /v1/reports | List reports |
-| GET | /v1/reports/{id} | Get report by ID |
-| GET | /v1/datasources | List configured datasources |
-| GET | /v1/datasources/{name}/test | Test datasource connection |
+```bash
+# Trigger manual inspection
+meerkat inspect -q "Check for error spikes in the last hour"
+
+# List reports
+meerkat report list
+
+# Get specific report
+meerkat report get <id>
+
+# List datasources
+meerkat datasource list
+```
 
 ## Development
 
 ```bash
-make gen       # generate ent + ogen + mocks
-make fmt       # format and lint fix
-make mock      # regenerate mocks only
-make test      # run tests
-make build     # build binary
+make gen        # Generate all code (ent, ogen, mocks)
+make build      # Build binaries
+make test       # Run unit tests
+make test-e2e   # Run e2e tests (requires Docker)
+make lint       # Run linter
 ```
 
-## Supported Datasources
+## Docker
 
-| Type | Query Language | Supports |
-|------|---------------|----------|
-| `prometheus` | PromQL | Victoria Metrics, Prometheus, Thanos, Cortex, Mimir |
-| `victoria-logs` | LogsQL | Victoria Logs |
-| `loki` | LogQL | Grafana Loki |
-
-## Architecture
-
-```
-Tool (query_metrics, query_logs)
-  → ProviderRegistry.Get(name) → Provider
-    → Provider.MetricsQuerier() / Provider.LogsQuerier()
-      → Provider implementations (Prometheus, Victoria Logs, Loki)
+```bash
+docker build -f build/docker/server.Dockerfile -t meerkat-server .
 ```
 
-Adding a new provider: implement `MetricsQuerier` and/or `LogsQuerier` interfaces, register in `newProvider()`.
+## License
 
-## TODO
-
-### API 확장
-
-- `query_range` (범위 쿼리) 지원 — 현재 instant query만 가능
-- `series` (시리즈 매칭) 엔드포인트 지원
+Proprietary

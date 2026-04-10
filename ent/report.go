@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/mandacode-labs/inspector/ent/report"
+	"github.com/serengeti-sh/meerkat/ent/report"
 )
 
 // Report is the model entity for the Report schema.

@@ -7,8 +7,8 @@ package inspectorMocks
 import (
 	"context"
 
-	"github.com/mandacode-labs/inspector/internal/errors"
-	"github.com/mandacode-labs/inspector/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/errors"
+	"github.com/serengeti-sh/meerkat/internal/inspector"
 	mock "github.com/stretchr/testify/mock"
 )
 

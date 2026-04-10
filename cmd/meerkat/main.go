@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/mandacode-labs/inspector/pkg/api"
+	"github.com/serengeti-sh/meerkat/pkg/api"
 )
 
 var (
@@ -18,8 +18,8 @@ var (
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:     "inspector",
-		Short:   "CLI client for Inspector AI agent",
+		Use:     "meerkat",
+		Short:   "CLI client for Meerkat AI agent",
 		Version: version,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if apiURL == "" {
@@ -34,7 +34,7 @@ func main() {
 		},
 	}
 
-	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Inspector server URL (default: http://localhost:8080)")
+	rootCmd.PersistentFlags().StringVar(&apiURL, "api-url", "", "Meerkat server URL (default: http://localhost:8080)")
 
 	rootCmd.AddCommand(newInspectCmd())
 	rootCmd.AddCommand(newReportCmd())

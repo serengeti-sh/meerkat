@@ -5,9 +5,9 @@ package ent
 import (
 	"time"
 
-	"github.com/mandacode-labs/inspector/ent/inspectrule"
-	"github.com/mandacode-labs/inspector/ent/report"
-	"github.com/mandacode-labs/inspector/ent/schema"
+	"github.com/serengeti-sh/meerkat/ent/inspectrule"
+	"github.com/serengeti-sh/meerkat/ent/report"
+	"github.com/serengeti-sh/meerkat/ent/schema"
 )
 
 // The init function reads all schema descriptors with runtime code

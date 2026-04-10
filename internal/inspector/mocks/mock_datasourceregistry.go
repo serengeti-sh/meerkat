@@ -5,7 +5,7 @@
 package inspectorMocks
 
 import (
-	"github.com/mandacode-labs/inspector/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/inspector"
 	mock "github.com/stretchr/testify/mock"
 )
 

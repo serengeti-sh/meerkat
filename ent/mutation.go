@@ -11,9 +11,9 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/mandacode-labs/inspector/ent/inspectrule"
-	"github.com/mandacode-labs/inspector/ent/predicate"
-	"github.com/mandacode-labs/inspector/ent/report"
+	"github.com/serengeti-sh/meerkat/ent/inspectrule"
+	"github.com/serengeti-sh/meerkat/ent/predicate"
+	"github.com/serengeti-sh/meerkat/ent/report"
 )
 
 const (

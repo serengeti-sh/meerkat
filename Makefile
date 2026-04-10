@@ -75,8 +75,8 @@ test-e2e: ## Run e2e tests
 # Building
 .PHONY: build
 build: ## Build binaries
-	go build -o bin/inspector ./cmd/inspector
-	go build -o bin/inspector-server ./cmd/inspector-server
+	go build -o bin/meerkat ./cmd/meerkat
+	go build -o bin/meerkat-server ./cmd/meerkat-server
 
 # All-in-one
 .PHONY: all

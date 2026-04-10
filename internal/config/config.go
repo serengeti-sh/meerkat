@@ -34,7 +34,7 @@ type HTTPConfig struct {
 
 type StoreConfig struct {
 	Driver string `mapstructure:"driver"`
-	Path   string `mapstructure:"path"` // PostgreSQL DSN, e.g. postgres://user:pass@localhost:5432/inspector?sslmode=disable
+	Path   string `mapstructure:"path"` // PostgreSQL DSN, e.g. postgres://user:pass@localhost:5432/meerkat?sslmode=disable
 }
 
 type DatasourceConfig struct {
@@ -155,7 +155,7 @@ func LoadFromPath(path string) (*Config, error) {
 }
 
 func setDefaults(v *viper.Viper) {
-	v.SetDefault("app.name", "inspector")
+	v.SetDefault("app.name", "meerkat")
 	v.SetDefault("app.version", "0.0.1")
 	v.SetDefault("app.env", "development")
 	v.SetDefault("app.debug", false)
@@ -165,7 +165,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("http.openapi_path", "api/openapi.yaml")
 
 	v.SetDefault("store.driver", "postgres")
-	v.SetDefault("store.path", "postgresql://localhost:5432/inspector?sslmode=disable")
+	v.SetDefault("store.path", "postgresql://localhost:5432/meerkat?sslmode=disable")
 
 	v.SetDefault("analyzer.provider", "openai")
 	v.SetDefault("analyzer.url", "https://api.openai.com")

@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/mandacode-labs/inspector/internal/datasource"
-	"github.com/mandacode-labs/inspector/internal/datasource/provider/prometheus"
+	"github.com/serengeti-sh/meerkat/internal/datasource"
+	"github.com/serengeti-sh/meerkat/internal/datasource/provider/prometheus"
 )
 
 func TestQueryMetrics_VectorResponse(t *testing.T) {

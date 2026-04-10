@@ -53,7 +53,7 @@ func (c *SlackChannel) Send(ctx context.Context, report *ReportData) error {
 				"type": "header",
 				"text": map[string]string{
 					"type": "plain_text",
-					"text": fmt.Sprintf("%s Inspector Alert [%s]", emoji, report.Severity),
+					"text": fmt.Sprintf("%s Meerkat Alert [%s]", emoji, report.Severity),
 				},
 			},
 			{

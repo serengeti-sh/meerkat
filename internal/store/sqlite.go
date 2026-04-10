@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mandacode-labs/inspector/ent"
-	"github.com/mandacode-labs/inspector/ent/migrate"
+	"github.com/serengeti-sh/meerkat/ent"
+	"github.com/serengeti-sh/meerkat/ent/migrate"
 
-	"github.com/mandacode-labs/inspector/internal/config"
+	"github.com/serengeti-sh/meerkat/internal/config"
 )
 
 // NewEntClient creates an ent client with PostgreSQL driver.

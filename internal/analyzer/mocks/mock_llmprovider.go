@@ -7,7 +7,7 @@ package analyzerMocks
 import (
 	"context"
 
-	"github.com/mandacode-labs/inspector/internal/analyzer"
+	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	mock "github.com/stretchr/testify/mock"
 )
 

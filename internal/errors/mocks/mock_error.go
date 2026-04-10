@@ -5,7 +5,7 @@
 package errorsMocks
 
 import (
-	"github.com/mandacode-labs/inspector/internal/errors"
+	"github.com/serengeti-sh/meerkat/internal/errors"
 	mock "github.com/stretchr/testify/mock"
 )
 

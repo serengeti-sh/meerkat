@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/mandacode-labs/inspector/ent/inspectrule"
-	"github.com/mandacode-labs/inspector/ent/predicate"
+	"github.com/serengeti-sh/meerkat/ent/inspectrule"
+	"github.com/serengeti-sh/meerkat/ent/predicate"
 )
 
 // InspectRuleUpdate is the builder for updating InspectRule entities.

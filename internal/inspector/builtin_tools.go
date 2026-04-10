@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mandacode-labs/inspector/internal/datasource"
+	"github.com/serengeti-sh/meerkat/internal/datasource"
 )
 
 // QueryMetricsTool queries metrics from a configured datasource via PromQL/LogQL.

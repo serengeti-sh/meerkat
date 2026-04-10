@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/mandacode-labs/inspector/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
 
 func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {

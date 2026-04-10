@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/mandacode-labs/inspector/internal/analyzer"
-	analyzerMocks "github.com/mandacode-labs/inspector/internal/analyzer/mocks"
+	"github.com/serengeti-sh/meerkat/internal/analyzer"
+	analyzerMocks "github.com/serengeti-sh/meerkat/internal/analyzer/mocks"
 )
 
 func TestService_Analyze_SingleResponse(t *testing.T) {

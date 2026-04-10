@@ -17,7 +17,7 @@ permissions:
 jobs:
   docker-build:
     name: Build and Push Docker Images
-    uses: mandacode-labs/workflows/.github/workflows/docker-build.yml@main
+    uses: serengeti-sh/workflows/.github/workflows/docker-build.yml@main
     with:
       images: |
         [

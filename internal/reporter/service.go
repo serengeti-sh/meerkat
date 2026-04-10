@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/mandacode-labs/inspector/internal/config"
+	"github.com/serengeti-sh/meerkat/internal/config"
 )
 
 type service struct {

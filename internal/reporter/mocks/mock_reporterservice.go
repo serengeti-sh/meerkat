@@ -7,7 +7,7 @@ package reporterMocks
 import (
 	"context"
 
-	"github.com/mandacode-labs/inspector/internal/reporter"
+	"github.com/serengeti-sh/meerkat/internal/reporter"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -77,6 +77,6 @@ jobs:
           context: .
           file: build/docker/server.Dockerfile
           push: false
-          tags: inspector-server:test
+          tags: meerkat-server:test
           cache-from: type=gha
           cache-to: type=gha,mode=max

@@ -72,7 +72,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 				continue
 			}
 
-			log.Printf("[inspector] tool call #%d: %s(%s)", i+1, tc.Name, string(tc.Arguments))
+			log.Printf("[meerkat] tool call #%d: %s(%s)", i+1, tc.Name, string(tc.Arguments))
 
 			result, err := tool.Execute(ctx, tc.Arguments)
 			if err != nil {
@@ -87,7 +87,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 			})
 		}
 
-		log.Printf("[inspector] iteration %d complete, continuing...", i+1)
+		log.Printf("[meerkat] iteration %d complete, continuing...", i+1)
 	}
 
 	// Max iterations reached — force a final response without tools

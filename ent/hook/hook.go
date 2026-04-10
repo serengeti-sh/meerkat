@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/mandacode-labs/inspector/ent"
+	"github.com/serengeti-sh/meerkat/ent"
 )
 
 // The InspectRuleFunc type is an adapter to allow the use of ordinary

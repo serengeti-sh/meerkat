@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/mandacode-labs/inspector/internal/analyzer"
-	analyzerMocks "github.com/mandacode-labs/inspector/internal/analyzer/mocks"
-	"github.com/mandacode-labs/inspector/internal/inspector"
-	inspectorMocks "github.com/mandacode-labs/inspector/internal/inspector/mocks"
-	reporterMocks "github.com/mandacode-labs/inspector/internal/reporter/mocks"
+	"github.com/serengeti-sh/meerkat/internal/analyzer"
+	analyzerMocks "github.com/serengeti-sh/meerkat/internal/analyzer/mocks"
+	"github.com/serengeti-sh/meerkat/internal/inspector"
+	inspectorMocks "github.com/serengeti-sh/meerkat/internal/inspector/mocks"
+	reporterMocks "github.com/serengeti-sh/meerkat/internal/reporter/mocks"
 )
 
 type stubRegistry struct {

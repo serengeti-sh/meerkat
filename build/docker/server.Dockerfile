@@ -36,7 +36,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go build -a \
     -ldflags="-w -s \
               -X main.version=${VERSION}" \
-    -o inspector-server ./cmd/inspector-server
+    -o meerkat-server ./cmd/meerkat-server
 
 ############################
 # 2. Runtime Stage
@@ -45,25 +45,25 @@ FROM alpine:3.23.0 AS runtime
 
 ARG VERSION
 
-LABEL org.opencontainers.image.title="Inspector Server" \
+LABEL org.opencontainers.image.title="Meerkat Server" \
       org.opencontainers.image.description="AI-powered observability agent" \
       org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.source="https://github.com/mandacode-labs/inspector"
+      org.opencontainers.image.source="https://github.com/serengeti-sh/meerkat"
 
 RUN apk add --no-cache \
       ca-certificates=20251003-r0 \
       tzdata=2026a-r0 \
       curl=8.17.0-r1 && \
-    adduser -D -u 1001 inspector
+    adduser -D -u 1001 meerkat
 
 WORKDIR /app
 
-COPY --from=builder /build/inspector-server /app/inspector-server
+COPY --from=builder /build/meerkat-server /app/meerkat-server
 COPY --from=builder /build/api/openapi.bundled.json /app/api/openapi.bundled.json
 
-RUN mkdir -p /app/config && chown -R inspector:inspector /app
+RUN mkdir -p /app/config && chown -R meerkat:meerkat /app
 
-USER inspector
+USER meerkat
 
 EXPOSE 8080
 
@@ -73,5 +73,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 ENV PORT=8080 \
     HTTP_OPENAPI_PATH=/app/api/openapi.bundled.json
 
-ENTRYPOINT ["/app/inspector-server"]
+ENTRYPOINT ["/app/meerkat-server"]
 CMD ["serve"]

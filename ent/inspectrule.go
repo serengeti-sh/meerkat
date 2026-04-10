@@ -9,7 +9,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/mandacode-labs/inspector/ent/inspectrule"
+	"github.com/serengeti-sh/meerkat/ent/inspectrule"
 )
 
 // InspectRule is the model entity for the InspectRule schema.

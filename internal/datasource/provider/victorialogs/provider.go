@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/mandacode-labs/inspector/internal/datasource"
+	"github.com/serengeti-sh/meerkat/internal/datasource"
 )
 
 type provider struct {

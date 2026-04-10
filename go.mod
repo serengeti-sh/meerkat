@@ -1,4 +1,4 @@
-module github.com/mandacode-labs/inspector
+module github.com/serengeti-sh/meerkat
 
 go 1.26.1
 

@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/mandacode-labs/inspector/internal/datasource"
-	dsMocks "github.com/mandacode-labs/inspector/internal/datasource/mocks"
-	"github.com/mandacode-labs/inspector/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/datasource"
+	dsMocks "github.com/serengeti-sh/meerkat/internal/datasource/mocks"
+	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
 
 func makeRegistryWithMetrics(t *testing.T, name string, querier datasource.MetricsQuerier) *datasource.Registry {

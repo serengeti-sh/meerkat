@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mandacode-labs/inspector/internal/config"
-	"github.com/mandacode-labs/inspector/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/config"
+	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
 
 type Scheduler interface {

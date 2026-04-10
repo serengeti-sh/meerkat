@@ -6,8 +6,8 @@ import (
 
 func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "inspector-server",
-		Short: "Inspector AI agent server",
+		Use:   "meerkat-server",
+		Short: "Meerkat AI agent server",
 	}
 
 	cmd.AddCommand(newServeCmd())
@@ -22,7 +22,7 @@ func newServeCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: "Start the inspector server",
+		Short: "Start the meerkat server",
 		Run: func(cmd *cobra.Command, args []string) {
 			app := NewFXApp(cfgFile, port)
 			app.Run()

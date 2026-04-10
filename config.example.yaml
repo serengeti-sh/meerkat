@@ -1,5 +1,5 @@
 app:
-  name: inspector
+  name: meerkat
   env: development
   debug: true
 
@@ -9,7 +9,7 @@ http:
 
 store:
   driver: postgres
-  path: postgresql://localhost:5432/inspector?sslmode=disable
+  path: postgresql://localhost:5432/meerkat?sslmode=disable
 
 datasources:
   - name: vm

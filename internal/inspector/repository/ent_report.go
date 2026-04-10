@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/mandacode-labs/inspector/ent"
-	entReport "github.com/mandacode-labs/inspector/ent/report"
-	"github.com/mandacode-labs/inspector/internal/inspector"
+	"github.com/serengeti-sh/meerkat/ent"
+	entReport "github.com/serengeti-sh/meerkat/ent/report"
+	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
 
 type entReportRepository struct {

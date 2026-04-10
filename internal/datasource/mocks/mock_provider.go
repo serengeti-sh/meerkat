@@ -7,7 +7,7 @@ package datasourceMocks
 import (
 	"context"
 
-	"github.com/mandacode-labs/inspector/internal/datasource"
+	"github.com/serengeti-sh/meerkat/internal/datasource"
 	mock "github.com/stretchr/testify/mock"
 )
 

@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/mandacode-labs/inspector/internal/analyzer"
-	apperrors "github.com/mandacode-labs/inspector/internal/errors"
-	"github.com/mandacode-labs/inspector/internal/reporter"
+	"github.com/serengeti-sh/meerkat/internal/analyzer"
+	apperrors "github.com/serengeti-sh/meerkat/internal/errors"
+	"github.com/serengeti-sh/meerkat/internal/reporter"
 )
 
 const defaultDedupWindow = 5 * time.Minute
@@ -66,7 +66,7 @@ func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, app
 	// Dedup: check for an active report with the same query
 	existing, err := s.reportRepo.FindActiveByQuery(ctx, "manual", query, time.Now().Add(-s.dedupWindow))
 	if err != nil {
-		log.Printf("[inspector] dedup check failed: %v", err)
+		log.Printf("[meerkat] dedup check failed: %v", err)
 	}
 	if existing != nil {
 		return nil, apperrors.New(apperrors.ErrConflict,
@@ -113,7 +113,7 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 	// Dedup: check for an active report with the same alert
 	existing, err := s.reportRepo.FindActiveByQuery(ctx, "webhook", payload.Alert, time.Now().Add(-s.dedupWindow))
 	if err != nil {
-		log.Printf("[inspector] dedup check failed: %v", err)
+		log.Printf("[meerkat] dedup check failed: %v", err)
 	}
 	if existing != nil {
 		return nil, apperrors.New(apperrors.ErrConflict,
@@ -159,7 +159,7 @@ func (s *service) runAnalysis(ctx context.Context, report *Report, input *analyz
 		report.CreatedAt(),
 	)
 	if err := s.reportRepo.Update(ctx, report); err != nil {
-		log.Printf("[inspector] failed to update report %s to running: %v", report.ID(), err)
+		log.Printf("[meerkat] failed to update report %s to running: %v", report.ID(), err)
 	}
 
 	// Run the agent loop
@@ -167,7 +167,7 @@ func (s *service) runAnalysis(ctx context.Context, report *Report, input *analyz
 
 	var finalReport *Report
 	if err != nil {
-		log.Printf("[inspector] analysis failed for report %s: %v", report.ID(), err)
+		log.Printf("[meerkat] analysis failed for report %s: %v", report.ID(), err)
 		finalReport = NewReport(
 			report.ID(), report.Trigger(), report.TriggerID(),
 			StatusFailed, SeverityInfo, fmt.Sprintf("Analysis failed: %v", err),
@@ -183,7 +183,7 @@ func (s *service) runAnalysis(ctx context.Context, report *Report, input *analyz
 
 	// Save final result
 	if err := s.reportRepo.Update(ctx, finalReport); err != nil {
-		log.Printf("[inspector] failed to update report %s: %v", report.ID(), err)
+		log.Printf("[meerkat] failed to update report %s: %v", report.ID(), err)
 	}
 
 	// Send to reporter channels
@@ -199,11 +199,11 @@ func (s *service) runAnalysis(ctx context.Context, report *Report, input *analyz
 			Iterations:  finalReport.Iterations(),
 			CreatedAt:   finalReport.CreatedAt(),
 		}); err != nil {
-			log.Printf("[inspector] failed to send report %s: %v", report.ID(), err)
+			log.Printf("[meerkat] failed to send report %s: %v", report.ID(), err)
 		}
 	}
 
-	log.Printf("[inspector] report %s completed: status=%s severity=%s iterations=%d",
+	log.Printf("[meerkat] report %s completed: status=%s severity=%s iterations=%d",
 		finalReport.ID(), finalReport.Status(), finalReport.Severity(), finalReport.Iterations())
 }
 

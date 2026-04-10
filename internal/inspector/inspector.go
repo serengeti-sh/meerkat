@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/mandacode-labs/inspector/internal/analyzer"
-	apperrors "github.com/mandacode-labs/inspector/internal/errors"
+	"github.com/serengeti-sh/meerkat/internal/analyzer"
+	apperrors "github.com/serengeti-sh/meerkat/internal/errors"
 )
 
 // Severity type for reports.

@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/mandacode-labs/inspector/ent/inspectrule"
-	"github.com/mandacode-labs/inspector/ent/report"
+	"github.com/serengeti-sh/meerkat/ent/inspectrule"
+	"github.com/serengeti-sh/meerkat/ent/report"
 )
 
 // ent aliases to avoid import conflicts in user's code.
