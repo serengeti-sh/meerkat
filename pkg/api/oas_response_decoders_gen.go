@@ -75,7 +75,7 @@ func decodeCreateDatasourceResponse(resp *http.Response) (res CreateDatasourceRe
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ErrorResponse
+			var response Error
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -92,7 +92,7 @@ func decodeCreateDatasourceResponse(resp *http.Response) (res CreateDatasourceRe
 				}
 				return res, err
 			}
-			return &ErrorResponseStatusCode{
+			return &ErrorStatusCode{
 				StatusCode: resp.StatusCode,
 				Response:   response,
 			}, nil
@@ -167,7 +167,7 @@ func decodeCreateInspectResponse(resp *http.Response) (res CreateInspectRes, _ e
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ErrorResponse
+			var response Error
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -184,7 +184,7 @@ func decodeCreateInspectResponse(resp *http.Response) (res CreateInspectRes, _ e
 				}
 				return res, err
 			}
-			return &ErrorResponseStatusCode{
+			return &ErrorStatusCode{
 				StatusCode: resp.StatusCode,
 				Response:   response,
 			}, nil
@@ -300,7 +300,7 @@ func decodeGetReportResponse(resp *http.Response) (res GetReportRes, _ error) {
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ErrorResponse
+			var response Error
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -317,7 +317,7 @@ func decodeGetReportResponse(resp *http.Response) (res GetReportRes, _ error) {
 				}
 				return res, err
 			}
-			return &ErrorResponseStatusCode{
+			return &ErrorStatusCode{
 				StatusCode: resp.StatusCode,
 				Response:   response,
 			}, nil
@@ -542,7 +542,7 @@ func decodeReceiveWebhookResponse(resp *http.Response) (res ReceiveWebhookRes, _
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ErrorResponse
+			var response Error
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -559,7 +559,7 @@ func decodeReceiveWebhookResponse(resp *http.Response) (res ReceiveWebhookRes, _
 				}
 				return res, err
 			}
-			return &ErrorResponseStatusCode{
+			return &ErrorStatusCode{
 				StatusCode: resp.StatusCode,
 				Response:   response,
 			}, nil
@@ -625,7 +625,7 @@ func decodeTestDatasourceResponse(resp *http.Response) (res TestDatasourceRes, _
 			}
 			d := jx.DecodeBytes(buf)
 
-			var response ErrorResponse
+			var response Error
 			if err := func() error {
 				if err := response.Decode(d); err != nil {
 					return err
@@ -642,7 +642,7 @@ func decodeTestDatasourceResponse(resp *http.Response) (res TestDatasourceRes, _
 				}
 				return res, err
 			}
-			return &ErrorResponseStatusCode{
+			return &ErrorStatusCode{
 				StatusCode: resp.StatusCode,
 				Response:   response,
 			}, nil

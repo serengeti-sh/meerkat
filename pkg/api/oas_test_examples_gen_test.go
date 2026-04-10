@@ -71,8 +71,8 @@ func TestDatasourceResponseType_EncodeDecode(t *testing.T) {
 	var typ2 DatasourceResponseType
 	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
 }
-func TestErrorResponse_EncodeDecode(t *testing.T) {
-	var typ ErrorResponse
+func TestError_EncodeDecode(t *testing.T) {
+	var typ Error
 	typ.SetFake()
 
 	e := jx.Encoder{}
@@ -80,7 +80,7 @@ func TestErrorResponse_EncodeDecode(t *testing.T) {
 	data := e.Bytes()
 	require.True(t, std.Valid(data), "Encoded: %s", data)
 
-	var typ2 ErrorResponse
+	var typ2 Error
 	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
 }
 func TestGetHealthOK_EncodeDecode(t *testing.T) {

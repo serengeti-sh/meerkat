@@ -94,6 +94,7 @@ func (s *CreateDatasourceRequestType) UnmarshalText(data []byte) error {
 	}
 }
 
+// Ref: #/components/schemas/CreateInspectReq
 type CreateInspectReq struct {
 	Query       OptString `json:"query"`
 	MetricQuery OptString `json:"metric_query"`
@@ -239,52 +240,52 @@ func (s *DatasourceResponseType) UnmarshalText(data []byte) error {
 	}
 }
 
-// Ref: #/components/schemas/ErrorResponse
-type ErrorResponse struct {
+// Ref: #/components/schemas/Error
+type Error struct {
 	Error string `json:"error"`
 }
 
 // GetError returns the value of Error.
-func (s *ErrorResponse) GetError() string {
+func (s *Error) GetError() string {
 	return s.Error
 }
 
 // SetError sets the value of Error.
-func (s *ErrorResponse) SetError(val string) {
+func (s *Error) SetError(val string) {
 	s.Error = val
 }
 
-// ErrorResponseStatusCode wraps ErrorResponse with StatusCode.
-type ErrorResponseStatusCode struct {
+// ErrorStatusCode wraps Error with StatusCode.
+type ErrorStatusCode struct {
 	StatusCode int
-	Response   ErrorResponse
+	Response   Error
 }
 
 // GetStatusCode returns the value of StatusCode.
-func (s *ErrorResponseStatusCode) GetStatusCode() int {
+func (s *ErrorStatusCode) GetStatusCode() int {
 	return s.StatusCode
 }
 
 // GetResponse returns the value of Response.
-func (s *ErrorResponseStatusCode) GetResponse() ErrorResponse {
+func (s *ErrorStatusCode) GetResponse() Error {
 	return s.Response
 }
 
 // SetStatusCode sets the value of StatusCode.
-func (s *ErrorResponseStatusCode) SetStatusCode(val int) {
+func (s *ErrorStatusCode) SetStatusCode(val int) {
 	s.StatusCode = val
 }
 
 // SetResponse sets the value of Response.
-func (s *ErrorResponseStatusCode) SetResponse(val ErrorResponse) {
+func (s *ErrorStatusCode) SetResponse(val Error) {
 	s.Response = val
 }
 
-func (*ErrorResponseStatusCode) createDatasourceRes() {}
-func (*ErrorResponseStatusCode) createInspectRes()    {}
-func (*ErrorResponseStatusCode) getReportRes()        {}
-func (*ErrorResponseStatusCode) receiveWebhookRes()   {}
-func (*ErrorResponseStatusCode) testDatasourceRes()   {}
+func (*ErrorStatusCode) createDatasourceRes() {}
+func (*ErrorStatusCode) createInspectRes()    {}
+func (*ErrorStatusCode) getReportRes()        {}
+func (*ErrorStatusCode) receiveWebhookRes()   {}
+func (*ErrorStatusCode) testDatasourceRes()   {}
 
 type GetHealthOK struct {
 	Status string `json:"status"`
@@ -530,6 +531,7 @@ func (o OptString) Or(d string) string {
 	return d
 }
 
+// Ref: #/components/schemas/ReceiveWebhookReq
 type ReceiveWebhookReq struct {
 	Source  OptString                `json:"source"`
 	Alert   OptString                `json:"alert"`
@@ -597,6 +599,7 @@ type ReportResponse struct {
 	Severity    OptReportResponseSeverity `json:"severity"`
 	Summary     OptString                 `json:"summary"`
 	Detail      OptString                 `json:"detail"`
+	Query       OptString                 `json:"query"`
 	Datasources []string                  `json:"datasources"`
 	Iterations  OptInt                    `json:"iterations"`
 	CreatedAt   OptDateTime               `json:"created_at"`
@@ -635,6 +638,11 @@ func (s *ReportResponse) GetSummary() OptString {
 // GetDetail returns the value of Detail.
 func (s *ReportResponse) GetDetail() OptString {
 	return s.Detail
+}
+
+// GetQuery returns the value of Query.
+func (s *ReportResponse) GetQuery() OptString {
+	return s.Query
 }
 
 // GetDatasources returns the value of Datasources.
@@ -685,6 +693,11 @@ func (s *ReportResponse) SetSummary(val OptString) {
 // SetDetail sets the value of Detail.
 func (s *ReportResponse) SetDetail(val OptString) {
 	s.Detail = val
+}
+
+// SetQuery sets the value of Query.
+func (s *ReportResponse) SetQuery(val OptString) {
+	s.Query = val
 }
 
 // SetDatasources sets the value of Datasources.

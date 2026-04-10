@@ -1,0 +1,17 @@
+/health:
+  get:
+    operationId: getHealth
+    summary: Health check
+    tags: [System]
+    responses:
+      "200":
+        description: OK
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+              required:
+                - status

@@ -18,6 +18,8 @@ ReportResponse:
       type: string
     detail:
       type: string
+    query:
+      type: string
     datasources:
       type: array
       items:

@@ -1,0 +1,73 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: meerkat
+    main: ./cmd/meerkat
+    binary: meerkat
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+  - id: meerkat-server
+    main: ./cmd/meerkat-server
+    binary: meerkat-server
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - id: meerkat
+    builds:
+      - meerkat
+    name_template: "meerkat_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: tar.gz
+    files:
+      - none*
+
+  - id: meerkat-server
+    builds:
+      - meerkat-server
+    name_template: "meerkat-server_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format: tar.gz
+    files:
+      - none*
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  gitea:
+    owner: serengeti-sh
+    name: meerkat
+  draft: false
+  prerelease: auto
+
+gitea_urls:
+  api: https://git.mandacode.com/api/v1
+  download: https://git.mandacode.com

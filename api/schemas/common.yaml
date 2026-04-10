@@ -1,15 +1,7 @@
-HealthResponse:
+Error:
   type: object
-  properties:
-    status:
-      type: string
   required:
-    - status
-
-ErrorResponse:
-  type: object
+    - error
   properties:
     error:
       type: string
-  required:
-    - error
