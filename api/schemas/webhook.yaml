@@ -1,0 +1,13 @@
+WebhookPayload:
+  type: object
+  properties:
+    source:
+      type: string
+      description: Webhook source (grafana, custom)
+    alert:
+      type: string
+    message:
+      type: string
+    data:
+      type: object
+      additionalProperties: true

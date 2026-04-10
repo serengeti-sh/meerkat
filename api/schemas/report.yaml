@@ -1,0 +1,34 @@
+ReportResponse:
+  type: object
+  properties:
+    id:
+      type: string
+    trigger:
+      type: string
+      enum: [manual, webhook, scheduled]
+    trigger_id:
+      type: string
+    status:
+      type: string
+      enum: [pending, running, completed, failed]
+    severity:
+      type: string
+      enum: [info, warning, critical]
+    summary:
+      type: string
+    detail:
+      type: string
+    datasources:
+      type: array
+      items:
+        type: string
+    iterations:
+      type: integer
+    created_at:
+      type: string
+      format: date-time
+  required:
+    - id
+    - trigger
+    - trigger_id
+    - status

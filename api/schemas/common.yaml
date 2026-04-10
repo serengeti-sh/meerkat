@@ -1,0 +1,15 @@
+HealthResponse:
+  type: object
+  properties:
+    status:
+      type: string
+  required:
+    - status
+
+ErrorResponse:
+  type: object
+  properties:
+    error:
+      type: string
+  required:
+    - error

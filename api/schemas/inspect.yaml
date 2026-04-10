@@ -1,0 +1,12 @@
+InspectRequest:
+  type: object
+  properties:
+    query:
+      type: string
+      description: Natural language query
+    metric_query:
+      type: string
+      description: PromQL metric query
+    log_query:
+      type: string
+      description: LogsQL log query

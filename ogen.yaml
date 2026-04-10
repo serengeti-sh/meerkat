@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/ogen-go/ogen/main/schemas/ogen.jsonschema.json
+
+parser:
+  infer_types: true
+  allow_remote: true
+  depth_limit: 1000
+
+generator:
+  features:
+    enable:
+      - "paths/server"
+      - "client/request/validation"
+      - "server/response/validation"
+      - "ogen/otel"
+      - "ogen/unimplemented"
+      - "debug/example_tests"
+
+  convenient_errors: "auto"
+  ignore_not_implemented: ["all"]
