@@ -9,6 +9,8 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -46,7 +48,8 @@ type Suite struct {
 	MockOpenAI     *mock.MockOpenAI
 
 	// Internal
-	server *http.Server
+	server           *http.Server
+	systemPromptFile string
 }
 
 // NewSuite creates a new e2e test suite.
@@ -61,6 +64,14 @@ func NewSuite(t *testing.T) *Suite {
 
 // Start initializes the full test environment
 func (s *Suite) Start(ctx context.Context) error {
+	// Create temporary system prompt file for tests
+	tmpDir := os.TempDir()
+	s.systemPromptFile = filepath.Join(tmpDir, fmt.Sprintf("meerkat-test-prompt-%d.txt", time.Now().UnixNano()))
+	testPrompt := `You are a test AI agent. Respond with JSON: {"severity": "info", "summary": "test", "detail": "test details"}`
+	if err := os.WriteFile(s.systemPromptFile, []byte(testPrompt), 0600); err != nil {
+		return fmt.Errorf("create test system prompt file: %w", err)
+	}
+
 	// 1. Start PostgreSQL container
 	c, err := postgres.Run(ctx,
 		"postgres:17-alpine",
@@ -111,13 +122,14 @@ func (s *Suite) Start(ctx context.Context) error {
 			},
 		},
 		Analyzer: config.AnalyzerConfig{
-			Provider:      "openai",
-			URL:           s.MockOpenAI.URL(),
-			APIKey:        "test-key",
-			Model:         "gpt-4o-mock",
-			MaxIterations: 5,
-			MaxTokens:     1024,
-			Temperature:   0.3,
+			Provider:         "openai",
+			URL:              s.MockOpenAI.URL(),
+			APIKey:           "test-key",
+			Model:            "gpt-4o-mock",
+			MaxIterations:    5,
+			MaxTokens:        1024,
+			Temperature:      0.3,
+			SystemPromptFile: s.systemPromptFile,
 		},
 		Scheduler: config.SchedulerConfig{
 			Enabled: false,
@@ -160,7 +172,10 @@ func (s *Suite) Start(ctx context.Context) error {
 		MaxTokens:   cfg.Analyzer.MaxTokens,
 		Temperature: cfg.Analyzer.Temperature,
 	})
-	systemPrompt := analyzer.LoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
+	systemPrompt, err := analyzer.LoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
+	if err != nil {
+		return fmt.Errorf("load system prompt: %w", err)
+	}
 	analyzerSvc := analyzer.NewService(llmProvider, toolRegistry, cfg.Analyzer.MaxIterations, systemPrompt)
 
 	// Reporter (no-op in tests)
@@ -226,6 +241,9 @@ func (s *Suite) Stop() {
 	}
 	if s.Client != nil {
 		_ = s.Client.Close()
+	}
+	if s.systemPromptFile != "" {
+		_ = os.Remove(s.systemPromptFile)
 	}
 }
 

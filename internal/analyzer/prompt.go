@@ -1,43 +1,40 @@
 package analyzer
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"strings"
 )
 
-const defaultSystemPrompt = `You are an SRE AI agent analyzing observability data for anomalies and issues.
+var ErrSystemPromptNotConfigured = errors.New("system prompt file path not configured")
 
-You have access to tools that query metrics and logs from observability data sources.
-Use them to gather data, then analyze it for:
-1. Anomalies, error spikes, latency increases, resource exhaustion
-2. Root cause hypotheses based on correlating metrics and logs
-3. Severity assessment: info, warning, or critical
-4. Recommended actions
-
-When you have enough data to reach a conclusion, respond with a JSON analysis:
-{
-  "severity": "info|warning|critical",
-  "summary": "one-line summary",
-  "detail": "detailed analysis with root cause and recommendations"
-}
-Do NOT include the JSON inside markdown code blocks. Respond with raw JSON only.`
-
-// LoadSystemPrompt loads the system prompt from the given file path,
-// falling back to the built-in default if the file is empty or unreadable.
-func LoadSystemPrompt(customPath string) string {
+// LoadSystemPrompt loads the system prompt from the given file path.
+// Returns an error if the path is empty or the file cannot be read.
+func LoadSystemPrompt(customPath string) (string, error) {
 	if customPath == "" {
-		return defaultSystemPrompt
+		return "", ErrSystemPromptNotConfigured
 	}
 
 	data, err := os.ReadFile(customPath)
 	if err != nil {
-		return defaultSystemPrompt
+		return "", fmt.Errorf("failed to read system prompt file %q: %w", customPath, err)
 	}
 
 	trimmed := strings.TrimSpace(string(data))
 	if trimmed == "" {
-		return defaultSystemPrompt
+		return "", fmt.Errorf("system prompt file %q is empty", customPath)
 	}
 
-	return trimmed
+	return trimmed, nil
+}
+
+// MustLoadSystemPrompt loads the system prompt and panics on error.
+// Use this during initialization to fail fast if the prompt is not configured.
+func MustLoadSystemPrompt(customPath string) string {
+	prompt, err := LoadSystemPrompt(customPath)
+	if err != nil {
+		panic(fmt.Sprintf("failed to load system prompt: %v", err))
+	}
+	return prompt
 }

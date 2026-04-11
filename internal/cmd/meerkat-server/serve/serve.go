@@ -128,7 +128,7 @@ func ProvideToolRegistry(registry *datasource.Registry) *analyzer.ToolRegistry {
 }
 
 func ProvideAnalyzerService(provider analyzer.LLMProvider, registry *analyzer.ToolRegistry, cfg *config.Config) analyzer.AnalyzerService {
-	prompt := analyzer.LoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
+	prompt := analyzer.MustLoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
 	return analyzer.NewService(provider, registry, cfg.Analyzer.MaxIterations, prompt)
 }
 
