@@ -53,6 +53,7 @@ type AnalyzerConfig struct {
 	MaxTokens        int     `mapstructure:"max_tokens"`
 	Temperature      float64 `mapstructure:"temperature"`
 	SystemPromptFile string  `mapstructure:"system_prompt_file"`
+	SkillsFile       string  `mapstructure:"skills_file"`
 }
 
 type SchedulerJobConfig struct {
