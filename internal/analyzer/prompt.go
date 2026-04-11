@@ -95,7 +95,7 @@ func MergeSkillsIntoPrompt(systemPrompt string, skills []Skill) string {
 		if i > 0 {
 			sb.WriteString("\n")
 		}
-		sb.WriteString(fmt.Sprintf("### %s\n", skill.Name))
+		fmt.Fprintf(&sb, "### %s\n", skill.Name)
 		sb.WriteString(skill.Prompt)
 	}
 
