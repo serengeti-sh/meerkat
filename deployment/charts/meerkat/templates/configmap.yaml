@@ -32,6 +32,8 @@ data:
       max_iterations: {{ .Values.config.analyzer.max_iterations }}
       max_tokens: {{ .Values.config.analyzer.max_tokens }}
       temperature: {{ .Values.config.analyzer.temperature }}
+      system_prompt_file: /app/config/system_prompt.txt
+      skills_file: /app/config/skills.yaml
     {{- if .Values.config.scheduler.enabled }}
     scheduler:
       enabled: {{ .Values.config.scheduler.enabled }}
@@ -45,3 +47,9 @@ data:
       channels:
         {{- toYaml .Values.config.reporter.channels | nindent 8 }}
     {{- end }}
+  system_prompt.txt: |
+    {{- .Values.config.analyzer.systemPrompt | nindent 4 }}
+  {{- if .Values.config.analyzer.skills }}
+  skills.yaml: |
+    {{- toYaml .Values.config.analyzer.skills | nindent 4 }}
+  {{- end }}
