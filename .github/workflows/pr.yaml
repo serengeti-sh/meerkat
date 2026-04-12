@@ -142,6 +142,43 @@ jobs:
           files: cover-e2e.out
           fail_ci_if_error: false
 
+  deploy-test:
+    name: Deploy Test
+    needs: [docker-build, helm-lint]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version: "1.26.1"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.0.0
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v7.0.0
+        with:
+          context: .
+          file: build/docker/server.Dockerfile
+          push: false
+          load: true
+          tags: meerkat-server:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install Kind
+        uses: helm/kind-action@v1.12.0
+        with:
+          install_only: true
+
+      - name: Run deployment test
+        run: make test-deploy
+
   goreleaser-check:
     name: GoReleaser Check
     runs-on: ubuntu-latest

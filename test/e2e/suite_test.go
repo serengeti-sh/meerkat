@@ -94,6 +94,17 @@ func (s *Suite) Start(ctx context.Context) error {
 	}
 	s.DSN = dsn
 
+	// Extract host and port from container for StoreConfig
+	pgHost, err := c.Host(ctx)
+	if err != nil {
+		return fmt.Errorf("get postgres host: %w", err)
+	}
+	pgPortNat, err := c.MappedPort(ctx, "5432")
+	if err != nil {
+		return fmt.Errorf("get postgres port: %w", err)
+	}
+	pgPort := pgPortNat.Int()
+
 	// 2. Start mock Prometheus
 	s.MockPrometheus = mock.NewMockPrometheus()
 
@@ -111,8 +122,13 @@ func (s *Suite) Start(ctx context.Context) error {
 			Port: 0, // random port
 		},
 		Store: config.StoreConfig{
-			Driver: "postgres",
-			Path:   dsn,
+			Driver:   "postgres",
+			Host:     pgHost,
+			Port:     pgPort,
+			Name:     "meerkat_test",
+			User:     "meerkat",
+			Password: "meerkat",
+			SSLMode:  "disable",
 		},
 		Datasources: []config.DatasourceConfig{
 			{

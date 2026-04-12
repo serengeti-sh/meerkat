@@ -183,7 +183,7 @@ func ProvideHTTPServer(
 	return srv
 }
 
-func WaitForShutdown(lc fx.Lifecycle) {
+func WaitForShutdown(_ *http.Server, lc fx.Lifecycle) {
 	shutdownCh := make(chan os.Signal, 1)
 	signal.Notify(shutdownCh, syscall.SIGINT, syscall.SIGTERM)
 
