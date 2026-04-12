@@ -12,8 +12,6 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 )
 
-const defaultDedupWindow = 5 * time.Minute
-
 type service struct {
 	analyzerSvc analyzer.AnalyzerService
 	reportRepo  ReportRepository
@@ -38,13 +36,14 @@ func NewService(
 	reportRepo ReportRepository,
 	reporterSvc reporter.ReporterService,
 	registry DatasourceRegistry,
+	dedupWindow time.Duration,
 ) InspectorService {
 	return &service{
 		analyzerSvc: analyzerSvc,
 		reportRepo:  reportRepo,
 		reporterSvc: reporterSvc,
 		registry:    registry,
-		dedupWindow: defaultDedupWindow,
+		dedupWindow: dedupWindow,
 	}
 }
 

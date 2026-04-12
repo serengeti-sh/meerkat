@@ -14,7 +14,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"github.com/serengeti-sh/meerkat/ent/inspectrule"
 	"github.com/serengeti-sh/meerkat/ent/report"
 )
 
@@ -23,8 +22,6 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
-	// InspectRule is the client for interacting with the InspectRule builders.
-	InspectRule *InspectRuleClient
 	// Report is the client for interacting with the Report builders.
 	Report *ReportClient
 }
@@ -38,7 +35,6 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
-	c.InspectRule = NewInspectRuleClient(c.config)
 	c.Report = NewReportClient(c.config)
 }
 
@@ -130,10 +126,9 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:         ctx,
-		config:      cfg,
-		InspectRule: NewInspectRuleClient(cfg),
-		Report:      NewReportClient(cfg),
+		ctx:    ctx,
+		config: cfg,
+		Report: NewReportClient(cfg),
 	}, nil
 }
 
@@ -151,17 +146,16 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:         ctx,
-		config:      cfg,
-		InspectRule: NewInspectRuleClient(cfg),
-		Report:      NewReportClient(cfg),
+		ctx:    ctx,
+		config: cfg,
+		Report: NewReportClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		InspectRule.
+//		Report.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -183,159 +177,22 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.InspectRule.Use(hooks...)
 	c.Report.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.InspectRule.Intercept(interceptors...)
 	c.Report.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
-	case *InspectRuleMutation:
-		return c.InspectRule.mutate(ctx, m)
 	case *ReportMutation:
 		return c.Report.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
-	}
-}
-
-// InspectRuleClient is a client for the InspectRule schema.
-type InspectRuleClient struct {
-	config
-}
-
-// NewInspectRuleClient returns a client for the InspectRule from the given config.
-func NewInspectRuleClient(c config) *InspectRuleClient {
-	return &InspectRuleClient{config: c}
-}
-
-// Use adds a list of mutation hooks to the hooks stack.
-// A call to `Use(f, g, h)` equals to `inspectrule.Hooks(f(g(h())))`.
-func (c *InspectRuleClient) Use(hooks ...Hook) {
-	c.hooks.InspectRule = append(c.hooks.InspectRule, hooks...)
-}
-
-// Intercept adds a list of query interceptors to the interceptors stack.
-// A call to `Intercept(f, g, h)` equals to `inspectrule.Intercept(f(g(h())))`.
-func (c *InspectRuleClient) Intercept(interceptors ...Interceptor) {
-	c.inters.InspectRule = append(c.inters.InspectRule, interceptors...)
-}
-
-// Create returns a builder for creating a InspectRule entity.
-func (c *InspectRuleClient) Create() *InspectRuleCreate {
-	mutation := newInspectRuleMutation(c.config, OpCreate)
-	return &InspectRuleCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// CreateBulk returns a builder for creating a bulk of InspectRule entities.
-func (c *InspectRuleClient) CreateBulk(builders ...*InspectRuleCreate) *InspectRuleCreateBulk {
-	return &InspectRuleCreateBulk{config: c.config, builders: builders}
-}
-
-// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
-// a builder and applies setFunc on it.
-func (c *InspectRuleClient) MapCreateBulk(slice any, setFunc func(*InspectRuleCreate, int)) *InspectRuleCreateBulk {
-	rv := reflect.ValueOf(slice)
-	if rv.Kind() != reflect.Slice {
-		return &InspectRuleCreateBulk{err: fmt.Errorf("calling to InspectRuleClient.MapCreateBulk with wrong type %T, need slice", slice)}
-	}
-	builders := make([]*InspectRuleCreate, rv.Len())
-	for i := 0; i < rv.Len(); i++ {
-		builders[i] = c.Create()
-		setFunc(builders[i], i)
-	}
-	return &InspectRuleCreateBulk{config: c.config, builders: builders}
-}
-
-// Update returns an update builder for InspectRule.
-func (c *InspectRuleClient) Update() *InspectRuleUpdate {
-	mutation := newInspectRuleMutation(c.config, OpUpdate)
-	return &InspectRuleUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOne returns an update builder for the given entity.
-func (c *InspectRuleClient) UpdateOne(_m *InspectRule) *InspectRuleUpdateOne {
-	mutation := newInspectRuleMutation(c.config, OpUpdateOne, withInspectRule(_m))
-	return &InspectRuleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// UpdateOneID returns an update builder for the given id.
-func (c *InspectRuleClient) UpdateOneID(id string) *InspectRuleUpdateOne {
-	mutation := newInspectRuleMutation(c.config, OpUpdateOne, withInspectRuleID(id))
-	return &InspectRuleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// Delete returns a delete builder for InspectRule.
-func (c *InspectRuleClient) Delete() *InspectRuleDelete {
-	mutation := newInspectRuleMutation(c.config, OpDelete)
-	return &InspectRuleDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
-}
-
-// DeleteOne returns a builder for deleting the given entity.
-func (c *InspectRuleClient) DeleteOne(_m *InspectRule) *InspectRuleDeleteOne {
-	return c.DeleteOneID(_m.ID)
-}
-
-// DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *InspectRuleClient) DeleteOneID(id string) *InspectRuleDeleteOne {
-	builder := c.Delete().Where(inspectrule.ID(id))
-	builder.mutation.id = &id
-	builder.mutation.op = OpDeleteOne
-	return &InspectRuleDeleteOne{builder}
-}
-
-// Query returns a query builder for InspectRule.
-func (c *InspectRuleClient) Query() *InspectRuleQuery {
-	return &InspectRuleQuery{
-		config: c.config,
-		ctx:    &QueryContext{Type: TypeInspectRule},
-		inters: c.Interceptors(),
-	}
-}
-
-// Get returns a InspectRule entity by its id.
-func (c *InspectRuleClient) Get(ctx context.Context, id string) (*InspectRule, error) {
-	return c.Query().Where(inspectrule.ID(id)).Only(ctx)
-}
-
-// GetX is like Get, but panics if an error occurs.
-func (c *InspectRuleClient) GetX(ctx context.Context, id string) *InspectRule {
-	obj, err := c.Get(ctx, id)
-	if err != nil {
-		panic(err)
-	}
-	return obj
-}
-
-// Hooks returns the client hooks.
-func (c *InspectRuleClient) Hooks() []Hook {
-	return c.hooks.InspectRule
-}
-
-// Interceptors returns the client interceptors.
-func (c *InspectRuleClient) Interceptors() []Interceptor {
-	return c.inters.InspectRule
-}
-
-func (c *InspectRuleClient) mutate(ctx context.Context, m *InspectRuleMutation) (Value, error) {
-	switch m.Op() {
-	case OpCreate:
-		return (&InspectRuleCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdate:
-		return (&InspectRuleUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpUpdateOne:
-		return (&InspectRuleUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
-	case OpDelete, OpDeleteOne:
-		return (&InspectRuleDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
-	default:
-		return nil, fmt.Errorf("ent: unknown InspectRule mutation op: %q", m.Op())
 	}
 }
 
@@ -475,9 +332,9 @@ func (c *ReportClient) mutate(ctx context.Context, m *ReportMutation) (Value, er
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		InspectRule, Report []ent.Hook
+		Report []ent.Hook
 	}
 	inters struct {
-		InspectRule, Report []ent.Interceptor
+		Report []ent.Interceptor
 	}
 )

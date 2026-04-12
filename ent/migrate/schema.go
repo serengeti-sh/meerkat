@@ -9,35 +9,6 @@ import (
 )
 
 var (
-	// InspectRulesColumns holds the columns for the "inspect_rules" table.
-	InspectRulesColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeString, Unique: true},
-		{Name: "create_time", Type: field.TypeTime},
-		{Name: "update_time", Type: field.TypeTime},
-		{Name: "name", Type: field.TypeString, Unique: true, Size: 128},
-		{Name: "interval", Type: field.TypeString, Size: 32},
-		{Name: "metric_query", Type: field.TypeString, Default: ""},
-		{Name: "log_query", Type: field.TypeString, Default: ""},
-		{Name: "enabled", Type: field.TypeBool, Default: true},
-	}
-	// InspectRulesTable holds the schema information for the "inspect_rules" table.
-	InspectRulesTable = &schema.Table{
-		Name:       "inspect_rules",
-		Columns:    InspectRulesColumns,
-		PrimaryKey: []*schema.Column{InspectRulesColumns[0]},
-		Indexes: []*schema.Index{
-			{
-				Name:    "inspectrule_name",
-				Unique:  true,
-				Columns: []*schema.Column{InspectRulesColumns[3]},
-			},
-			{
-				Name:    "inspectrule_enabled",
-				Unique:  false,
-				Columns: []*schema.Column{InspectRulesColumns[7]},
-			},
-		},
-	}
 	// ReportsColumns holds the columns for the "reports" table.
 	ReportsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeString, Unique: true},
@@ -78,15 +49,11 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
-		InspectRulesTable,
 		ReportsTable,
 	}
 )
 
 func init() {
-	InspectRulesTable.Annotation = &entsql.Annotation{
-		Table: "inspect_rules",
-	}
 	ReportsTable.Annotation = &entsql.Annotation{
 		Table: "reports",
 	}

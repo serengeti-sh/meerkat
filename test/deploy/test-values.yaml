@@ -117,6 +117,9 @@ config:
     enabled: false
     jobs: []
 
+  inspector:
+    dedup_window: 5m
+
   reporter:
     channels: []
 

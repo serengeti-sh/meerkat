@@ -5,6 +5,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -16,6 +17,7 @@ type Config struct {
 	Datasources []DatasourceConfig `mapstructure:"datasources"`
 	Analyzer    AnalyzerConfig     `mapstructure:"analyzer"`
 	Scheduler   SchedulerConfig    `mapstructure:"scheduler"`
+	Inspector   InspectorConfig    `mapstructure:"inspector"`
 	Reporter    ReporterConfig     `mapstructure:"reporter"`
 }
 
@@ -78,6 +80,22 @@ type ReporterChannelConfig struct {
 	WebhookURL  string `mapstructure:"webhook_url"`
 	URL         string `mapstructure:"url"`
 	MinSeverity string `mapstructure:"min_severity"` // info, warning, critical
+}
+
+type InspectorConfig struct {
+	DedupWindow string `mapstructure:"dedup_window"` // e.g. "5m", "30m"
+}
+
+// GetDedupWindow parses the dedup window duration, falling back to 5m.
+func (c InspectorConfig) GetDedupWindow() time.Duration {
+	if c.DedupWindow == "" {
+		return 5 * time.Minute
+	}
+	d, err := time.ParseDuration(c.DedupWindow)
+	if err != nil {
+		return 5 * time.Minute
+	}
+	return d
 }
 
 type ReporterConfig struct {

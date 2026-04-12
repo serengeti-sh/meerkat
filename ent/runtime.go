@@ -5,7 +5,6 @@ package ent
 import (
 	"time"
 
-	"github.com/serengeti-sh/meerkat/ent/inspectrule"
 	"github.com/serengeti-sh/meerkat/ent/report"
 	"github.com/serengeti-sh/meerkat/ent/schema"
 )
@@ -14,41 +13,6 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
-	inspectruleMixin := schema.InspectRule{}.Mixin()
-	inspectruleMixinFields0 := inspectruleMixin[0].Fields()
-	_ = inspectruleMixinFields0
-	inspectruleFields := schema.InspectRule{}.Fields()
-	_ = inspectruleFields
-	// inspectruleDescCreateTime is the schema descriptor for create_time field.
-	inspectruleDescCreateTime := inspectruleMixinFields0[0].Descriptor()
-	// inspectrule.DefaultCreateTime holds the default value on creation for the create_time field.
-	inspectrule.DefaultCreateTime = inspectruleDescCreateTime.Default.(func() time.Time)
-	// inspectruleDescUpdateTime is the schema descriptor for update_time field.
-	inspectruleDescUpdateTime := inspectruleMixinFields0[1].Descriptor()
-	// inspectrule.DefaultUpdateTime holds the default value on creation for the update_time field.
-	inspectrule.DefaultUpdateTime = inspectruleDescUpdateTime.Default.(func() time.Time)
-	// inspectrule.UpdateDefaultUpdateTime holds the default value on update for the update_time field.
-	inspectrule.UpdateDefaultUpdateTime = inspectruleDescUpdateTime.UpdateDefault.(func() time.Time)
-	// inspectruleDescName is the schema descriptor for name field.
-	inspectruleDescName := inspectruleFields[1].Descriptor()
-	// inspectrule.NameValidator is a validator for the "name" field. It is called by the builders before save.
-	inspectrule.NameValidator = inspectruleDescName.Validators[0].(func(string) error)
-	// inspectruleDescInterval is the schema descriptor for interval field.
-	inspectruleDescInterval := inspectruleFields[2].Descriptor()
-	// inspectrule.IntervalValidator is a validator for the "interval" field. It is called by the builders before save.
-	inspectrule.IntervalValidator = inspectruleDescInterval.Validators[0].(func(string) error)
-	// inspectruleDescMetricQuery is the schema descriptor for metric_query field.
-	inspectruleDescMetricQuery := inspectruleFields[3].Descriptor()
-	// inspectrule.DefaultMetricQuery holds the default value on creation for the metric_query field.
-	inspectrule.DefaultMetricQuery = inspectruleDescMetricQuery.Default.(string)
-	// inspectruleDescLogQuery is the schema descriptor for log_query field.
-	inspectruleDescLogQuery := inspectruleFields[4].Descriptor()
-	// inspectrule.DefaultLogQuery holds the default value on creation for the log_query field.
-	inspectrule.DefaultLogQuery = inspectruleDescLogQuery.Default.(string)
-	// inspectruleDescEnabled is the schema descriptor for enabled field.
-	inspectruleDescEnabled := inspectruleFields[5].Descriptor()
-	// inspectrule.DefaultEnabled holds the default value on creation for the enabled field.
-	inspectrule.DefaultEnabled = inspectruleDescEnabled.Default.(bool)
 	reportMixin := schema.Report{}.Mixin()
 	reportMixinFields0 := reportMixin[0].Fields()
 	_ = reportMixinFields0

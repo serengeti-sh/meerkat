@@ -120,6 +120,10 @@ func ProvideDatasourceRegistry(registry *datasource.Registry) inspector.Datasour
 	return &adapterRegistry{Registry: registry}
 }
 
+func ProvideDedupWindow(cfg *config.Config) time.Duration {
+	return cfg.Inspector.GetDedupWindow()
+}
+
 func ProvideToolRegistry(registry *datasource.Registry) *analyzer.ToolRegistry {
 	return analyzer.NewToolRegistry(
 		inspector.NewQueryMetricsTool(registry),
@@ -216,6 +220,7 @@ func NewFXApp(cfgFile string, port int) *fx.App {
 			ProvideAnalyzerProvider,
 			ProvideToolRegistry,
 			ProvideAnalyzerService,
+			ProvideDedupWindow,
 			inspector.NewService,
 			reporter.NewService,
 			scheduler.NewCronScheduler,
