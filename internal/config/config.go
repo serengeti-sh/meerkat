@@ -17,7 +17,7 @@ type Config struct {
 	Datasources []DatasourceConfig `mapstructure:"datasources"`
 	Analyzer    AnalyzerConfig     `mapstructure:"analyzer"`
 	Scheduler   SchedulerConfig    `mapstructure:"scheduler"`
-	Inspector  InspectorConfig    `mapstructure:"inspector"`
+	Inspector   InspectorConfig    `mapstructure:"inspector"`
 	Reporter    ReporterConfig     `mapstructure:"reporter"`
 }
 
