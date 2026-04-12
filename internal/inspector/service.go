@@ -12,8 +12,6 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 )
 
-const defaultDedupWindow = 5 * time.Minute
-
 type service struct {
 	analyzerSvc analyzer.AnalyzerService
 	reportRepo  ReportRepository
