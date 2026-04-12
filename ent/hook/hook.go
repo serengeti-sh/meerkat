@@ -9,18 +9,6 @@ import (
 	"github.com/serengeti-sh/meerkat/ent"
 )
 
-// The InspectRuleFunc type is an adapter to allow the use of ordinary
-// function as InspectRule mutator.
-type InspectRuleFunc func(context.Context, *ent.InspectRuleMutation) (ent.Value, error)
-
-// Mutate calls f(ctx, m).
-func (f InspectRuleFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
-	if mv, ok := m.(*ent.InspectRuleMutation); ok {
-		return f(ctx, mv)
-	}
-	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.InspectRuleMutation", m)
-}
-
 // The ReportFunc type is an adapter to allow the use of ordinary
 // function as Report mutator.
 type ReportFunc func(context.Context, *ent.ReportMutation) (ent.Value, error)

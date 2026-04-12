@@ -33,7 +33,7 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
 	reporterSvc := reporterMocks.NewReporterServiceMock(t)
 
-	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRegistry())
+	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRegistry(), 5*time.Minute)
 
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "check for errors", mock.Anything).Return(nil, nil)
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
@@ -66,7 +66,7 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
 	reporterSvc := reporterMocks.NewReporterServiceMock(t)
 
-	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRegistry())
+	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRegistry(), 5*time.Minute)
 
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "webhook", "HighErrorRate", mock.Anything).Return(nil, nil)
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
@@ -99,7 +99,7 @@ func TestService_Inspect_NoDatasources(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
 	reporterSvc := reporterMocks.NewReporterServiceMock(t)
 
-	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, &stubRegistry{})
+	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, &stubRegistry{}, 5*time.Minute)
 
 	_, err := svc.Inspect(context.Background(), inspector.InspectRequest{Query: "test"})
 
@@ -111,7 +111,7 @@ func TestService_GetReport(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
 	reporterSvc := reporterMocks.NewReporterServiceMock(t)
 
-	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRegistry())
+	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRegistry(), 5*time.Minute)
 
 	expected := inspector.NewReport("rpt-1", "manual", "t-1", inspector.StatusCompleted, inspector.SeverityWarning, "test", "detail", "test query", nil, 3, time.Now())
 	reportRepo.EXPECT().GetByID(mock.Anything, "rpt-1").Return(expected, nil)
@@ -128,7 +128,7 @@ func TestService_ListReports(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
 	reporterSvc := reporterMocks.NewReporterServiceMock(t)
 
-	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRegistry())
+	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRegistry(), 5*time.Minute)
 
 	r1 := inspector.NewReport("rpt-1", "manual", "t-1", inspector.StatusCompleted, inspector.SeverityInfo, "ok", "", "", nil, 1, time.Now())
 	r2 := inspector.NewReport("rpt-2", "webhook", "t-2", inspector.StatusCompleted, inspector.SeverityCritical, "bad", "", "HighErrorRate", nil, 5, time.Now())

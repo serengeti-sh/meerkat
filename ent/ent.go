@@ -12,7 +12,6 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/serengeti-sh/meerkat/ent/inspectrule"
 	"github.com/serengeti-sh/meerkat/ent/report"
 )
 
@@ -74,8 +73,7 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			inspectrule.Table: inspectrule.ValidColumn,
-			report.Table:      report.ValidColumn,
+			report.Table: report.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

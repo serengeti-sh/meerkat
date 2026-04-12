@@ -199,7 +199,7 @@ func (s *Suite) Start(ctx context.Context) error {
 
 	// Inspector service
 	reportRepo := insprepo.NewRepository(entClient)
-	inspectorSvc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRegistry)
+	inspectorSvc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRegistry, 5*time.Minute)
 
 	// Scheduler (disabled)
 	sched := scheduler.NewCronScheduler(inspectorSvc, cfg)

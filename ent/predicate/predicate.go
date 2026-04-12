@@ -6,8 +6,5 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
-// InspectRule is the predicate function for inspectrule builders.
-type InspectRule func(*sql.Selector)
-
 // Report is the predicate function for report builders.
 type Report func(*sql.Selector)

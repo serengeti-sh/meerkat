@@ -38,13 +38,14 @@ func NewService(
 	reportRepo ReportRepository,
 	reporterSvc reporter.ReporterService,
 	registry DatasourceRegistry,
+	dedupWindow time.Duration,
 ) InspectorService {
 	return &service{
 		analyzerSvc: analyzerSvc,
 		reportRepo:  reportRepo,
 		reporterSvc: reporterSvc,
 		registry:    registry,
-		dedupWindow: defaultDedupWindow,
+		dedupWindow: dedupWindow,
 	}
 }
 
