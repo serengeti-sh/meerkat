@@ -9,7 +9,12 @@ http:
 
 store:
   driver: postgres
-  path: postgresql://localhost:5432/meerkat?sslmode=disable
+  host: localhost
+  port: 5432
+  name: meerkat
+  user: meerkat
+  password: meerkat
+  sslmode: disable
 
 datasources:
   - name: vm
@@ -31,11 +36,13 @@ analyzer:
   #   OpenAI, Ollama, vLLM, Groq, Together AI, Mistral, LiteLLM, etc.
   provider: openai
   url: https://api.openai.com
-  api_key: ${OPENAI_API_KEY}
+  api_key: ""
   model: gpt-4o
   max_iterations: 10
   max_tokens: 4096
   temperature: 0.3
+  system_prompt_file: config/system_prompt.txt
+  skills_file: config/skills.yaml
 
   # Anthropic example:
   # provider: anthropic
@@ -64,7 +71,7 @@ scheduler:
 reporter:
   channels:
     - type: slack
-      webhook_url: ${SLACK_WEBHOOK_URL}
+      webhook_url: ""
       min_severity: warning
     # - type: webhook
     #   url: http://localhost:9090/alerts

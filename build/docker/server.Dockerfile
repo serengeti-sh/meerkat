@@ -11,7 +11,7 @@ FROM golang:1.26.1-alpine3.23 AS builder
 RUN apk add --no-cache \
       git=2.52.0-r0 \
       gcc=15.2.0-r2 \
-      musl-dev=1.2.5-r22 \
+      musl-dev=1.2.5-r23 \
       nodejs=24.14.1-r0 \
       npm=11.11.0-r0
 

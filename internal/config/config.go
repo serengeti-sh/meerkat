@@ -33,8 +33,13 @@ type HTTPConfig struct {
 }
 
 type StoreConfig struct {
-	Driver string `mapstructure:"driver"`
-	Path   string `mapstructure:"path"` // PostgreSQL DSN, e.g. postgres://user:pass@localhost:5432/meerkat?sslmode=disable
+	Driver   string `mapstructure:"driver"`
+	Host     string `mapstructure:"host"`
+	Port     int    `mapstructure:"port"`
+	Name     string `mapstructure:"name"`
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	SSLMode  string `mapstructure:"sslmode"`
 }
 
 type DatasourceConfig struct {
@@ -155,6 +160,19 @@ func LoadFromPath(path string) (*Config, error) {
 	return &cfg, nil
 }
 
+// DSN builds the database connection string from individual config fields.
+func (c *Config) DSN() string {
+	return fmt.Sprintf(
+		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		c.Store.Host,
+		c.Store.Port,
+		c.Store.User,
+		c.Store.Password,
+		c.Store.Name,
+		c.Store.SSLMode,
+	)
+}
+
 func setDefaults(v *viper.Viper) {
 	v.SetDefault("app.name", "meerkat")
 	v.SetDefault("app.version", "0.0.1")
@@ -166,7 +184,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("http.openapi_path", "api/openapi.yaml")
 
 	v.SetDefault("store.driver", "postgres")
-	v.SetDefault("store.path", "postgresql://localhost:5432/meerkat?sslmode=disable")
+	v.SetDefault("store.port", 5432)
+	v.SetDefault("store.sslmode", "disable")
 
 	v.SetDefault("analyzer.provider", "openai")
 	v.SetDefault("analyzer.url", "https://api.openai.com")
@@ -184,6 +203,7 @@ func bindEnvVars(v *viper.Viper) {
 
 	_ = v.BindEnv("http.host", "HOST")
 	_ = v.BindEnv("http.port", "PORT")
+	_ = v.BindEnv("store.password", "DATABASE_PASSWORD")
 	_ = v.BindEnv("analyzer.api_key", "LLM_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY")
 	_ = v.BindEnv("analyzer.url", "LLM_URL")
 }

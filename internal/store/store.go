@@ -7,12 +7,13 @@ import (
 	"github.com/serengeti-sh/meerkat/ent"
 	"github.com/serengeti-sh/meerkat/ent/migrate"
 
+	_ "github.com/lib/pq"
 	"github.com/serengeti-sh/meerkat/internal/config"
 )
 
 // NewEntClient creates an ent client with PostgreSQL driver.
 func NewEntClient(cfg *config.Config) (*ent.Client, error) {
-	client, err := ent.Open("postgres", cfg.Store.Path)
+	client, err := ent.Open(cfg.Store.Driver, cfg.DSN())
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

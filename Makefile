@@ -72,6 +72,10 @@ test: ## Run unit tests
 test-e2e: ## Run e2e tests
 	go test -v ./test/e2e/... -timeout 10m --coverprofile cover-e2e.out
 
+.PHONY: test-deploy
+test-deploy: ## Run deployment integration test (requires Docker + Kind)
+	go test -v ./test/deploy/... -timeout 15m
+
 # Building
 .PHONY: build
 build: ## Build binaries

@@ -1,0 +1,147 @@
+# Deployment test values - Kind cluster integration test
+replicaCount: 1
+
+image:
+  repository: meerkat-server
+  pullPolicy: Never
+  tag: test
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1001
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1001
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
+startupProbe:
+  httpGet:
+    path: /v1/health
+    port: http
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 30
+
+livenessProbe:
+  httpGet:
+    path: /v1/health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /v1/health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+autoscaling:
+  enabled: false
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+config:
+  app:
+    name: meerkat
+    env: test
+    debug: true
+
+  http:
+    host: "0.0.0.0"
+    port: 8080
+
+  store:
+    driver: postgres
+    host: meerkat-postgres-postgresql
+    port: 5432
+    name: meerkat
+    user: meerkat
+    sslmode: disable
+
+  datasources: []
+
+  analyzer:
+    provider: openai
+    url: https://api.openai.com
+    model: gpt-4o
+    max_iterations: 10
+    max_tokens: 4096
+    temperature: 0.3
+    system_prompt_file: /app/config/system_prompt.txt
+    skills_file: /app/config/skills.yaml
+
+  scheduler:
+    enabled: false
+    jobs: []
+
+  reporter:
+    channels: []
+
+secrets:
+  database:
+    password: "test-deploy-password"
+    existingSecret: ""
+    existingSecretKey: database-password
+  analyzer:
+    apiKey: "test-analyzer-key"
+    existingSecret: ""
+    existingSecretKey: analyzer-api-key
+  reporter:
+    slackWebhookURL: ""
+    existingSecret: ""
+
+extraEnv: []
+extraEnvFrom: []
+extraVolumeMounts: []
+extraVolumes: []
+
+systemPrompt: |
+  You are a test AI agent.
+
+skills: []
+
+migration:
+  enabled: true
