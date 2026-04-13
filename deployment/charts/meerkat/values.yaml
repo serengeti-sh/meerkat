@@ -50,6 +50,24 @@ ingress:
           pathType: Prefix
   tls: []
 
+httpRoute:
+  enabled: false
+  annotations: {}
+  # parentRefs:
+  #   - name: my-gateway
+  #     namespace: gateway
+  #     sectionName: http
+  #     port: 80
+  # hostnames:
+  #   - meerkat.example.com
+  parentRefs: []
+  hostnames: []
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+
 resources:
   limits:
     cpu: 500m
