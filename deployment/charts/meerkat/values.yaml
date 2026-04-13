@@ -53,13 +53,15 @@ ingress:
 httpRoute:
   enabled: false
   annotations: {}
+  # parentRefs:
+  #   - name: my-gateway
+  #     namespace: gateway
+  #     sectionName: http
+  #     port: 80
+  # hostnames:
+  #   - meerkat.example.com
   parentRefs: []
-    # - name: my-gateway
-    #   namespace: gateway
-    #   sectionName: http
-    #   port: 80
   hostnames: []
-    # - meerkat.example.com
   rules:
     - matches:
         - path:
