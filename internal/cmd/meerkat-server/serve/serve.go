@@ -75,6 +75,10 @@ func ProvideAnalyzerProvider(cfg *config.Config) analyzer.LLMProvider {
 		Model:       cfg.Analyzer.Model,
 		MaxTokens:   cfg.Analyzer.MaxTokens,
 		Temperature: cfg.Analyzer.Temperature,
+		Retry: analyzer.RetryConfig{
+			MaxRetries: cfg.Analyzer.MaxRetries,
+			BaseDelay:  time.Duration(cfg.Analyzer.RetryBaseMs) * time.Millisecond,
+		},
 	})
 }
 
@@ -148,7 +152,13 @@ func ProvideAnalyzerService(provider analyzer.LLMProvider, registry *analyzer.To
 	systemPrompt := analyzer.MustLoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
 	skills := analyzer.MustLoadSkills(cfg.Analyzer.SkillsFile)
 	prompt := analyzer.MergeSkillsIntoPrompt(systemPrompt, skills)
-	return analyzer.NewService(provider, registry, cfg.Analyzer.MaxIterations, prompt)
+	return analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+		MaxIterations:       cfg.Analyzer.MaxIterations,
+		SystemPrompt:        prompt,
+		MaxToolResultChars:  cfg.Analyzer.MaxToolResultChars,
+		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
+		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
+	})
 }
 
 func ProvideHTTPServer(

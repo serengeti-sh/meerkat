@@ -14,4 +14,5 @@ type ProviderConfig struct {
 	Model       string
 	MaxTokens   int
 	Temperature float64
+	Retry       RetryConfig
 }

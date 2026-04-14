@@ -7,6 +7,7 @@ tool github.com/ogen-go/ogen/cmd/ogen
 require (
 	entgo.io/ent v0.14.6
 	github.com/anthropics/anthropic-sdk-go v1.35.1
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/go-faster/errors v0.7.1
 	github.com/go-faster/jx v1.2.0
 	github.com/google/uuid v1.6.0
@@ -74,7 +75,6 @@ require (
 	github.com/aws/smithy-go v1.22.1 // indirect
 	github.com/bmatcuk/doublestar v1.3.4 // indirect
 	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
-	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect

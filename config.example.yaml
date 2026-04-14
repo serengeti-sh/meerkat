@@ -48,6 +48,11 @@ analyzer:
   temperature: 0.3
   system_prompt_file: config/system_prompt.txt
   skills_file: config/skills.yaml
+  # max_retries: 3
+  # retry_base_ms: 1000
+  # max_tool_result_chars: 30000
+  # summarize_on_overflow: true
+  # max_context_messages: 50
 
   # Anthropic example:
   # provider: anthropic
