@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -57,7 +58,7 @@ func (s *service) Report(ctx context.Context, report *ReportData) error {
 		return nil
 	}
 
-	payload, err := json.Marshal(report)
+	payload, err := json.Marshal(buildSlackPayload(report))
 	if err != nil {
 		return fmt.Errorf("marshal report: %w", err)
 	}
@@ -80,4 +81,75 @@ func (s *service) Report(ctx context.Context, report *ReportData) error {
 
 	log.Printf("[reporter] sent report %s (severity=%s) to %s", report.ID, report.Severity, s.webhookURL)
 	return nil
+}
+
+func buildSlackPayload(report *ReportData) map[string]any {
+	emoji := severityEmoji(report.Severity)
+	text := fmt.Sprintf("%s [%s] %s", emoji, report.Severity, report.Summary)
+
+	blocks := []map[string]any{
+		{
+			"type": "header",
+			"text": map[string]any{
+				"type": "plain_text",
+				"text": fmt.Sprintf("%s Meerkat Alert — %s", emoji, report.Severity),
+			},
+		},
+		{
+			"type": "section",
+			"text": map[string]any{
+				"type": "mrkdwn",
+				"text": fmt.Sprintf("*Summary*\n%s", report.Summary),
+			},
+		},
+	}
+
+	if report.Detail != "" {
+		blocks = append(blocks, map[string]any{
+			"type": "section",
+			"text": map[string]any{
+				"type": "mrkdwn",
+				"text": fmt.Sprintf("*Detail*\n%s", report.Detail),
+			},
+		})
+	}
+
+	fields := []map[string]any{}
+	if report.Trigger != "" {
+		fields = append(fields,
+			map[string]any{"type": "mrkdwn", "text": fmt.Sprintf("*Trigger*\n%s", report.Trigger)},
+		)
+	}
+	if len(report.Datasources) > 0 {
+		fields = append(fields,
+			map[string]any{"type": "mrkdwn", "text": fmt.Sprintf("*Datasources*\n%s", strings.Join(report.Datasources, ", "))},
+		)
+	}
+	if !report.CreatedAt.IsZero() {
+		fields = append(fields,
+			map[string]any{"type": "mrkdwn", "text": fmt.Sprintf("*Time*\n<!date^%d^{date_short} {time_secs}|%s>", report.CreatedAt.Unix(), report.CreatedAt.Format(time.RFC3339))},
+		)
+	}
+	if len(fields) > 0 {
+		blocks = append(blocks, map[string]any{
+			"type":   "section",
+			"fields": fields,
+		})
+	}
+
+	return map[string]any{
+		"text":   text,
+		"blocks": blocks,
+	}
+}
+
+func severityEmoji(severity string) string {
+	switch severity {
+	case "critical":
+		return ":rotating_light:"
+	case "warning":
+		return ":warning:"
+	default:
+		return ":information_source:"
+	}
 }
