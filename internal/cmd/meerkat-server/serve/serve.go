@@ -131,6 +131,10 @@ func ProvideToolRegistry(registry *datasource.Registry) *analyzer.ToolRegistry {
 	)
 }
 
+func ProvideReporterService(cfg *config.Config) reporter.ReporterService {
+	return reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity)
+}
+
 func ProvideAnalyzerService(provider analyzer.LLMProvider, registry *analyzer.ToolRegistry, cfg *config.Config) analyzer.AnalyzerService {
 	systemPrompt := analyzer.MustLoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
 	skills := analyzer.MustLoadSkills(cfg.Analyzer.SkillsFile)
@@ -222,7 +226,7 @@ func NewFXApp(cfgFile string, port int) *fx.App {
 			ProvideAnalyzerService,
 			ProvideDedupWindow,
 			inspector.NewService,
-			reporter.NewService,
+			ProvideReporterService,
 			scheduler.NewCronScheduler,
 		),
 

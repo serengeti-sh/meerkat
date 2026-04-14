@@ -150,9 +150,7 @@ func (s *Suite) Start(ctx context.Context) error {
 		Scheduler: config.SchedulerConfig{
 			Enabled: false,
 		},
-		Reporter: config.ReporterConfig{
-			Channels: nil, // no reporter channels in tests
-		},
+		Reporter: config.ReporterConfig{},
 	}
 
 	// 5. Wire up dependencies (same as server.go but without fx)
@@ -195,7 +193,7 @@ func (s *Suite) Start(ctx context.Context) error {
 	analyzerSvc := analyzer.NewService(llmProvider, toolRegistry, cfg.Analyzer.MaxIterations, systemPrompt)
 
 	// Reporter (no-op in tests)
-	reporterSvc := reporter.NewService(cfg)
+	reporterSvc := reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity)
 
 	// Inspector service
 	reportRepo := insprepo.NewRepository(entClient)

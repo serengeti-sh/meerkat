@@ -55,12 +55,12 @@ spec:
                   name: {{ .Values.secrets.analyzer.existingSecret | default (include "meerkat.fullname" .) }}
                   key: {{ .Values.secrets.analyzer.existingSecretKey | default "analyzer-api-key" }}
             {{- end }}
-            {{- if or .Values.secrets.reporter.slackWebhookURL .Values.secrets.reporter.existingSecret }}
-            - name: SLACK_WEBHOOK_URL
+            {{- if or .Values.secrets.reporter.webhookURL .Values.secrets.reporter.existingSecret }}
+            - name: REPORTER_WEBHOOK_URL
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.secrets.reporter.existingSecret | default (include "meerkat.fullname" .) }}
-                  key: slack-webhook-url
+                  key: {{ .Values.secrets.reporter.existingSecretKey | default "reporter-webhook-url" }}
             {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
