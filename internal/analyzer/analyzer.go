@@ -47,11 +47,11 @@ type AnalyzerService interface {
 
 // Message represents a message in the LLM conversation.
 type Message struct {
-	Role       string          `json:"role"` // system, user, assistant, tool
-	Content    string          `json:"content"`
-	ToolCallID string          `json:"tool_call_id,omitempty"`
-	ToolName   string          `json:"tool_name,omitempty"`
-	ToolArgs   json.RawMessage `json:"tool_args,omitempty"`
+	Role       string     `json:"role"` // system, user, assistant, tool
+	Content    string     `json:"content"`
+	ToolCalls  []ToolCall `json:"tool_calls,omitempty"` // assistant messages with tool calls
+	ToolCallID string     `json:"tool_call_id,omitempty"`
+	ToolName   string     `json:"tool_name,omitempty"`
 }
 
 // ToolCall represents an LLM request to use a tool.
