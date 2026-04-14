@@ -2,6 +2,7 @@ package serve
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
@@ -77,29 +78,37 @@ func ProvideAnalyzerProvider(cfg *config.Config) analyzer.LLMProvider {
 	})
 }
 
-func newProvider(ds config.DatasourceConfig) datasource.Provider {
+func newProvider(ds config.DatasourceConfig) (datasource.Provider, error) {
+	client, err := datasource.NewHTTPClient(ds.CAFile)
+	if err != nil {
+		return nil, fmt.Errorf("datasource %q: %w", ds.Name, err)
+	}
+
 	switch ds.Type {
 	case "victoria-metrics", "prometheus":
-		return prometheus.New(ds.Name, ds.URL)
+		return prometheus.New(ds.Name, ds.URL, client), nil
 	case "victoria-logs":
-		return victorialogs.New(ds.Name, ds.URL)
+		return victorialogs.New(ds.Name, ds.URL, client), nil
 	case "loki":
-		return loki.New(ds.Name, ds.URL)
+		return loki.New(ds.Name, ds.URL, client), nil
 	default:
 		log.Printf("[meerkat] unknown datasource type %q for %q, skipping", ds.Type, ds.Name)
-		return nil
+		return nil, nil
 	}
 }
 
-func ProvideProviderRegistry(cfg *config.Config) *datasource.Registry {
+func ProvideProviderRegistry(cfg *config.Config) (*datasource.Registry, error) {
 	var providers []datasource.Provider
 	for _, ds := range cfg.Datasources {
-		p := newProvider(ds)
+		p, err := newProvider(ds)
+		if err != nil {
+			return nil, err
+		}
 		if p != nil {
 			providers = append(providers, p)
 		}
 	}
-	return datasource.NewRegistry(providers)
+	return datasource.NewRegistry(providers), nil
 }
 
 // adapterRegistry adapts datasource.Registry to inspector.DatasourceRegistry.
@@ -163,12 +172,29 @@ func ProvideHTTPServer(
 
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			ln, err := net.Listen("tcp", addr)
-			if err != nil {
-				return fmt.Errorf("failed to listen on %s: %w", addr, err)
-			}
+			var ln net.Listener
+			var err error
 
-			log.Printf("Starting meerkat server on %s", addr)
+			if cfg.HTTP.TLS.CertFile != "" && cfg.HTTP.TLS.KeyFile != "" {
+				cert, certErr := tls.LoadX509KeyPair(cfg.HTTP.TLS.CertFile, cfg.HTTP.TLS.KeyFile)
+				if certErr != nil {
+					return fmt.Errorf("loading TLS cert/key: %w", certErr)
+				}
+				ln, err = tls.Listen("tcp", addr, &tls.Config{
+					Certificates: []tls.Certificate{cert},
+					MinVersion:   tls.VersionTLS12,
+				})
+				if err != nil {
+					return fmt.Errorf("failed to listen on %s: %w", addr, err)
+				}
+				log.Printf("Starting meerkat server on https://%s", addr)
+			} else {
+				ln, err = net.Listen("tcp", addr)
+				if err != nil {
+					return fmt.Errorf("failed to listen on %s: %w", addr, err)
+				}
+				log.Printf("Starting meerkat server on http://%s", addr)
+			}
 
 			go func() { _ = srv.Serve(ln) }()
 

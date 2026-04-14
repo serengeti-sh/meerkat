@@ -124,6 +124,9 @@ config:
   http:
     host: "0.0.0.0"
     port: 8080
+    # tls:
+    #   cert_file: /app/tls/tls.crt
+    #   key_file: /app/tls/tls.key
 
   store:
     driver: postgres
@@ -136,7 +139,15 @@ config:
   datasources: []
   #  - name: vm
   #    type: prometheus
-  #    url: http://victoria-metrics:8428
+  #    url: https://victoriametrics-server:8428
+  #    ca_file: /app/ca/ca.crt
+  #  - name: vl
+  #    type: victoria-logs
+  #    url: https://victorialogs-server:9428
+  #    ca_file: /app/ca/ca.crt
+  #  - name: loki
+  #    type: loki
+  #    url: http://loki:3100
 
   analyzer:
     provider: openai
@@ -173,6 +184,18 @@ secrets:
     webhookURL: ""
     existingSecret: ""
     existingSecretKey: reporter-webhook-url
+
+# TLS certificates — mount secrets and reference them in config above
+# Example with cert-manager:
+#   config.http.tls.cert_file: /app/tls/tls.crt
+#   config.http.tls.key_file: /app/tls/tls.key
+#   tls.server.enabled: true
+#   tls.server.existingSecret: meerkat-server-tls
+tls:
+  server:
+    enabled: false
+    existingSecret: ""
+    mountPath: /app/tls
 
 # Additional environment variables
 extraEnv: []

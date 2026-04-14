@@ -165,7 +165,7 @@ func (s *Suite) Start(ctx context.Context) error {
 
 	// Datasource registry
 	registry := datasource.NewRegistry([]datasource.Provider{
-		prometheus.New("test-vm", s.MockPrometheus.URL()),
+		prometheus.New("test-vm", s.MockPrometheus.URL(), http.DefaultClient),
 	})
 
 	// Adapter for inspector.DatasourceRegistry

@@ -45,7 +45,7 @@ func TestQueryLogs_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := loki.New("test", srv.URL)
+	p := loki.New("test", srv.URL, http.DefaultClient)
 	querier, ok := p.LogsQuerier()
 	require.True(t, ok)
 
@@ -69,7 +69,7 @@ func TestQueryLogs_EmptyResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := loki.New("test", srv.URL)
+	p := loki.New("test", srv.URL, http.DefaultClient)
 	querier, _ := p.LogsQuerier()
 
 	entries, err := querier.QueryLogs(context.Background(), `{app="nonexistent"}`, 10)
@@ -84,7 +84,7 @@ func TestQueryLogs_ErrorStatus(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := loki.New("test", srv.URL)
+	p := loki.New("test", srv.URL, http.DefaultClient)
 	querier, _ := p.LogsQuerier()
 
 	_, err := querier.QueryLogs(context.Background(), `{app="test"}`, 10)
@@ -93,7 +93,7 @@ func TestQueryLogs_ErrorStatus(t *testing.T) {
 }
 
 func TestProvider_Interface(t *testing.T) {
-	p := loki.New("test", "http://localhost:3100")
+	p := loki.New("test", "http://localhost:3100", http.DefaultClient)
 
 	assert.Equal(t, "test", p.Name())
 	assert.Equal(t, datasource.TypeLoki, p.Type())
@@ -112,7 +112,7 @@ func TestProvider_TestConnection(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := loki.New("test", srv.URL)
+	p := loki.New("test", srv.URL, http.DefaultClient)
 	err := p.TestConnection(context.Background())
 	require.NoError(t, err)
 }
@@ -123,7 +123,7 @@ func TestProvider_TestConnection_Failure(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := loki.New("test", srv.URL)
+	p := loki.New("test", srv.URL, http.DefaultClient)
 	err := p.TestConnection(context.Background())
 	require.Error(t, err)
 }
