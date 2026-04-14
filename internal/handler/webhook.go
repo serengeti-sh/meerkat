@@ -8,16 +8,10 @@ import (
 )
 
 func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
-	source := r.PathValue("source")
-
 	var payload inspector.WebhookPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
-	}
-
-	if payload.Source == "" {
-		payload.Source = source
 	}
 
 	report, appErr := h.inspectorSvc.InspectByWebhook(r.Context(), payload)

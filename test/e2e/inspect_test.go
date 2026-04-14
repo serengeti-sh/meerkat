@@ -64,7 +64,7 @@ func TestE2E_Inspect_Webhook(t *testing.T) {
 				"current":   "12.3%",
 			},
 		}
-		resp, err := suite.Post("/v1/webhook/grafana", payload)
+		resp, err := suite.Post("/v1/webhook", payload)
 		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 

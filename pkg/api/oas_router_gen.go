@@ -17,7 +17,7 @@ var (
 	rn3AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
-	rn9AllowedHeaders = map[string]string{
+	rn8AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
 )
@@ -263,34 +263,23 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 				}
 
-			case 'w': // Prefix: "webhook/"
+			case 'w': // Prefix: "webhook"
 
-				if l := len("webhook/"); len(elem) >= l && elem[0:l] == "webhook/" {
+				if l := len("webhook"); len(elem) >= l && elem[0:l] == "webhook" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
-				// Param: "source"
-				// Leaf parameter, slashes are prohibited
-				idx := strings.IndexByte(elem, '/')
-				if idx >= 0 {
-					break
-				}
-				args[0] = elem
-				elem = ""
-
 				if len(elem) == 0 {
 					// Leaf node.
 					switch r.Method {
 					case "POST":
-						s.handleReceiveWebhookRequest([1]string{
-							args[0],
-						}, elemIsEscaped, w, r)
+						s.handleReceiveWebhookRequest([0]string{}, elemIsEscaped, w, r)
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "POST",
-							allowedHeaders: rn9AllowedHeaders,
+							allowedHeaders: rn8AllowedHeaders,
 							acceptPost:     "application/json",
 							acceptPatch:    "",
 						})
@@ -592,22 +581,13 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 
 				}
 
-			case 'w': // Prefix: "webhook/"
+			case 'w': // Prefix: "webhook"
 
-				if l := len("webhook/"); len(elem) >= l && elem[0:l] == "webhook/" {
+				if l := len("webhook"); len(elem) >= l && elem[0:l] == "webhook" {
 					elem = elem[l:]
 				} else {
 					break
 				}
-
-				// Param: "source"
-				// Leaf parameter, slashes are prohibited
-				idx := strings.IndexByte(elem, '/')
-				if idx >= 0 {
-					break
-				}
-				args[0] = elem
-				elem = ""
 
 				if len(elem) == 0 {
 					// Leaf node.
@@ -617,9 +597,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 						r.summary = "Receive a webhook trigger"
 						r.operationID = "receiveWebhook"
 						r.operationGroup = ""
-						r.pathPattern = "/webhook/{source}"
+						r.pathPattern = "/webhook"
 						r.args = args
-						r.count = 1
+						r.count = 0
 						return r, true
 					default:
 						return

@@ -857,14 +857,14 @@ func (s *Server) handleListReportsRequest(args [0]string, argsEscaped bool, w ht
 //
 // Receive a webhook trigger.
 //
-// POST /webhook/{source}
-func (s *Server) handleReceiveWebhookRequest(args [1]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
+// POST /webhook
+func (s *Server) handleReceiveWebhookRequest(args [0]string, argsEscaped bool, w http.ResponseWriter, r *http.Request) {
 	statusWriter := &codeRecorder{ResponseWriter: w}
 	w = statusWriter
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("receiveWebhook"),
 		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.HTTPRouteKey.String("/webhook/{source}"),
+		semconv.HTTPRouteKey.String("/webhook"),
 	}
 	// Add attributes from config.
 	otelAttrs = append(otelAttrs, s.cfg.Attributes...)
@@ -929,16 +929,6 @@ func (s *Server) handleReceiveWebhookRequest(args [1]string, argsEscaped bool, w
 			ID:   "receiveWebhook",
 		}
 	)
-	params, err := decodeReceiveWebhookParams(args, argsEscaped, r)
-	if err != nil {
-		err = &ogenerrors.DecodeParamsError{
-			OperationContext: opErrContext,
-			Err:              err,
-		}
-		defer recordError("DecodeParams", err)
-		s.cfg.ErrorHandler(ctx, w, r, err)
-		return
-	}
 
 	var rawBody []byte
 	request, rawBody, close, err := s.decodeReceiveWebhookRequest(r)
@@ -966,18 +956,13 @@ func (s *Server) handleReceiveWebhookRequest(args [1]string, argsEscaped bool, w
 			OperationID:      "receiveWebhook",
 			Body:             request,
 			RawBody:          rawBody,
-			Params: middleware.Parameters{
-				{
-					Name: "source",
-					In:   "path",
-				}: params.Source,
-			},
-			Raw: r,
+			Params:           middleware.Parameters{},
+			Raw:              r,
 		}
 
 		type (
 			Request  = *ReceiveWebhookReq
-			Params   = ReceiveWebhookParams
+			Params   = struct{}
 			Response = ReceiveWebhookRes
 		)
 		response, err = middleware.HookMiddleware[
@@ -987,14 +972,14 @@ func (s *Server) handleReceiveWebhookRequest(args [1]string, argsEscaped bool, w
 		](
 			m,
 			mreq,
-			unpackReceiveWebhookParams,
+			nil,
 			func(ctx context.Context, request Request, params Params) (response Response, err error) {
-				response, err = s.h.ReceiveWebhook(ctx, request, params)
+				response, err = s.h.ReceiveWebhook(ctx, request)
 				return response, err
 			},
 		)
 	} else {
-		response, err = s.h.ReceiveWebhook(ctx, request, params)
+		response, err = s.h.ReceiveWebhook(ctx, request)
 	}
 	if err != nil {
 		defer recordError("Internal", err)

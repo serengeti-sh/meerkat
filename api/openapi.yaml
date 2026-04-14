@@ -33,8 +33,8 @@ paths:
   /inspect:
     $ref: "./paths/inspect.yaml#/~1inspect"
 
-  /webhook/{source}:
-    $ref: "./paths/webhook.yaml#/~1webhook~1{source}"
+  /webhook:
+    $ref: "./paths/webhook.yaml#/~1webhook"
 
   /reports:
     $ref: "./paths/reports.yaml#/~1reports"

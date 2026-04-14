@@ -46,8 +46,6 @@ func NewCmd() *cobra.Command {
 				Source:  optString(source),
 				Alert:   optStringField(payload, "alert"),
 				Message: optStringField(payload, "message"),
-			}, api.ReceiveWebhookParams{
-				Source: source,
 			})
 			if err != nil {
 				return err
