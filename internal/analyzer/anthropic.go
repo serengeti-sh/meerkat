@@ -1,137 +1,114 @@
 package analyzer
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
+
+	"github.com/anthropics/anthropic-sdk-go"
+	"github.com/anthropics/anthropic-sdk-go/option"
 )
 
 // anthropicProvider implements LLMProvider for Anthropic Messages API.
 type anthropicProvider struct {
-	apiKey      string
+	client      anthropic.Client
 	model       string
-	baseURL     string
-	maxTokens   int
+	maxTokens   int64
 	temperature float64
 }
 
 func newAnthropicProvider(cfg ProviderConfig) LLMProvider {
+	opts := []option.RequestOption{}
+	if cfg.APIKey != "" {
+		opts = append(opts, option.WithAPIKey(cfg.APIKey))
+	}
 	baseURL := cfg.URL
 	if baseURL == "" {
 		baseURL = "https://api.anthropic.com"
 	}
+	opts = append(opts, option.WithBaseURL(strings.TrimRight(baseURL, "/")))
+
 	return &anthropicProvider{
-		apiKey:      cfg.APIKey,
+		client:      anthropic.NewClient(opts...),
 		model:       cfg.Model,
-		baseURL:     strings.TrimRight(baseURL, "/"),
-		maxTokens:   cfg.MaxTokens,
+		maxTokens:   int64(cfg.MaxTokens),
 		temperature: cfg.Temperature,
 	}
 }
 
 func (p *anthropicProvider) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
 	var systemContent string
-	messages := make([]map[string]any, 0, len(req.Messages))
+	messages := make([]anthropic.MessageParam, 0, len(req.Messages))
 
 	for _, m := range req.Messages {
 		switch m.Role {
 		case "system":
 			systemContent = m.Content
 		case "tool":
-			// Anthropic uses tool_result content blocks
-			messages = append(messages, map[string]any{
-				"role": "user",
-				"content": []map[string]any{
-					{
-						"type":        "tool_result",
-						"tool_use_id": m.ToolCallID,
-						"content":     m.Content,
-					},
-				},
-			})
+			messages = append(messages, anthropic.NewUserMessage(
+				anthropic.NewToolResultBlock(m.ToolCallID, m.Content, false),
+			))
+		case "assistant":
+			blocks := make([]anthropic.ContentBlockParamUnion, 0, 1+len(m.ToolCalls))
+			if m.Content != "" {
+				blocks = append(blocks, anthropic.NewTextBlock(m.Content))
+			}
+			for _, tc := range m.ToolCalls {
+				var input any
+				if err := json.Unmarshal(tc.Arguments, &input); err != nil {
+					input = map[string]any{}
+				}
+				blocks = append(blocks, anthropic.NewToolUseBlock(tc.ID, input, tc.Name))
+			}
+			messages = append(messages, anthropic.NewAssistantMessage(blocks...))
 		default:
-			messages = append(messages, map[string]any{
-				"role":    m.Role,
-				"content": m.Content,
-			})
+			messages = append(messages, anthropic.NewUserMessage(
+				anthropic.NewTextBlock(m.Content),
+			))
 		}
 	}
 
-	body := map[string]any{
-		"model":       p.model,
-		"max_tokens":  p.maxTokens,
-		"temperature": p.temperature,
-		"messages":    messages,
+	params := anthropic.MessageNewParams{
+		Model:     p.model,
+		MaxTokens: p.maxTokens,
+		Messages:  messages,
+	}
+
+	if p.temperature > 0 {
+		params.Temperature = anthropic.Float(p.temperature)
 	}
 
 	if systemContent != "" {
-		body["system"] = systemContent
+		params.System = []anthropic.TextBlockParam{
+			{Text: systemContent},
+		}
 	}
 
 	if len(req.Tools) > 0 {
-		tools := make([]map[string]any, 0, len(req.Tools))
+		tools := make([]anthropic.ToolUnionParam, 0, len(req.Tools))
 		for _, t := range req.Tools {
-			tools = append(tools, map[string]any{
-				"name":         t.Name,
-				"description":  t.Description,
-				"input_schema": json.RawMessage(t.Parameters),
+			tools = append(tools, anthropic.ToolUnionParam{
+				OfTool: &anthropic.ToolParam{
+					Name:        t.Name,
+					Description: anthropic.String(t.Description),
+					InputSchema: parseSchema(t.Parameters),
+				},
 			})
 		}
-		body["tools"] = tools
+		params.Tools = tools
 	}
 
-	jsonBody, err := json.Marshal(body)
+	msg, err := p.client.Messages.New(ctx, params)
 	if err != nil {
-		return nil, fmt.Errorf("marshal request: %w", err)
-	}
-
-	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost, p.baseURL+"/v1/messages", bytes.NewReader(jsonBody))
-	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("x-api-key", p.apiKey)
-	httpReq.Header.Set("anthropic-version", "2023-06-01")
-
-	resp, err := http.DefaultClient.Do(httpReq)
-	if err != nil {
-		return nil, fmt.Errorf("request failed: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	respBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("read response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("anthropic API error (status %d): %s", resp.StatusCode, string(respBody))
-	}
-
-	var result struct {
-		Content []struct {
-			Type  string          `json:"type"`
-			Text  string          `json:"text"`
-			ID    string          `json:"id"`
-			Name  string          `json:"name"`
-			Input json.RawMessage `json:"input"`
-		} `json:"content"`
-		StopReason string `json:"stop_reason"`
-	}
-
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		return nil, fmt.Errorf("parse response: %w", err)
+		return nil, fmt.Errorf("anthropic API error: %w", err)
 	}
 
 	out := &CompletionResponse{
-		Stop: result.StopReason == "end_turn",
+		Stop: msg.StopReason == "end_turn",
 	}
 
-	for _, block := range result.Content {
+	for _, block := range msg.Content {
 		switch block.Type {
 		case "text":
 			out.Content += block.Text
@@ -146,4 +123,22 @@ func (p *anthropicProvider) Complete(ctx context.Context, req *CompletionRequest
 	}
 
 	return out, nil
+}
+
+func parseSchema(data json.RawMessage) anthropic.ToolInputSchemaParam {
+	m := jsonToMap(data)
+	schema := anthropic.ToolInputSchemaParam{}
+	if props, ok := m["properties"]; ok {
+		schema.Properties = props
+	}
+	if req, ok := m["required"].([]any); ok {
+		required := make([]string, 0, len(req))
+		for _, r := range req {
+			if s, ok := r.(string); ok {
+				required = append(required, s)
+			}
+		}
+		schema.Required = required
+	}
+	return schema
 }

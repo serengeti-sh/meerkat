@@ -54,9 +54,9 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 
 		// Add assistant response with tool calls to conversation
 		messages = append(messages, Message{
-			Role:     "assistant",
-			Content:  resp.Content,
-			ToolArgs: mustMarshal(resp.ToolCalls),
+			Role:      "assistant",
+			Content:   resp.Content,
+			ToolCalls: resp.ToolCalls,
 		})
 
 		// Execute each tool call and append results
@@ -195,9 +195,4 @@ func truncate(s string, max int) string {
 		return s
 	}
 	return s[:max] + "..."
-}
-
-func mustMarshal(v any) json.RawMessage {
-	b, _ := json.Marshal(v)
-	return b
 }
