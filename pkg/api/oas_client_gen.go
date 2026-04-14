@@ -67,8 +67,8 @@ type Invoker interface {
 	//
 	// Receive a webhook trigger.
 	//
-	// POST /webhook/{source}
-	ReceiveWebhook(ctx context.Context, request *ReceiveWebhookReq, params ReceiveWebhookParams) (ReceiveWebhookRes, error)
+	// POST /webhook
+	ReceiveWebhook(ctx context.Context, request *ReceiveWebhookReq) (ReceiveWebhookRes, error)
 	// TestDatasource invokes testDatasource operation.
 	//
 	// Test datasource connection.
@@ -618,17 +618,17 @@ func (c *Client) sendListReports(ctx context.Context, params ListReportsParams) 
 //
 // Receive a webhook trigger.
 //
-// POST /webhook/{source}
-func (c *Client) ReceiveWebhook(ctx context.Context, request *ReceiveWebhookReq, params ReceiveWebhookParams) (ReceiveWebhookRes, error) {
-	res, err := c.sendReceiveWebhook(ctx, request, params)
+// POST /webhook
+func (c *Client) ReceiveWebhook(ctx context.Context, request *ReceiveWebhookReq) (ReceiveWebhookRes, error) {
+	res, err := c.sendReceiveWebhook(ctx, request)
 	return res, err
 }
 
-func (c *Client) sendReceiveWebhook(ctx context.Context, request *ReceiveWebhookReq, params ReceiveWebhookParams) (res ReceiveWebhookRes, err error) {
+func (c *Client) sendReceiveWebhook(ctx context.Context, request *ReceiveWebhookReq) (res ReceiveWebhookRes, err error) {
 	otelAttrs := []attribute.KeyValue{
 		otelogen.OperationID("receiveWebhook"),
 		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/webhook/{source}"),
+		semconv.URLTemplateKey.String("/webhook"),
 	}
 	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
 
@@ -661,26 +661,8 @@ func (c *Client) sendReceiveWebhook(ctx context.Context, request *ReceiveWebhook
 
 	stage = "BuildURL"
 	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [2]string
-	pathParts[0] = "/webhook/"
-	{
-		// Encode "source" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "source",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.StringToString(params.Source))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
+	var pathParts [1]string
+	pathParts[0] = "/webhook"
 	uri.AddPathParts(u, pathParts[:]...)
 
 	stage = "EncodeRequest"

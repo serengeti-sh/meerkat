@@ -71,8 +71,8 @@ func (UnimplementedHandler) ListReports(ctx context.Context, params ListReportsP
 //
 // Receive a webhook trigger.
 //
-// POST /webhook/{source}
-func (UnimplementedHandler) ReceiveWebhook(ctx context.Context, req *ReceiveWebhookReq, params ReceiveWebhookParams) (r ReceiveWebhookRes, _ error) {
+// POST /webhook
+func (UnimplementedHandler) ReceiveWebhook(ctx context.Context, req *ReceiveWebhookReq) (r ReceiveWebhookRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
 

@@ -28,7 +28,7 @@ func NewHandler(
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/health", h.Health)
 	mux.HandleFunc("POST /v1/inspect", h.Inspect)
-	mux.HandleFunc("POST /v1/webhook/{source}", h.Webhook)
+	mux.HandleFunc("POST /v1/webhook", h.Webhook)
 	mux.HandleFunc("GET /v1/reports", h.ListReports)
 	mux.HandleFunc("GET /v1/reports/{id}", h.GetReport)
 	mux.HandleFunc("GET /v1/datasources", h.ListDatasources)

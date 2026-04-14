@@ -1,14 +1,8 @@
-/webhook/{source}:
+/webhook:
   post:
     operationId: receiveWebhook
     summary: Receive a webhook trigger
     tags: [Webhook]
-    parameters:
-      - name: source
-        in: path
-        required: true
-        schema:
-          type: string
     requestBody:
       required: true
       content:

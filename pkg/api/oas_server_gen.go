@@ -48,8 +48,8 @@ type Handler interface {
 	//
 	// Receive a webhook trigger.
 	//
-	// POST /webhook/{source}
-	ReceiveWebhook(ctx context.Context, req *ReceiveWebhookReq, params ReceiveWebhookParams) (ReceiveWebhookRes, error)
+	// POST /webhook
+	ReceiveWebhook(ctx context.Context, req *ReceiveWebhookReq) (ReceiveWebhookRes, error)
 	// TestDatasource implements testDatasource operation.
 	//
 	// Test datasource connection.
