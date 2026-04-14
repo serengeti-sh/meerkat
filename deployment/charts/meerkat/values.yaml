@@ -156,10 +156,8 @@ config:
     dedup_window: 5m
 
   reporter:
-    channels: []
-    #  - type: slack
-    #    webhook_url: ""
-    #    min_severity: warning
+    webhook_url: ""
+    min_severity: warning
 
 # Secrets (passed as environment variables)
 secrets:
@@ -172,8 +170,9 @@ secrets:
     existingSecret: ""
     existingSecretKey: analyzer-api-key
   reporter:
-    slackWebhookURL: ""
+    webhookURL: ""
     existingSecret: ""
+    existingSecretKey: reporter-webhook-url
 
 # Additional environment variables
 extraEnv: []

@@ -75,10 +75,8 @@ type SchedulerConfig struct {
 	Jobs    []SchedulerJobConfig `mapstructure:"jobs"`
 }
 
-type ReporterChannelConfig struct {
-	Type        string `mapstructure:"type"` // slack, webhook, email
+type ReporterConfig struct {
 	WebhookURL  string `mapstructure:"webhook_url"`
-	URL         string `mapstructure:"url"`
 	MinSeverity string `mapstructure:"min_severity"` // info, warning, critical
 }
 
@@ -96,10 +94,6 @@ func (c InspectorConfig) GetDedupWindow() time.Duration {
 		return 5 * time.Minute
 	}
 	return d
-}
-
-type ReporterConfig struct {
-	Channels []ReporterChannelConfig `mapstructure:"channels"`
 }
 
 var camelRe = regexp.MustCompile("([a-z0-9])([A-Z])")
@@ -224,6 +218,8 @@ func bindEnvVars(v *viper.Viper) {
 	_ = v.BindEnv("store.password", "DATABASE_PASSWORD")
 	_ = v.BindEnv("analyzer.api_key", "LLM_API_KEY", "OPENAI_API_KEY", "ANTHROPIC_API_KEY")
 	_ = v.BindEnv("analyzer.url", "LLM_URL")
+	_ = v.BindEnv("reporter.webhook_url", "REPORTER_WEBHOOK_URL", "SLACK_WEBHOOK_URL")
+	_ = v.BindEnv("reporter.min_severity", "REPORTER_MIN_SEVERITY")
 }
 
 func (c *Config) IsDevelopment() bool {

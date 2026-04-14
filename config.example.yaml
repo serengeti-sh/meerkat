@@ -72,10 +72,5 @@ inspector:
   dedup_window: 5m
 
 reporter:
-  channels:
-    - type: slack
-      webhook_url: ""
-      min_severity: warning
-    # - type: webhook
-    #   url: http://localhost:9090/alerts
-    #   min_severity: critical
+  webhook_url: ""
+  min_severity: warning

@@ -66,7 +66,7 @@ gen: ent-gen ogen mock ## Generate all code (ent, ogen, mocks)
 # Testing
 .PHONY: test
 test: ## Run unit tests
-	go test -v $$(go list ./... | grep -v -e /mocks -e /test/e2e) --coverprofile cover-unit.out
+	go test -v $$(go list ./... | grep -v -e /mocks -e /test/e2e -e /test/deploy) --coverprofile cover-unit.out
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
