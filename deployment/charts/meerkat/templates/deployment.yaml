@@ -76,11 +76,20 @@ spec:
           {{- with .Values.startupProbe }}
           startupProbe:
             {{- toYaml . | nindent 12 }}
+            {{- if $.Values.tls.server.enabled }}
+            scheme: HTTPS
+            {{- end }}
           {{- end }}
           livenessProbe:
             {{- toYaml .Values.livenessProbe | nindent 12 }}
+            {{- if .Values.tls.server.enabled }}
+            scheme: HTTPS
+            {{- end }}
           readinessProbe:
             {{- toYaml .Values.readinessProbe | nindent 12 }}
+            {{- if .Values.tls.server.enabled }}
+            scheme: HTTPS
+            {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
@@ -89,6 +98,11 @@ spec:
               readOnly: true
             - name: tmp
               mountPath: /tmp
+            {{- if .Values.tls.server.enabled }}
+            - name: server-tls
+              mountPath: {{ .Values.tls.server.mountPath }}
+              readOnly: true
+            {{- end }}
             {{- with .Values.extraVolumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -98,6 +112,11 @@ spec:
             name: {{ include "meerkat.fullname" . }}
         - name: tmp
           emptyDir: {}
+        {{- if .Values.tls.server.enabled }}
+        - name: server-tls
+          secret:
+            secretName: {{ .Values.tls.server.existingSecret }}
+        {{- end }}
         {{- with .Values.extraVolumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

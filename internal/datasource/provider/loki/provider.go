@@ -19,11 +19,11 @@ type provider struct {
 }
 
 // New creates a new Grafana Loki provider.
-func New(name, baseURL string) datasource.Provider {
+func New(name, baseURL string, client *http.Client) datasource.Provider {
 	return &provider{
 		name:    name,
 		baseURL: baseURL,
-		client:  &http.Client{Timeout: 15 * time.Second},
+		client:  client,
 	}
 }
 

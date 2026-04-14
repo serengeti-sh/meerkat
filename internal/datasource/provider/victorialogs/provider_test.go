@@ -28,7 +28,7 @@ func TestQueryLogs_JSONResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := victorialogs.New("test", srv.URL)
+	p := victorialogs.New("test", srv.URL, http.DefaultClient)
 	querier, ok := p.LogsQuerier()
 	require.True(t, ok)
 
@@ -50,7 +50,7 @@ func TestQueryLogs_JSONLResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := victorialogs.New("test", srv.URL)
+	p := victorialogs.New("test", srv.URL, http.DefaultClient)
 	querier, _ := p.LogsQuerier()
 
 	entries, err := querier.QueryLogs(context.Background(), "*", 10)
@@ -68,7 +68,7 @@ func TestQueryLogs_EmptyResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := victorialogs.New("test", srv.URL)
+	p := victorialogs.New("test", srv.URL, http.DefaultClient)
 	querier, _ := p.LogsQuerier()
 
 	entries, err := querier.QueryLogs(context.Background(), "nonexistent", 10)
@@ -83,7 +83,7 @@ func TestQueryLogs_ErrorStatus(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := victorialogs.New("test", srv.URL)
+	p := victorialogs.New("test", srv.URL, http.DefaultClient)
 	querier, _ := p.LogsQuerier()
 
 	_, err := querier.QueryLogs(context.Background(), "*", 10)
@@ -92,7 +92,7 @@ func TestQueryLogs_ErrorStatus(t *testing.T) {
 }
 
 func TestProvider_Interface(t *testing.T) {
-	p := victorialogs.New("test", "http://localhost:9428")
+	p := victorialogs.New("test", "http://localhost:9428", http.DefaultClient)
 
 	assert.Equal(t, "test", p.Name())
 	assert.Equal(t, datasource.TypeVictoriaLogs, p.Type())
@@ -111,7 +111,7 @@ func TestProvider_TestConnection(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := victorialogs.New("test", srv.URL)
+	p := victorialogs.New("test", srv.URL, http.DefaultClient)
 	err := p.TestConnection(context.Background())
 	require.NoError(t, err)
 }

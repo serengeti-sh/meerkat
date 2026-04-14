@@ -28,10 +28,16 @@ type AppConfig struct {
 	Debug   bool   `mapstructure:"debug"`
 }
 
+type TLSConfig struct {
+	CertFile string `mapstructure:"cert_file"`
+	KeyFile  string `mapstructure:"key_file"`
+}
+
 type HTTPConfig struct {
-	Host        string `mapstructure:"host"`
-	Port        int    `mapstructure:"port"`
-	OpenAPIPath string `mapstructure:"openapi_path"`
+	Host        string    `mapstructure:"host"`
+	Port        int       `mapstructure:"port"`
+	OpenAPIPath string    `mapstructure:"openapi_path"`
+	TLS         TLSConfig `mapstructure:"tls"`
 }
 
 type StoreConfig struct {
@@ -45,10 +51,11 @@ type StoreConfig struct {
 }
 
 type DatasourceConfig struct {
-	Name  string         `mapstructure:"name"`
-	Type  string         `mapstructure:"type"` // victoria-metrics, victoria-logs, prometheus, loki
-	URL   string         `mapstructure:"url"`
-	Extra map[string]any `mapstructure:"extra"` // provider-specific options
+	Name   string         `mapstructure:"name"`
+	Type   string         `mapstructure:"type"` // victoria-metrics, victoria-logs, prometheus, loki
+	URL    string         `mapstructure:"url"`
+	CAFile string         `mapstructure:"ca_file"` // CA certificate for HTTPS datasources
+	Extra  map[string]any `mapstructure:"extra"`   // provider-specific options
 }
 
 type AnalyzerConfig struct {
@@ -220,6 +227,8 @@ func bindEnvVars(v *viper.Viper) {
 	_ = v.BindEnv("analyzer.url", "LLM_URL")
 	_ = v.BindEnv("reporter.webhook_url", "REPORTER_WEBHOOK_URL", "SLACK_WEBHOOK_URL")
 	_ = v.BindEnv("reporter.min_severity", "REPORTER_MIN_SEVERITY")
+	_ = v.BindEnv("http.tls.cert_file", "TLS_CERT_FILE")
+	_ = v.BindEnv("http.tls.key_file", "TLS_KEY_FILE")
 }
 
 func (c *Config) IsDevelopment() bool {

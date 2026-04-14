@@ -41,7 +41,7 @@ func TestQueryMetrics_VectorResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := prometheus.New("test", srv.URL)
+	p := prometheus.New("test", srv.URL, http.DefaultClient)
 	querier, ok := p.MetricsQuerier()
 	require.True(t, ok)
 
@@ -75,7 +75,7 @@ func TestQueryMetrics_MatrixResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := prometheus.New("test", srv.URL)
+	p := prometheus.New("test", srv.URL, http.DefaultClient)
 	querier, _ := p.MetricsQuerier()
 
 	series, err := querier.QueryMetrics(context.Background(), "rate")
@@ -94,7 +94,7 @@ func TestQueryMetrics_EmptyResult(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := prometheus.New("test", srv.URL)
+	p := prometheus.New("test", srv.URL, http.DefaultClient)
 	querier, _ := p.MetricsQuerier()
 
 	series, err := querier.QueryMetrics(context.Background(), "nonexistent_metric")
@@ -109,7 +109,7 @@ func TestQueryMetrics_ErrorStatus(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := prometheus.New("test", srv.URL)
+	p := prometheus.New("test", srv.URL, http.DefaultClient)
 	querier, _ := p.MetricsQuerier()
 
 	_, err := querier.QueryMetrics(context.Background(), "up")
@@ -118,7 +118,7 @@ func TestQueryMetrics_ErrorStatus(t *testing.T) {
 }
 
 func TestProvider_Interface(t *testing.T) {
-	p := prometheus.New("test", "http://localhost:9090")
+	p := prometheus.New("test", "http://localhost:9090", http.DefaultClient)
 
 	assert.Equal(t, "test", p.Name())
 	assert.Equal(t, datasource.TypePrometheus, p.Type())
@@ -137,7 +137,7 @@ func TestProvider_TestConnection(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := prometheus.New("test", srv.URL)
+	p := prometheus.New("test", srv.URL, http.DefaultClient)
 	err := p.TestConnection(context.Background())
 	require.NoError(t, err)
 }
@@ -148,7 +148,7 @@ func TestProvider_TestConnection_Failure(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := prometheus.New("test", srv.URL)
+	p := prometheus.New("test", srv.URL, http.DefaultClient)
 	err := p.TestConnection(context.Background())
 	require.Error(t, err)
 }
@@ -167,7 +167,7 @@ func TestQueryMetrics_ResultJSON(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p := prometheus.New("test", srv.URL)
+	p := prometheus.New("test", srv.URL, http.DefaultClient)
 	querier, _ := p.MetricsQuerier()
 
 	series, _ := querier.QueryMetrics(context.Background(), "cpu")
