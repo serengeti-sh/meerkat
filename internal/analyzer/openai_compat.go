@@ -3,6 +3,7 @@ package analyzer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -18,6 +19,7 @@ type openaiCompatProvider struct {
 	model       string
 	maxTokens   int64
 	temperature float64
+	retryCfg    RetryConfig
 }
 
 func newOpenAICompatProvider(cfg ProviderConfig) LLMProvider {
@@ -34,64 +36,83 @@ func newOpenAICompatProvider(cfg ProviderConfig) LLMProvider {
 		model:       cfg.Model,
 		maxTokens:   int64(cfg.MaxTokens),
 		temperature: cfg.Temperature,
+		retryCfg:    cfg.Retry,
 	}
 }
 
 func (p *openaiCompatProvider) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
-	messages := make([]openai.ChatCompletionMessageParamUnion, 0, len(req.Messages))
-	for _, m := range req.Messages {
-		messages = append(messages, toOpenAIMessage(m))
-	}
-
-	params := openai.ChatCompletionNewParams{
-		Messages: messages,
-		Model:    p.model,
-	}
-
-	if p.maxTokens > 0 {
-		params.MaxTokens = openai.Int(p.maxTokens)
-	}
-	if p.temperature > 0 {
-		params.Temperature = openai.Float(p.temperature)
-	}
-
-	if len(req.Tools) > 0 {
-		tools := make([]openai.ChatCompletionToolUnionParam, 0, len(req.Tools))
-		for _, t := range req.Tools {
-			tools = append(tools, openai.ChatCompletionFunctionTool(shared.FunctionDefinitionParam{
-				Name:        t.Name,
-				Description: openai.String(t.Description),
-				Parameters:  shared.FunctionParameters(jsonToMap(t.Parameters)),
-			}))
+	return retryWithBackoff(ctx, p.retryCfg, func() (*CompletionResponse, error) {
+		messages := make([]openai.ChatCompletionMessageParamUnion, 0, len(req.Messages))
+		for _, m := range req.Messages {
+			messages = append(messages, toOpenAIMessage(m))
 		}
-		params.Tools = tools
-	}
 
-	completion, err := p.client.Chat.Completions.New(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("API error: %w", err)
-	}
+		params := openai.ChatCompletionNewParams{
+			Messages: messages,
+			Model:    p.model,
+		}
 
-	if len(completion.Choices) == 0 {
-		return nil, fmt.Errorf("empty response from API")
-	}
+		if p.maxTokens > 0 {
+			params.MaxTokens = openai.Int(p.maxTokens)
+		}
+		if p.temperature > 0 {
+			params.Temperature = openai.Float(p.temperature)
+		}
 
-	choice := completion.Choices[0]
-	out := &CompletionResponse{
-		Content: choice.Message.Content,
-		Stop:    choice.FinishReason == "stop" || choice.FinishReason == "end_turn",
-	}
+		if len(req.Tools) > 0 {
+			tools := make([]openai.ChatCompletionToolUnionParam, 0, len(req.Tools))
+			for _, t := range req.Tools {
+				tools = append(tools, openai.ChatCompletionFunctionTool(shared.FunctionDefinitionParam{
+					Name:        t.Name,
+					Description: openai.String(t.Description),
+					Parameters:  shared.FunctionParameters(jsonToMap(t.Parameters)),
+				}))
+			}
+			params.Tools = tools
+		}
 
-	for _, tc := range choice.Message.ToolCalls {
-		out.ToolCalls = append(out.ToolCalls, ToolCall{
-			ID:        tc.ID,
-			Name:      tc.Function.Name,
-			Arguments: json.RawMessage(tc.Function.Arguments),
-		})
-		out.Stop = false
-	}
+		completion, err := p.client.Chat.Completions.New(ctx, params)
+		if err != nil {
+			return nil, classifyOpenAIError(err)
+		}
 
-	return out, nil
+		if len(completion.Choices) == 0 {
+			return nil, fmt.Errorf("empty response from API")
+		}
+
+		choice := completion.Choices[0]
+		out := &CompletionResponse{
+			Content: choice.Message.Content,
+			Stop:    choice.FinishReason == "stop" || choice.FinishReason == "end_turn",
+		}
+
+		for _, tc := range choice.Message.ToolCalls {
+			out.ToolCalls = append(out.ToolCalls, ToolCall{
+				ID:        tc.ID,
+				Name:      tc.Function.Name,
+				Arguments: json.RawMessage(tc.Function.Arguments),
+			})
+			out.Stop = false
+		}
+
+		return out, nil
+	})
+}
+
+func classifyOpenAIError(err error) error {
+	var apiErr *openai.Error
+	if errors.As(err, &apiErr) {
+		switch apiErr.StatusCode {
+		case 401, 403:
+			return fmt.Errorf("%w: %s", ErrAuthError, err)
+		case 400:
+			if strings.Contains(apiErr.Code, "context_length_exceeded") {
+				return fmt.Errorf("%w: %s", ErrContextOverflow, err)
+			}
+			return fmt.Errorf("%w: %s", ErrInvalidRequest, err)
+		}
+	}
+	return err
 }
 
 func toOpenAIMessage(m Message) openai.ChatCompletionMessageParamUnion {

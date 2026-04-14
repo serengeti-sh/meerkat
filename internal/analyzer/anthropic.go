@@ -3,6 +3,7 @@ package analyzer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -16,6 +17,7 @@ type anthropicProvider struct {
 	model       string
 	maxTokens   int64
 	temperature float64
+	retryCfg    RetryConfig
 }
 
 func newAnthropicProvider(cfg ProviderConfig) LLMProvider {
@@ -34,95 +36,116 @@ func newAnthropicProvider(cfg ProviderConfig) LLMProvider {
 		model:       cfg.Model,
 		maxTokens:   int64(cfg.MaxTokens),
 		temperature: cfg.Temperature,
+		retryCfg:    cfg.Retry,
 	}
 }
 
 func (p *anthropicProvider) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
-	var systemContent string
-	messages := make([]anthropic.MessageParam, 0, len(req.Messages))
+	return retryWithBackoff(ctx, p.retryCfg, func() (*CompletionResponse, error) {
+		var systemContent string
+		messages := make([]anthropic.MessageParam, 0, len(req.Messages))
 
-	for _, m := range req.Messages {
-		switch m.Role {
-		case "system":
-			systemContent = m.Content
-		case "tool":
-			messages = append(messages, anthropic.NewUserMessage(
-				anthropic.NewToolResultBlock(m.ToolCallID, m.Content, false),
-			))
-		case "assistant":
-			blocks := make([]anthropic.ContentBlockParamUnion, 0, 1+len(m.ToolCalls))
-			if m.Content != "" {
-				blocks = append(blocks, anthropic.NewTextBlock(m.Content))
-			}
-			for _, tc := range m.ToolCalls {
-				var input any
-				if err := json.Unmarshal(tc.Arguments, &input); err != nil {
-					input = map[string]any{}
+		for _, m := range req.Messages {
+			switch m.Role {
+			case "system":
+				systemContent = m.Content
+			case "tool":
+				messages = append(messages, anthropic.NewUserMessage(
+					anthropic.NewToolResultBlock(m.ToolCallID, m.Content, false),
+				))
+			case "assistant":
+				blocks := make([]anthropic.ContentBlockParamUnion, 0, 1+len(m.ToolCalls))
+				if m.Content != "" {
+					blocks = append(blocks, anthropic.NewTextBlock(m.Content))
 				}
-				blocks = append(blocks, anthropic.NewToolUseBlock(tc.ID, input, tc.Name))
+				for _, tc := range m.ToolCalls {
+					var input any
+					if err := json.Unmarshal(tc.Arguments, &input); err != nil {
+						input = map[string]any{}
+					}
+					blocks = append(blocks, anthropic.NewToolUseBlock(tc.ID, input, tc.Name))
+				}
+				messages = append(messages, anthropic.NewAssistantMessage(blocks...))
+			default:
+				messages = append(messages, anthropic.NewUserMessage(
+					anthropic.NewTextBlock(m.Content),
+				))
 			}
-			messages = append(messages, anthropic.NewAssistantMessage(blocks...))
-		default:
-			messages = append(messages, anthropic.NewUserMessage(
-				anthropic.NewTextBlock(m.Content),
-			))
+		}
+
+		params := anthropic.MessageNewParams{
+			Model:     p.model,
+			MaxTokens: p.maxTokens,
+			Messages:  messages,
+		}
+
+		if p.temperature > 0 {
+			params.Temperature = anthropic.Float(p.temperature)
+		}
+
+		if systemContent != "" {
+			params.System = []anthropic.TextBlockParam{
+				{Text: systemContent},
+			}
+		}
+
+		if len(req.Tools) > 0 {
+			tools := make([]anthropic.ToolUnionParam, 0, len(req.Tools))
+			for _, t := range req.Tools {
+				tools = append(tools, anthropic.ToolUnionParam{
+					OfTool: &anthropic.ToolParam{
+						Name:        t.Name,
+						Description: anthropic.String(t.Description),
+						InputSchema: parseSchema(t.Parameters),
+					},
+				})
+			}
+			params.Tools = tools
+		}
+
+		msg, err := p.client.Messages.New(ctx, params)
+		if err != nil {
+			return nil, classifyAnthropicError(err)
+		}
+
+		out := &CompletionResponse{
+			Stop: msg.StopReason == "end_turn",
+		}
+
+		for _, block := range msg.Content {
+			switch block.Type {
+			case "text":
+				out.Content += block.Text
+			case "tool_use":
+				out.ToolCalls = append(out.ToolCalls, ToolCall{
+					ID:        block.ID,
+					Name:      block.Name,
+					Arguments: block.Input,
+				})
+				out.Stop = false
+			}
+		}
+
+		return out, nil
+	})
+}
+
+func classifyAnthropicError(err error) error {
+	var apiErr *anthropic.Error
+	if errors.As(err, &apiErr) {
+		switch apiErr.StatusCode {
+		case 401, 403:
+			return fmt.Errorf("%w: %s", ErrAuthError, err)
+		case 400:
+			raw := strings.ToLower(apiErr.RawJSON())
+			if strings.Contains(raw, "prompt is too long") ||
+				strings.Contains(raw, "too many tokens") {
+				return fmt.Errorf("%w: %s", ErrContextOverflow, err)
+			}
+			return fmt.Errorf("%w: %s", ErrInvalidRequest, err)
 		}
 	}
-
-	params := anthropic.MessageNewParams{
-		Model:     p.model,
-		MaxTokens: p.maxTokens,
-		Messages:  messages,
-	}
-
-	if p.temperature > 0 {
-		params.Temperature = anthropic.Float(p.temperature)
-	}
-
-	if systemContent != "" {
-		params.System = []anthropic.TextBlockParam{
-			{Text: systemContent},
-		}
-	}
-
-	if len(req.Tools) > 0 {
-		tools := make([]anthropic.ToolUnionParam, 0, len(req.Tools))
-		for _, t := range req.Tools {
-			tools = append(tools, anthropic.ToolUnionParam{
-				OfTool: &anthropic.ToolParam{
-					Name:        t.Name,
-					Description: anthropic.String(t.Description),
-					InputSchema: parseSchema(t.Parameters),
-				},
-			})
-		}
-		params.Tools = tools
-	}
-
-	msg, err := p.client.Messages.New(ctx, params)
-	if err != nil {
-		return nil, fmt.Errorf("anthropic API error: %w", err)
-	}
-
-	out := &CompletionResponse{
-		Stop: msg.StopReason == "end_turn",
-	}
-
-	for _, block := range msg.Content {
-		switch block.Type {
-		case "text":
-			out.Content += block.Text
-		case "tool_use":
-			out.ToolCalls = append(out.ToolCalls, ToolCall{
-				ID:        block.ID,
-				Name:      block.Name,
-				Arguments: block.Input,
-			})
-			out.Stop = false
-		}
-	}
-
-	return out, nil
+	return err
 }
 
 func parseSchema(data json.RawMessage) anthropic.ToolInputSchemaParam {

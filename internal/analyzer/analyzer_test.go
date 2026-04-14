@@ -3,6 +3,8 @@ package analyzer_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +18,10 @@ import (
 func TestService_Analyze_SingleResponse(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
 	registry := analyzer.NewToolRegistry()
-	svc := analyzer.NewService(provider, registry, 5, "")
+	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+		MaxIterations: 5,
+		SystemPrompt:  "",
+	})
 
 	provider.EXPECT().Complete(mock.Anything, mock.Anything).Return(&analyzer.CompletionResponse{
 		Content: `{"severity":"warning","summary":"error spike detected","detail":"error rate increased 300%"}`,
@@ -47,7 +52,11 @@ func TestService_Analyze_ToolCalls(t *testing.T) {
 	tool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
 
 	registry := analyzer.NewToolRegistry(tool)
-	svc := analyzer.NewService(provider, registry, 10, "")
+	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+		MaxIterations:       10,
+		MaxToolResultChars:  30000,
+		SummarizeOnOverflow: true,
+	})
 
 	// Use RunAndReturn for Execute to handle multiple calls
 	execCount := 0
@@ -122,7 +131,9 @@ func TestService_Analyze_MaxIterations(t *testing.T) {
 	tool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
 
 	registry := analyzer.NewToolRegistry(tool)
-	svc := analyzer.NewService(provider, registry, 2, "")
+	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+		MaxIterations: 2,
+	})
 
 	tool.EXPECT().Execute(mock.Anything, mock.Anything).Return("ok", nil).Twice()
 
@@ -150,6 +161,137 @@ func TestService_Analyze_MaxIterations(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, analyzer.SeverityInfo, result.Severity)
+}
+
+func TestService_Analyze_ToolResultTruncation(t *testing.T) {
+	provider := analyzerMocks.NewLLMProviderMock(t)
+	tool := analyzerMocks.NewToolMock(t)
+
+	tool.EXPECT().Name().Return("query_metrics").Twice()
+	tool.EXPECT().Description().Return("query metrics")
+	tool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
+
+	registry := analyzer.NewToolRegistry(tool)
+	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+		MaxIterations:      5,
+		MaxToolResultChars: 100, // small limit for testing
+	})
+
+	// Tool returns a very long result
+	longResult := strings.Repeat("x", 500)
+	tool.EXPECT().Execute(mock.Anything, mock.Anything).Return(longResult, nil)
+
+	completeCount := 0
+	provider.EXPECT().Complete(mock.Anything, mock.Anything).RunAndReturn(
+		func(ctx context.Context, req *analyzer.CompletionRequest) (*analyzer.CompletionResponse, error) {
+			completeCount++
+			if completeCount == 1 {
+				return &analyzer.CompletionResponse{
+					ToolCalls: []analyzer.ToolCall{{
+						ID: "tc-1", Name: "query_metrics", Arguments: json.RawMessage(`{}`),
+					}},
+					Stop: false,
+				}, nil
+			}
+			// Verify the tool result in messages is truncated
+			var lastMsg analyzer.Message
+			for i := len(req.Messages) - 1; i >= 0; i-- {
+				if req.Messages[i].Role == "tool" {
+					lastMsg = req.Messages[i]
+					break
+				}
+			}
+			assert.Contains(t, lastMsg.Content, "[TRUNCATED:")
+			assert.LessOrEqual(t, len(lastMsg.Content), 200) // 100 chars + truncation marker
+
+			return &analyzer.CompletionResponse{
+				Content: `{"severity":"info","summary":"ok","detail":"done"}`,
+				Stop:    true,
+			}, nil
+		},
+	)
+
+	result, err := svc.Analyze(context.Background(), &analyzer.AnalysisInput{
+		Trigger: "manual", TriggerID: "test-trunc",
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, analyzer.SeverityInfo, result.Severity)
+}
+
+func TestService_Analyze_ContextOverflowRecovery(t *testing.T) {
+	provider := analyzerMocks.NewLLMProviderMock(t)
+	tool := analyzerMocks.NewToolMock(t)
+
+	tool.EXPECT().Name().Return("query_metrics").Twice()
+	tool.EXPECT().Description().Return("query metrics")
+	tool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
+
+	registry := analyzer.NewToolRegistry(tool)
+	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+		MaxIterations:       10,
+		SummarizeOnOverflow: true,
+	})
+
+	// Need 3+ tool calls to have enough exchanges for summarization to trim
+	tool.EXPECT().Execute(mock.Anything, mock.Anything).Return("ok", nil).Times(3)
+
+	completeCount := 0
+	provider.EXPECT().Complete(mock.Anything, mock.Anything).RunAndReturn(
+		func(ctx context.Context, req *analyzer.CompletionRequest) (*analyzer.CompletionResponse, error) {
+			completeCount++
+			switch {
+			case completeCount <= 3:
+				// First 3 calls: request tools to build up conversation
+				return &analyzer.CompletionResponse{
+					ToolCalls: []analyzer.ToolCall{{
+						ID:        fmt.Sprintf("tc-%d", completeCount),
+						Name:      "query_metrics",
+						Arguments: json.RawMessage(`{}`),
+					}},
+					Stop: false,
+				}, nil
+			case completeCount == 4:
+				// Fourth call: simulate context overflow
+				return nil, fmt.Errorf("%w: prompt too long", analyzer.ErrContextOverflow)
+			default:
+				// After recovery: succeed
+				return &analyzer.CompletionResponse{
+					Content: `{"severity":"info","summary":"recovered","detail":"analysis completed after recovery"}`,
+					Stop:    true,
+				}, nil
+			}
+		},
+	)
+
+	result, err := svc.Analyze(context.Background(), &analyzer.AnalysisInput{
+		Trigger:   "manual",
+		TriggerID: "test-overflow",
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, analyzer.SeverityInfo, result.Severity)
+	assert.Equal(t, "recovered", result.Summary)
+}
+
+func TestService_Analyze_ContextOverflowUnrecoverable(t *testing.T) {
+	provider := analyzerMocks.NewLLMProviderMock(t)
+	registry := analyzer.NewToolRegistry()
+	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+		MaxIterations:       5,
+		SummarizeOnOverflow: true,
+	})
+
+	// Immediately fail with context overflow — only system+user messages, nothing to trim
+	provider.EXPECT().Complete(mock.Anything, mock.Anything).Return(nil, fmt.Errorf("%w: prompt too long", analyzer.ErrContextOverflow))
+
+	_, err := svc.Analyze(context.Background(), &analyzer.AnalysisInput{
+		Trigger:   "manual",
+		TriggerID: "test-unrecoverable",
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "context overflow")
 }
 
 func TestToolRegistry(t *testing.T) {

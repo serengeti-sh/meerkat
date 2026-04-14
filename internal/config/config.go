@@ -59,15 +59,20 @@ type DatasourceConfig struct {
 }
 
 type AnalyzerConfig struct {
-	Provider         string  `mapstructure:"provider"` // openai (default), anthropic
-	URL              string  `mapstructure:"url"`
-	APIKey           string  `mapstructure:"api_key"`
-	Model            string  `mapstructure:"model"`
-	MaxIterations    int     `mapstructure:"max_iterations"`
-	MaxTokens        int     `mapstructure:"max_tokens"`
-	Temperature      float64 `mapstructure:"temperature"`
-	SystemPromptFile string  `mapstructure:"system_prompt_file"`
-	SkillsFile       string  `mapstructure:"skills_file"`
+	Provider            string  `mapstructure:"provider"` // openai (default), anthropic
+	URL                 string  `mapstructure:"url"`
+	APIKey              string  `mapstructure:"api_key"`
+	Model               string  `mapstructure:"model"`
+	MaxIterations       int     `mapstructure:"max_iterations"`
+	MaxTokens           int     `mapstructure:"max_tokens"`
+	Temperature         float64 `mapstructure:"temperature"`
+	SystemPromptFile    string  `mapstructure:"system_prompt_file"`
+	SkillsFile          string  `mapstructure:"skills_file"`
+	MaxRetries          int     `mapstructure:"max_retries"`
+	RetryBaseMs         int     `mapstructure:"retry_base_ms"`
+	MaxToolResultChars  int     `mapstructure:"max_tool_result_chars"`
+	SummarizeOnOverflow bool    `mapstructure:"summarize_on_overflow"`
+	MaxContextMessages  int     `mapstructure:"max_context_messages"`
 }
 
 type SchedulerJobConfig struct {
@@ -212,6 +217,11 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("analyzer.max_iterations", 10)
 	v.SetDefault("analyzer.max_tokens", 4096)
 	v.SetDefault("analyzer.temperature", 0.3)
+	v.SetDefault("analyzer.max_retries", 3)
+	v.SetDefault("analyzer.retry_base_ms", 1000)
+	v.SetDefault("analyzer.max_tool_result_chars", 30000)
+	v.SetDefault("analyzer.summarize_on_overflow", true)
+	v.SetDefault("analyzer.max_context_messages", 50)
 
 	v.SetDefault("scheduler.enabled", false)
 }

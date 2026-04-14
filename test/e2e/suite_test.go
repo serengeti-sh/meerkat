@@ -190,7 +190,13 @@ func (s *Suite) Start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("load system prompt: %w", err)
 	}
-	analyzerSvc := analyzer.NewService(llmProvider, toolRegistry, cfg.Analyzer.MaxIterations, systemPrompt)
+	analyzerSvc := analyzer.NewService(llmProvider, toolRegistry, analyzer.ServiceConfig{
+		MaxIterations:       cfg.Analyzer.MaxIterations,
+		SystemPrompt:        systemPrompt,
+		MaxToolResultChars:  cfg.Analyzer.MaxToolResultChars,
+		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
+		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
+	})
 
 	// Reporter (no-op in tests)
 	reporterSvc := reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity)

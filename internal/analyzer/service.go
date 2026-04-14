@@ -3,24 +3,48 @@ package analyzer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
+	"unicode/utf8"
 )
 
-type service struct {
-	provider      LLMProvider
-	toolRegistry  *ToolRegistry
-	maxIterations int
-	systemPrompt  string
+// ServiceConfig holds configuration for the analyzer service.
+type ServiceConfig struct {
+	MaxIterations       int
+	SystemPrompt        string
+	MaxToolResultChars  int  // max characters per tool result (default 30000)
+	SummarizeOnOverflow bool // enable conversation summarization on context overflow (default true)
+	MaxContextMessages  int  // max messages before proactive trimming (default 50)
 }
 
-func NewService(provider LLMProvider, toolRegistry *ToolRegistry, maxIterations int, systemPrompt string) AnalyzerService {
+type service struct {
+	provider       LLMProvider
+	toolRegistry   *ToolRegistry
+	maxIterations  int
+	systemPrompt   string
+	maxToolResult  int
+	summarize      bool
+	maxContextMsgs int
+}
+
+func NewService(provider LLMProvider, toolRegistry *ToolRegistry, cfg ServiceConfig) AnalyzerService {
+	if cfg.MaxToolResultChars == 0 {
+		cfg.MaxToolResultChars = 30000
+	}
+	if cfg.MaxContextMessages == 0 {
+		cfg.MaxContextMessages = 50
+	}
 	return &service{
-		provider:      provider,
-		toolRegistry:  toolRegistry,
-		maxIterations: maxIterations,
-		systemPrompt:  systemPrompt,
+		provider:       provider,
+		toolRegistry:   toolRegistry,
+		maxIterations:  cfg.MaxIterations,
+		systemPrompt:   cfg.SystemPrompt,
+		maxToolResult:  cfg.MaxToolResultChars,
+		summarize:      cfg.SummarizeOnOverflow,
+		maxContextMsgs: cfg.MaxContextMessages,
 	}
 }
 
@@ -38,7 +62,17 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 			Messages: messages,
 			Tools:    tools,
 		})
+
 		if err != nil {
+			if errors.Is(err, ErrContextOverflow) && s.summarize {
+				recovered := s.tryRecoverContext(&messages)
+				if !recovered {
+					return nil, fmt.Errorf("LLM call %d failed: context overflow, unable to reduce conversation size", i+1)
+				}
+				log.Printf("[meerkat] context overflow detected, summarized conversation, retrying")
+				i--
+				continue
+			}
 			return nil, fmt.Errorf("LLM call %d failed: %w", i+1, err)
 		}
 
@@ -78,6 +112,9 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 			if err != nil {
 				result = fmt.Sprintf("Error executing tool %q: %v", tc.Name, err)
 			}
+
+			// Truncate oversized tool results
+			result = s.truncateToolResult(result)
 
 			messages = append(messages, Message{
 				Role:       "tool",
@@ -128,6 +165,121 @@ func (s *service) buildInitialMessages(input *AnalysisInput) []Message {
 		{Role: "system", Content: s.systemPrompt},
 		{Role: "user", Content: userMsg},
 	}
+}
+
+// truncateToolResult truncates oversized tool results to maxToolResult characters.
+func (s *service) truncateToolResult(result string) string {
+	if len(result) <= s.maxToolResult {
+		return result
+	}
+	// Find a valid UTF-8 boundary
+	cutoff := s.maxToolResult
+	for cutoff > 0 && !utf8.RuneStart(result[cutoff]) {
+		cutoff--
+	}
+	return result[:cutoff] + fmt.Sprintf(
+		"\n\n[TRUNCATED: original %d chars, showing first %d]",
+		len(result), cutoff,
+	)
+}
+
+// tryRecoverContext attempts to reduce the conversation size by summarizing
+// earlier exchanges. Returns true if messages were reduced, false if unrecoverable.
+func (s *service) tryRecoverContext(messages *[]Message) bool {
+	msgs := *messages
+
+	// Need at least system + user + 1 assistant exchange to trim
+	if len(msgs) <= 3 {
+		return false
+	}
+
+	// Group messages into exchanges (assistant + following tool results)
+	exchanges := groupExchanges(msgs[1:]) // skip system prompt
+	if len(exchanges) <= 1 {
+		return false
+	}
+
+	// Keep the last 2 exchanges, summarize the rest
+	keepCount := 2
+	if len(exchanges)-keepCount <= 0 {
+		return false
+	}
+	cutExchanges := exchanges[:len(exchanges)-keepCount]
+
+	// Build summary of removed exchanges
+	var summaryParts []string
+	for _, ex := range cutExchanges {
+		summaryParts = append(summaryParts, summarizeExchange(ex))
+	}
+
+	summaryMsg := "[CONVERSATION HISTORY SUMMARY]\n"
+	summaryMsg += "Earlier investigation steps were summarized to save context:\n"
+	for _, part := range summaryParts {
+		summaryMsg += "- " + part + "\n"
+	}
+
+	// Reconstruct: system + summary + kept exchanges
+	newMsgs := make([]Message, 0, len(msgs))
+	newMsgs = append(newMsgs, msgs[0]) // system prompt
+	newMsgs = append(newMsgs, Message{
+		Role:    "user",
+		Content: summaryMsg,
+	})
+
+	for _, ex := range exchanges[len(exchanges)-keepCount:] {
+		newMsgs = append(newMsgs, ex.messages...)
+	}
+
+	*messages = newMsgs
+	return len(newMsgs) < len(msgs)
+}
+
+// exchange groups an assistant message with its subsequent tool result messages.
+type exchange struct {
+	messages []Message
+}
+
+func groupExchanges(msgs []Message) []exchange {
+	var exchanges []exchange
+	var current *exchange
+
+	for _, m := range msgs {
+		if m.Role == "assistant" {
+			if current != nil {
+				exchanges = append(exchanges, *current)
+			}
+			current = &exchange{}
+		}
+		if current != nil {
+			current.messages = append(current.messages, m)
+		}
+	}
+	if current != nil {
+		exchanges = append(exchanges, *current)
+	}
+	return exchanges
+}
+
+func summarizeExchange(ex exchange) string {
+	var parts []string
+	for _, m := range ex.messages {
+		switch m.Role {
+		case "assistant":
+			if m.Content != "" {
+				parts = append(parts, "Assistant: "+truncate(m.Content, 200))
+			}
+			for _, tc := range m.ToolCalls {
+				parts = append(parts, fmt.Sprintf("Called tool %q", tc.Name))
+			}
+		case "tool":
+			result := m.Content
+			if len(result) > 150 {
+				result = result[:150] + "..."
+			}
+			parts = append(parts, fmt.Sprintf("Tool %q result: %s", m.ToolName, result))
+		}
+	}
+	return strings.Join(parts, "; ")
 }
 
 func (s *service) parseFinalResponse(resp *CompletionResponse, iterations int) (*AnalysisResult, error) {
