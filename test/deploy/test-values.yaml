@@ -101,7 +101,10 @@ config:
     user: meerkat
     sslmode: disable
 
-  datasources: []
+  tools:
+    prometheus: []
+    victoria_logs: []
+    loki: []
 
   analyzer:
     provider: openai

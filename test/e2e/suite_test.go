@@ -22,14 +22,13 @@ import (
 	"github.com/serengeti-sh/meerkat/ent"
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
-	"github.com/serengeti-sh/meerkat/internal/datasource"
-	"github.com/serengeti-sh/meerkat/internal/datasource/provider/prometheus"
 	"github.com/serengeti-sh/meerkat/internal/handler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
 	"github.com/serengeti-sh/meerkat/internal/store"
+	"github.com/serengeti-sh/meerkat/internal/tool"
 	"github.com/serengeti-sh/meerkat/test/e2e/mock"
 
 	_ "github.com/lib/pq"
@@ -130,11 +129,9 @@ func (s *Suite) Start(ctx context.Context) error {
 			Password: "meerkat",
 			SSLMode:  "disable",
 		},
-		Datasources: []config.DatasourceConfig{
-			{
-				Name: "test-vm",
-				Type: "victoria-metrics",
-				URL:  s.MockPrometheus.URL(),
+		Tools: config.ToolConfig{
+			Prometheus: []config.PrometheusToolConfig{
+				{Name: "test-vm", URL: s.MockPrometheus.URL()},
 			},
 		},
 		Analyzer: config.AnalyzerConfig{
@@ -163,19 +160,12 @@ func (s *Suite) Start(ctx context.Context) error {
 	}
 	s.Client = entClient
 
-	// Datasource registry
-	registry := datasource.NewRegistry([]datasource.Provider{
-		prometheus.New("test-vm", s.MockPrometheus.URL(), http.DefaultClient),
-	})
-
-	// Adapter for inspector.DatasourceRegistry
-	dsRegistry := &adapterRegistry{Registry: registry}
-
 	// Tool registry
-	toolRegistry := analyzer.NewToolRegistry(
-		inspector.NewQueryMetricsTool(registry),
-		inspector.NewQueryLogsTool(registry),
-	)
+	promTool, err := tool.NewPrometheusTool("test-vm", s.MockPrometheus.URL(), http.DefaultClient)
+	if err != nil {
+		return fmt.Errorf("create prometheus tool: %w", err)
+	}
+	toolRegistry := analyzer.NewToolRegistry(promTool)
 
 	// Analyzer
 	llmProvider := analyzer.NewLLMProvider(analyzer.ProviderConfig{
@@ -203,13 +193,16 @@ func (s *Suite) Start(ctx context.Context) error {
 
 	// Inspector service
 	reportRepo := insprepo.NewRepository(entClient)
-	inspectorSvc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRegistry, 5*time.Minute)
+	dsRefs := func() []analyzer.DatasourceRef {
+		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
+	}
+	inspectorSvc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute)
 
 	// Scheduler (disabled)
 	sched := scheduler.NewCronScheduler(inspectorSvc, cfg)
 
 	// HTTP handler
-	h := handler.NewHandler(inspectorSvc, registry)
+	h := handler.NewHandler(inspectorSvc)
 
 	// Start HTTP server on random port
 	mux := http.NewServeMux()
@@ -265,20 +258,6 @@ func (s *Suite) Stop() {
 	if s.systemPromptFile != "" {
 		_ = os.Remove(s.systemPromptFile)
 	}
-}
-
-// adapterRegistry adapts datasource.Registry to inspector.DatasourceRegistry.
-type adapterRegistry struct {
-	*datasource.Registry
-}
-
-func (a *adapterRegistry) All() []inspector.DatasourceRef {
-	providers := a.Registry.All()
-	refs := make([]inspector.DatasourceRef, 0, len(providers))
-	for _, p := range providers {
-		refs = append(refs, inspector.DatasourceRef{Name: p.Name(), Type: string(p.Type())})
-	}
-	return refs
 }
 
 // Post sends a POST request with JSON body.

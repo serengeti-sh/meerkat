@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat"
-	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat/datasource"
 	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat/inspect"
 	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat/report"
 	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat/webhook"
@@ -46,7 +45,6 @@ func main() {
 	rootCmd.AddCommand(inspect.NewCmd())
 	rootCmd.AddCommand(report.NewCmd())
 	rootCmd.AddCommand(webhook.NewCmd())
-	rootCmd.AddCommand(datasource.NewCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)

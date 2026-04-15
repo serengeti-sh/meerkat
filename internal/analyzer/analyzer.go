@@ -61,13 +61,6 @@ type ToolCall struct {
 	Arguments json.RawMessage `json:"arguments"`
 }
 
-// ToolDef describes a tool for the LLM.
-type ToolDef struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description"`
-	Parameters  json.RawMessage `json:"parameters"` // JSON Schema
-}
-
 // CompletionRequest is sent to the LLM provider.
 type CompletionRequest struct {
 	Messages []Message `json:"messages"`

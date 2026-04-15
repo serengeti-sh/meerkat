@@ -16,41 +16,33 @@ type service struct {
 	analyzerSvc analyzer.AnalyzerService
 	reportRepo  ReportRepository
 	reporterSvc reporter.ReporterService
-	registry    DatasourceRegistry
+	dsRefs      DatasourceRefs
 	dedupWindow time.Duration
 }
 
-// DatasourceRegistry provides access to datasource info for building refs.
-type DatasourceRegistry interface {
-	All() []DatasourceRef
-}
-
-// DatasourceRef is a lightweight name/type pair for datasource references.
-type DatasourceRef struct {
-	Name string
-	Type string
-}
+// DatasourceRefs provides the current list of datasource references for analysis.
+type DatasourceRefs func() []analyzer.DatasourceRef
 
 func NewService(
 	analyzerSvc analyzer.AnalyzerService,
 	reportRepo ReportRepository,
 	reporterSvc reporter.ReporterService,
-	registry DatasourceRegistry,
+	dsRefs DatasourceRefs,
 	dedupWindow time.Duration,
 ) InspectorService {
 	return &service{
 		analyzerSvc: analyzerSvc,
 		reportRepo:  reportRepo,
 		reporterSvc: reporterSvc,
-		registry:    registry,
+		dsRefs:      dsRefs,
 		dedupWindow: dedupWindow,
 	}
 }
 
 // Inspect creates a pending report and runs the agent in a goroutine.
 func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, apperrors.Error) {
-	dsRefs := s.registry.All()
-	if len(dsRefs) == 0 {
+	refs := s.dsRefs()
+	if len(refs) == 0 {
 		return nil, apperrors.New(apperrors.ErrInvalidInput, "no datasources configured")
 	}
 
@@ -96,7 +88,7 @@ func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, app
 		Trigger:     "manual",
 		TriggerID:   triggerID,
 		Query:       query,
-		Datasources: toAnalyzerRefs(dsRefs),
+		Datasources: refs,
 	})
 
 	return report, nil
@@ -104,8 +96,8 @@ func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, app
 
 // InspectByWebhook creates a pending report and runs the agent in a goroutine.
 func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) (*Report, apperrors.Error) {
-	dsRefs := s.registry.All()
-	if len(dsRefs) == 0 {
+	refs := s.dsRefs()
+	if len(refs) == 0 {
 		return nil, apperrors.New(apperrors.ErrInvalidInput, "no datasources configured")
 	}
 
@@ -142,7 +134,7 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 		Trigger:     "webhook",
 		TriggerID:   triggerID,
 		Context:     fmt.Sprintf("Source: %s\nAlert: %s\nMessage: %s\nData: %s", payload.Source, payload.Alert, payload.Message, string(payload.Data)),
-		Datasources: toAnalyzerRefs(dsRefs),
+		Datasources: refs,
 	})
 
 	return report, nil
@@ -220,12 +212,4 @@ func (s *service) ListReports(ctx context.Context, limit int) ([]*Report, apperr
 		return nil, apperrors.New(apperrors.ErrInternal, "failed to list reports")
 	}
 	return reports, nil
-}
-
-func toAnalyzerRefs(refs []DatasourceRef) []analyzer.DatasourceRef {
-	out := make([]analyzer.DatasourceRef, 0, len(refs))
-	for _, r := range refs {
-		out = append(out, analyzer.DatasourceRef{Name: r.Name, Type: r.Type})
-	}
-	return out
 }

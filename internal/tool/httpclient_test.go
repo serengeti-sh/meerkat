@@ -1,4 +1,4 @@
-package datasource
+package tool
 
 import (
 	"crypto/ecdsa"
@@ -29,16 +29,13 @@ func TestNewHTTPClient_NoCA(t *testing.T) {
 }
 
 func TestNewHTTPClient_WithCA(t *testing.T) {
-	// Generate a self-signed CA + server cert, start TLS server, verify client trusts it
 	caCert, caKey := generateCA(t)
 	serverCert, serverKey := generateServerCert(t, caCert, caKey)
 
-	// Write CA cert to temp file
 	caFile := filepath.Join(t.TempDir(), "ca.crt")
 	caPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caCert.Raw})
 	require.NoError(t, os.WriteFile(caFile, caPEM, 0644))
 
-	// Start TLS server
 	tlsCert := tls.Certificate{Certificate: [][]byte{serverCert.Raw}, PrivateKey: serverKey}
 	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -48,7 +45,6 @@ func TestNewHTTPClient_WithCA(t *testing.T) {
 	srv.StartTLS()
 	defer srv.Close()
 
-	// Client with CA should connect successfully
 	client, err := NewHTTPClient(caFile)
 	require.NoError(t, err)
 
