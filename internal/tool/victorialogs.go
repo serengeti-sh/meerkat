@@ -21,7 +21,7 @@ func NewVictoriaLogsTool(name, baseURL string, client *http.Client) Tool {
 	return &VictoriaLogsTool{name: name, baseURL: baseURL, client: client}
 }
 
-func (t *VictoriaLogsTool) Name() string { return "query_victorialogs_logs" }
+func (t *VictoriaLogsTool) Name() string { return t.name }
 
 func (t *VictoriaLogsTool) Description() string {
 	return fmt.Sprintf("Query logs from Victoria Logs datasource %q using LogsQL. Returns log entries.", t.name)

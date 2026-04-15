@@ -37,7 +37,7 @@ func TestLokiTool_Execute(t *testing.T) {
 
 	l := tool.NewLokiTool("test-loki", srv.URL, http.DefaultClient)
 
-	assert.Equal(t, "query_loki_logs", l.Name())
+	assert.Equal(t, "test-loki", l.Name())
 
 	result, err := l.Execute(context.Background(), json.RawMessage(`{"query": "{app=\"api\"}"}`))
 	require.NoError(t, err)

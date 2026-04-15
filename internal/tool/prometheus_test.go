@@ -54,7 +54,7 @@ func TestPrometheusTool_Execute_VectorResponse(t *testing.T) {
 	p, err := tool.NewPrometheusTool("test", srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
-	assert.Equal(t, "query_metrics", p.Name())
+	assert.Equal(t, "test", p.Name())
 
 	result, err := p.Execute(context.Background(), json.RawMessage(`{"query": "up"}`))
 	require.NoError(t, err)

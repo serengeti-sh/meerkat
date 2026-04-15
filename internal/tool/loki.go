@@ -22,7 +22,7 @@ func NewLokiTool(name, baseURL string, client *http.Client) Tool {
 	return &LokiTool{name: name, baseURL: baseURL, client: client}
 }
 
-func (t *LokiTool) Name() string { return "query_loki_logs" }
+func (t *LokiTool) Name() string { return t.name }
 
 func (t *LokiTool) Description() string {
 	return fmt.Sprintf("Query logs from Loki datasource %q using LogQL. Returns log entries with timestamps and labels.", t.name)

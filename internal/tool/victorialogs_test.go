@@ -26,7 +26,7 @@ func TestVictoriaLogsTool_Execute_JSON(t *testing.T) {
 
 	v := tool.NewVictoriaLogsTool("test-vl", srv.URL, http.DefaultClient)
 
-	assert.Equal(t, "query_victorialogs_logs", v.Name())
+	assert.Equal(t, "test-vl", v.Name())
 
 	result, err := v.Execute(context.Background(), json.RawMessage(`{"query": "error"}`))
 	require.NoError(t, err)

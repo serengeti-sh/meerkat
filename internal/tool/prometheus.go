@@ -34,7 +34,7 @@ func NewPrometheusTool(name, baseURL string, client *http.Client) (Tool, error) 
 	}, nil
 }
 
-func (t *PrometheusTool) Name() string { return "query_metrics" }
+func (t *PrometheusTool) Name() string { return t.name }
 
 func (t *PrometheusTool) Description() string {
 	return fmt.Sprintf("Query metrics using PromQL from datasource %q. Returns time series data.", t.name)
