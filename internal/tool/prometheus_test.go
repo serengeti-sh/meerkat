@@ -51,7 +51,7 @@ func TestPrometheusTool_Execute_VectorResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p, err := tool.NewPrometheusTool("test", srv.URL, http.DefaultClient)
+	p, err := tool.NewPrometheusTool("test", "test prometheus", srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	assert.Equal(t, "test", p.Name())
@@ -87,7 +87,7 @@ func TestPrometheusTool_Execute_MatrixResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p, err := tool.NewPrometheusTool("test", srv.URL, http.DefaultClient)
+	p, err := tool.NewPrometheusTool("test", "test prometheus", srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	result, err := p.Execute(context.Background(), json.RawMessage(`{"query": "rate"}`))
@@ -108,7 +108,7 @@ func TestPrometheusTool_Execute_EmptyResult(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p, err := tool.NewPrometheusTool("test", srv.URL, http.DefaultClient)
+	p, err := tool.NewPrometheusTool("test", "test prometheus", srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	result, err := p.Execute(context.Background(), json.RawMessage(`{"query": "nonexistent"}`))
@@ -124,7 +124,7 @@ func TestPrometheusTool_Execute_ErrorResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p, err := tool.NewPrometheusTool("test", srv.URL, http.DefaultClient)
+	p, err := tool.NewPrometheusTool("test", "test prometheus", srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	_, err = p.Execute(context.Background(), json.RawMessage(`{"query": "up"}`))
@@ -135,7 +135,7 @@ func TestPrometheusTool_Execute_InvalidParams(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer srv.Close()
 
-	p, err := tool.NewPrometheusTool("test", srv.URL, http.DefaultClient)
+	p, err := tool.NewPrometheusTool("test", "test prometheus", srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	_, err = p.Execute(context.Background(), json.RawMessage(`not json`))

@@ -24,7 +24,8 @@ func TestVictoriaLogsTool_Execute_JSON(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	v := tool.NewVictoriaLogsTool("test-vl", srv.URL, http.DefaultClient)
+	v, err := tool.NewVictoriaLogsTool("test-vl", "test vl", srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
 	assert.Equal(t, "test-vl", v.Name())
 
@@ -50,7 +51,8 @@ func TestVictoriaLogsTool_Execute_JSONL(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	v := tool.NewVictoriaLogsTool("test", srv.URL, http.DefaultClient)
+	v, err := tool.NewVictoriaLogsTool("test", "test vl", srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
 	result, err := v.Execute(context.Background(), json.RawMessage(`{"query": "*"}`))
 	require.NoError(t, err)
@@ -69,9 +71,10 @@ func TestVictoriaLogsTool_Execute_ServerError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	v := tool.NewVictoriaLogsTool("test", srv.URL, http.DefaultClient)
+	v, err := tool.NewVictoriaLogsTool("test", "test vl", srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
-	_, err := v.Execute(context.Background(), json.RawMessage(`{"query": "test"}`))
+	_, err = v.Execute(context.Background(), json.RawMessage(`{"query": "test"}`))
 	require.Error(t, err)
 }
 
@@ -79,8 +82,9 @@ func TestVictoriaLogsTool_Execute_InvalidParams(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer srv.Close()
 
-	v := tool.NewVictoriaLogsTool("test", srv.URL, http.DefaultClient)
+	v, err := tool.NewVictoriaLogsTool("test", "test vl", srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
-	_, err := v.Execute(context.Background(), json.RawMessage(`not json`))
+	_, err = v.Execute(context.Background(), json.RawMessage(`not json`))
 	require.Error(t, err)
 }

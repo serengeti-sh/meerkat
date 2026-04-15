@@ -14,12 +14,23 @@ import (
 
 // PrometheusTool queries metrics from a single Prometheus/VictoriaMetrics endpoint.
 type PrometheusTool struct {
-	name  string
-	v1api v1.API
+	name        string
+	description string
+	v1api       v1.API
 }
 
 // NewPrometheusTool creates a tool backed by one Prometheus-compatible endpoint.
-func NewPrometheusTool(name, baseURL string, client *http.Client) (Tool, error) {
+func NewPrometheusTool(name, description, baseURL string, client *http.Client) (Tool, error) {
+	if name == "" {
+		return nil, fmt.Errorf("prometheus tool: name is required")
+	}
+	if description == "" {
+		return nil, fmt.Errorf("prometheus tool %q: description is required", name)
+	}
+	if baseURL == "" {
+		return nil, fmt.Errorf("prometheus tool %q: url is required", name)
+	}
+
 	promClient, err := api.NewClient(api.Config{
 		Address:      baseURL,
 		RoundTripper: client.Transport,
@@ -29,16 +40,15 @@ func NewPrometheusTool(name, baseURL string, client *http.Client) (Tool, error) 
 	}
 
 	return &PrometheusTool{
-		name:  name,
-		v1api: v1.NewAPI(promClient),
+		name:        name,
+		description: description,
+		v1api:       v1.NewAPI(promClient),
 	}, nil
 }
 
 func (t *PrometheusTool) Name() string { return t.name }
 
-func (t *PrometheusTool) Description() string {
-	return fmt.Sprintf("Query metrics using PromQL from datasource %q. Returns time series data.", t.name)
-}
+func (t *PrometheusTool) Description() string { return t.description }
 
 func (t *PrometheusTool) Parameters() json.RawMessage {
 	return json.RawMessage(`{

@@ -87,7 +87,7 @@ func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
 		}
-		t, err := tool.NewPrometheusTool(pc.Name, pc.URL, httpClient)
+		t, err := tool.NewPrometheusTool(pc.Name, cfg.Tools.PrometheusDescription, pc.URL, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
 		}
@@ -99,7 +99,11 @@ func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
 		}
-		tools = append(tools, tool.NewLokiTool(lc.Name, lc.URL, httpClient))
+		t, err := tool.NewLokiTool(lc.Name, cfg.Tools.LokiDescription, lc.URL, httpClient)
+		if err != nil {
+			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
+		}
+		tools = append(tools, t)
 	}
 
 	for _, vc := range cfg.Tools.VictoriaLogs {
@@ -107,7 +111,23 @@ func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", vc.Name, err)
 		}
-		tools = append(tools, tool.NewVictoriaLogsTool(vc.Name, vc.URL, httpClient))
+		t, err := tool.NewVictoriaLogsTool(vc.Name, cfg.Tools.VictoriaLogsDescription, vc.URL, httpClient)
+		if err != nil {
+			return nil, fmt.Errorf("tool %q: %w", vc.Name, err)
+		}
+		tools = append(tools, t)
+	}
+
+	for _, cc := range cfg.Tools.Custom {
+		httpClient, err := tool.NewHTTPClient(cc.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("tool %q: %w", cc.Name, err)
+		}
+		t, err := tool.NewCustomTool(cc.Name, cc.Description, cc.Method, cc.URL, cc.ParamSchemaFile, httpClient)
+		if err != nil {
+			return nil, fmt.Errorf("tool %q: %w", cc.Name, err)
+		}
+		tools = append(tools, t)
 	}
 
 	return analyzer.NewToolRegistry(tools...), nil
@@ -124,6 +144,9 @@ func ProvideDatasourceRefs(cfg *config.Config) inspector.DatasourceRefs {
 		}
 		for _, vc := range cfg.Tools.VictoriaLogs {
 			refs = append(refs, analyzer.DatasourceRef{Name: vc.Name, Type: "victoria-logs"})
+		}
+		for _, cc := range cfg.Tools.Custom {
+			refs = append(refs, analyzer.DatasourceRef{Name: cc.Name, Type: "custom"})
 		}
 		return refs
 	}

@@ -12,21 +12,29 @@ import (
 
 // LokiTool queries logs from a single Grafana Loki endpoint.
 type LokiTool struct {
-	name    string
-	baseURL string
-	client  *http.Client
+	name        string
+	description string
+	baseURL     string
+	client      *http.Client
 }
 
 // NewLokiTool creates a tool backed by one Loki endpoint.
-func NewLokiTool(name, baseURL string, client *http.Client) Tool {
-	return &LokiTool{name: name, baseURL: baseURL, client: client}
+func NewLokiTool(name, description, baseURL string, client *http.Client) (Tool, error) {
+	if name == "" {
+		return nil, fmt.Errorf("loki tool: name is required")
+	}
+	if description == "" {
+		return nil, fmt.Errorf("loki tool %q: description is required", name)
+	}
+	if baseURL == "" {
+		return nil, fmt.Errorf("loki tool %q: url is required", name)
+	}
+	return &LokiTool{name: name, description: description, baseURL: baseURL, client: client}, nil
 }
 
 func (t *LokiTool) Name() string { return t.name }
 
-func (t *LokiTool) Description() string {
-	return fmt.Sprintf("Query logs from Loki datasource %q using LogQL. Returns log entries with timestamps and labels.", t.name)
-}
+func (t *LokiTool) Description() string { return t.description }
 
 func (t *LokiTool) Parameters() json.RawMessage {
 	return json.RawMessage(`{

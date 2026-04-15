@@ -35,7 +35,8 @@ func TestLokiTool_Execute(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	l := tool.NewLokiTool("test-loki", srv.URL, http.DefaultClient)
+	l, err := tool.NewLokiTool("test-loki", "test loki", srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
 	assert.Equal(t, "test-loki", l.Name())
 
@@ -59,7 +60,8 @@ func TestLokiTool_Execute_WithLimit(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	l := tool.NewLokiTool("test", srv.URL, http.DefaultClient)
+	l, err := tool.NewLokiTool("test", "test loki", srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
 	result, err := l.Execute(context.Background(), json.RawMessage(`{"query": "{app=\"api\"}", "limit": 10}`))
 	require.NoError(t, err)
@@ -72,9 +74,10 @@ func TestLokiTool_Execute_ServerError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	l := tool.NewLokiTool("test", srv.URL, http.DefaultClient)
+	l, err := tool.NewLokiTool("test", "test loki", srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
-	_, err := l.Execute(context.Background(), json.RawMessage(`{"query": "test"}`))
+	_, err = l.Execute(context.Background(), json.RawMessage(`{"query": "test"}`))
 	require.Error(t, err)
 }
 
@@ -82,8 +85,9 @@ func TestLokiTool_Execute_InvalidParams(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer srv.Close()
 
-	l := tool.NewLokiTool("test", srv.URL, http.DefaultClient)
+	l, err := tool.NewLokiTool("test", "test loki", srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
-	_, err := l.Execute(context.Background(), json.RawMessage(`not json`))
+	_, err = l.Execute(context.Background(), json.RawMessage(`not json`))
 	require.Error(t, err)
 }
