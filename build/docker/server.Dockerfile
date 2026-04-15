@@ -51,7 +51,7 @@ LABEL org.opencontainers.image.title="Meerkat Server" \
       org.opencontainers.image.source="https://github.com/serengeti-sh/meerkat"
 
 RUN apk add --no-cache \
-      ca-certificates=20251003-r0 \
+      ca-certificates=20260413-r0 \
       tzdata=2026a-r0 \
       curl=8.17.0-r1 && \
     adduser -D -u 1001 meerkat
