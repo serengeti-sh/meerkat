@@ -15,11 +15,6 @@ components:
     ReportResponse:
       $ref: "./schemas/report.yaml#/ReportResponse"
 
-    DatasourceResponse:
-      $ref: "./schemas/datasource.yaml#/DatasourceResponse"
-    CreateDatasourceRequest:
-      $ref: "./schemas/datasource.yaml#/CreateDatasourceRequest"
-
     CreateInspectReq:
       $ref: "./schemas/inspect.yaml#/CreateInspectReq"
 
@@ -40,8 +35,3 @@ paths:
     $ref: "./paths/reports.yaml#/~1reports"
   /reports/{id}:
     $ref: "./paths/reports.yaml#/~1reports~1{id}"
-
-  /datasources:
-    $ref: "./paths/datasources.yaml#/~1datasources"
-  /datasources/{id}/test:
-    $ref: "./paths/datasources.yaml#/~1datasources~1{id}~1test"

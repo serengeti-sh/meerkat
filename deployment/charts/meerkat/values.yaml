@@ -136,18 +136,18 @@ config:
     user: meerkat
     sslmode: disable
 
-  datasources: []
-  #  - name: vm
-  #    type: prometheus
-  #    url: https://victoriametrics-server:8428
-  #    ca_file: /app/ca/ca.crt
-  #  - name: vl
-  #    type: victoria-logs
-  #    url: https://victorialogs-server:9428
-  #    ca_file: /app/ca/ca.crt
-  #  - name: loki
-  #    type: loki
-  #    url: http://loki:3100
+  tools:
+    prometheus: []
+    #  - name: vm
+    #    url: https://victoriametrics-server:8428
+    #    ca_file: /app/ca/ca.crt
+    victoria_logs: []
+    #  - name: vl
+    #    url: https://victorialogs-server:9428
+    #    ca_file: /app/ca/ca.crt
+    loki: []
+    #  - name: loki
+    #    url: http://loki:3100
 
   analyzer:
     provider: openai

@@ -15,16 +15,13 @@ import (
 	"github.com/serengeti-sh/meerkat/ent"
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
-	"github.com/serengeti-sh/meerkat/internal/datasource"
-	"github.com/serengeti-sh/meerkat/internal/datasource/provider/loki"
-	"github.com/serengeti-sh/meerkat/internal/datasource/provider/prometheus"
-	"github.com/serengeti-sh/meerkat/internal/datasource/provider/victorialogs"
 	"github.com/serengeti-sh/meerkat/internal/handler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
 	"github.com/serengeti-sh/meerkat/internal/store"
+	"github.com/serengeti-sh/meerkat/internal/tool"
 	"go.uber.org/fx"
 )
 
@@ -82,66 +79,58 @@ func ProvideAnalyzerProvider(cfg *config.Config) analyzer.LLMProvider {
 	})
 }
 
-func newProvider(ds config.DatasourceConfig) (datasource.Provider, error) {
-	client, err := datasource.NewHTTPClient(ds.CAFile)
-	if err != nil {
-		return nil, fmt.Errorf("datasource %q: %w", ds.Name, err)
-	}
+func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
+	var tools []tool.Tool
 
-	switch ds.Type {
-	case "victoria-metrics", "prometheus":
-		return prometheus.New(ds.Name, ds.URL, client), nil
-	case "victoria-logs":
-		return victorialogs.New(ds.Name, ds.URL, client), nil
-	case "loki":
-		return loki.New(ds.Name, ds.URL, client), nil
-	default:
-		log.Printf("[meerkat] unknown datasource type %q for %q, skipping", ds.Type, ds.Name)
-		return nil, nil
-	}
-}
-
-func ProvideProviderRegistry(cfg *config.Config) (*datasource.Registry, error) {
-	var providers []datasource.Provider
-	for _, ds := range cfg.Datasources {
-		p, err := newProvider(ds)
+	for _, pc := range cfg.Tools.Prometheus {
+		httpClient, err := tool.NewHTTPClient(pc.CAFile)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
 		}
-		if p != nil {
-			providers = append(providers, p)
+		t, err := tool.NewPrometheusTool(pc.Name, pc.URL, httpClient)
+		if err != nil {
+			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
 		}
+		tools = append(tools, t)
 	}
-	return datasource.NewRegistry(providers), nil
-}
 
-// adapterRegistry adapts datasource.Registry to inspector.DatasourceRegistry.
-type adapterRegistry struct {
-	*datasource.Registry
-}
-
-func (a *adapterRegistry) All() []inspector.DatasourceRef {
-	providers := a.Registry.All()
-	refs := make([]inspector.DatasourceRef, 0, len(providers))
-	for _, p := range providers {
-		refs = append(refs, inspector.DatasourceRef{Name: p.Name(), Type: string(p.Type())})
+	for _, lc := range cfg.Tools.Loki {
+		httpClient, err := tool.NewHTTPClient(lc.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
+		}
+		tools = append(tools, tool.NewLokiTool(lc.Name, lc.URL, httpClient))
 	}
-	return refs
+
+	for _, vc := range cfg.Tools.VictoriaLogs {
+		httpClient, err := tool.NewHTTPClient(vc.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("tool %q: %w", vc.Name, err)
+		}
+		tools = append(tools, tool.NewVictoriaLogsTool(vc.Name, vc.URL, httpClient))
+	}
+
+	return analyzer.NewToolRegistry(tools...), nil
 }
 
-func ProvideDatasourceRegistry(registry *datasource.Registry) inspector.DatasourceRegistry {
-	return &adapterRegistry{Registry: registry}
+func ProvideDatasourceRefs(cfg *config.Config) inspector.DatasourceRefs {
+	return func() []analyzer.DatasourceRef {
+		var refs []analyzer.DatasourceRef
+		for _, pc := range cfg.Tools.Prometheus {
+			refs = append(refs, analyzer.DatasourceRef{Name: pc.Name, Type: "prometheus"})
+		}
+		for _, lc := range cfg.Tools.Loki {
+			refs = append(refs, analyzer.DatasourceRef{Name: lc.Name, Type: "loki"})
+		}
+		for _, vc := range cfg.Tools.VictoriaLogs {
+			refs = append(refs, analyzer.DatasourceRef{Name: vc.Name, Type: "victoria-logs"})
+		}
+		return refs
+	}
 }
 
 func ProvideDedupWindow(cfg *config.Config) time.Duration {
 	return cfg.Inspector.GetDedupWindow()
-}
-
-func ProvideToolRegistry(registry *datasource.Registry) *analyzer.ToolRegistry {
-	return analyzer.NewToolRegistry(
-		inspector.NewQueryMetricsTool(registry),
-		inspector.NewQueryLogsTool(registry),
-	)
 }
 
 func ProvideReporterService(cfg *config.Config) reporter.ReporterService {
@@ -254,13 +243,12 @@ func NewFXApp(cfgFile string, port int) *fx.App {
 		),
 
 		fx.Provide(
-			ProvideProviderRegistry,
-			ProvideDatasourceRegistry,
+			ProvideToolRegistry,
+			ProvideDatasourceRefs,
 			insprepo.NewRepository,
 			ProvideAnalyzerProvider,
-			ProvideToolRegistry,
-			ProvideAnalyzerService,
 			ProvideDedupWindow,
+			ProvideAnalyzerService,
 			inspector.NewService,
 			ProvideReporterService,
 			scheduler.NewCronScheduler,

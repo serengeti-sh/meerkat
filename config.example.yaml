@@ -16,24 +16,21 @@ store:
   password: meerkat
   sslmode: disable
 
-datasources:
-  - name: vm
-    type: prometheus
-    url: http://localhost:8428
-  - name: vl
-    type: victoria-logs
-    url: http://localhost:9428
-  # - name: prom
-  #   type: prometheus
-  #   url: http://localhost:9090
-  # - name: loki
-  #   type: loki
-  #   url: http://localhost:3100
-  # For HTTPS datasources with internal CA:
-  # - name: vm-tls
-  #   type: prometheus
-  #   url: https://victoriametrics-server:8428
-  #   ca_file: /app/ca/ca.crt
+tools:
+  prometheus:
+    - name: vm
+      url: http://localhost:8428
+  victoria_logs:
+    - name: vl
+      url: http://localhost:9428
+  # loki:
+  #   - name: loki
+  #     url: http://localhost:3100
+  # For HTTPS connections with internal CA:
+  # prometheus:
+  #   - name: vm-tls
+  #     url: https://victoriametrics-server:8428
+  #     ca_file: /app/ca/ca.crt
 
 analyzer:
   # provider: openai (default) or anthropic
