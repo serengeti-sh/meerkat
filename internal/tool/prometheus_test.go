@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,6 +27,17 @@ func writePromResponse(w http.ResponseWriter, body string) {
 	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write([]byte(body))
 }
+
+// writeSchemaFile creates a temporary file with the given schema content and returns its path.
+func writeSchemaFile(t *testing.T, schema string) string {
+	t.Helper()
+	dir := t.TempDir()
+	p := filepath.Join(dir, "schema.json")
+	require.NoError(t, os.WriteFile(p, []byte(schema), 0644))
+	return p
+}
+
+const promSchema = `{"type":"object","properties":{"query":{"type":"string","description":"PromQL query expression"}},"required":["query"]}`
 
 func TestPrometheusTool_Execute_VectorResponse(t *testing.T) {
 	response := `{
@@ -51,7 +64,7 @@ func TestPrometheusTool_Execute_VectorResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p, err := tool.NewPrometheusTool("test", "test prometheus", srv.URL, http.DefaultClient)
+	p, err := tool.NewPrometheusTool("test", "test prometheus", writeSchemaFile(t, promSchema), srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	assert.Equal(t, "test", p.Name())
@@ -87,7 +100,7 @@ func TestPrometheusTool_Execute_MatrixResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p, err := tool.NewPrometheusTool("test", "test prometheus", srv.URL, http.DefaultClient)
+	p, err := tool.NewPrometheusTool("test", "test prometheus", writeSchemaFile(t, promSchema), srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	result, err := p.Execute(context.Background(), json.RawMessage(`{"query": "rate"}`))
@@ -108,7 +121,7 @@ func TestPrometheusTool_Execute_EmptyResult(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p, err := tool.NewPrometheusTool("test", "test prometheus", srv.URL, http.DefaultClient)
+	p, err := tool.NewPrometheusTool("test", "test prometheus", writeSchemaFile(t, promSchema), srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	result, err := p.Execute(context.Background(), json.RawMessage(`{"query": "nonexistent"}`))
@@ -124,7 +137,7 @@ func TestPrometheusTool_Execute_ErrorResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	p, err := tool.NewPrometheusTool("test", "test prometheus", srv.URL, http.DefaultClient)
+	p, err := tool.NewPrometheusTool("test", "test prometheus", writeSchemaFile(t, promSchema), srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	_, err = p.Execute(context.Background(), json.RawMessage(`{"query": "up"}`))
@@ -135,7 +148,7 @@ func TestPrometheusTool_Execute_InvalidParams(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer srv.Close()
 
-	p, err := tool.NewPrometheusTool("test", "test prometheus", srv.URL, http.DefaultClient)
+	p, err := tool.NewPrometheusTool("test", "test prometheus", writeSchemaFile(t, promSchema), srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	_, err = p.Execute(context.Background(), json.RawMessage(`not json`))

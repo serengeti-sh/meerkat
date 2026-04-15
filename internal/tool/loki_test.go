@@ -13,6 +13,8 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/tool"
 )
 
+const lokiSchema = `{"type":"object","properties":{"query":{"type":"string","description":"LogQL query expression"},"limit":{"type":"integer","description":"Max log entries to return","default":50}},"required":["query"]}`
+
 func TestLokiTool_Execute(t *testing.T) {
 	response := `{
 		"status": "success",
@@ -35,7 +37,7 @@ func TestLokiTool_Execute(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	l, err := tool.NewLokiTool("test-loki", "test loki", srv.URL, http.DefaultClient)
+	l, err := tool.NewLokiTool("test-loki", "test loki", writeSchemaFile(t, lokiSchema), srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	assert.Equal(t, "test-loki", l.Name())
@@ -60,7 +62,7 @@ func TestLokiTool_Execute_WithLimit(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	l, err := tool.NewLokiTool("test", "test loki", srv.URL, http.DefaultClient)
+	l, err := tool.NewLokiTool("test", "test loki", writeSchemaFile(t, lokiSchema), srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	result, err := l.Execute(context.Background(), json.RawMessage(`{"query": "{app=\"api\"}", "limit": 10}`))
@@ -74,7 +76,7 @@ func TestLokiTool_Execute_ServerError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	l, err := tool.NewLokiTool("test", "test loki", srv.URL, http.DefaultClient)
+	l, err := tool.NewLokiTool("test", "test loki", writeSchemaFile(t, lokiSchema), srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	_, err = l.Execute(context.Background(), json.RawMessage(`{"query": "test"}`))
@@ -85,7 +87,7 @@ func TestLokiTool_Execute_InvalidParams(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer srv.Close()
 
-	l, err := tool.NewLokiTool("test", "test loki", srv.URL, http.DefaultClient)
+	l, err := tool.NewLokiTool("test", "test loki", writeSchemaFile(t, lokiSchema), srv.URL, http.DefaultClient)
 	require.NoError(t, err)
 
 	_, err = l.Execute(context.Background(), json.RawMessage(`not json`))

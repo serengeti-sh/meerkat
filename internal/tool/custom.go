@@ -28,6 +28,9 @@ func NewCustomTool(name, description, method, baseURL, paramSchemaFile string, c
 	if description == "" {
 		return nil, fmt.Errorf("custom tool %q: description is required", name)
 	}
+	if paramSchemaFile == "" {
+		return nil, fmt.Errorf("custom tool %q: param_schema_file is required", name)
+	}
 	if baseURL == "" {
 		return nil, fmt.Errorf("custom tool %q: url is required", name)
 	}
@@ -37,13 +40,9 @@ func NewCustomTool(name, description, method, baseURL, paramSchemaFile string, c
 		m = http.MethodGet
 	}
 
-	var params json.RawMessage
-	if paramSchemaFile != "" {
-		data, err := os.ReadFile(paramSchemaFile)
-		if err != nil {
-			return nil, fmt.Errorf("custom tool %q: failed to read param schema file %q: %w", name, paramSchemaFile, err)
-		}
-		params = json.RawMessage(data)
+	params, err := os.ReadFile(paramSchemaFile)
+	if err != nil {
+		return nil, fmt.Errorf("custom tool %q: failed to read param schema file %q: %w", name, paramSchemaFile, err)
 	}
 
 	return &CustomTool{
@@ -51,7 +50,7 @@ func NewCustomTool(name, description, method, baseURL, paramSchemaFile string, c
 		description: description,
 		method:      m,
 		baseURL:     baseURL,
-		params:      params,
+		params:      json.RawMessage(params),
 		client:      client,
 	}, nil
 }
@@ -60,12 +59,7 @@ func (t *CustomTool) Name() string { return t.name }
 
 func (t *CustomTool) Description() string { return t.description }
 
-func (t *CustomTool) Parameters() json.RawMessage {
-	if t.params != nil {
-		return t.params
-	}
-	return json.RawMessage(`{"type":"object","properties":{}}`)
-}
+func (t *CustomTool) Parameters() json.RawMessage { return t.params }
 
 func (t *CustomTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
 	var params map[string]any

@@ -18,14 +18,17 @@ store:
 
 tools:
   prometheus_description: "Query metrics using PromQL. Returns time series data."
+  prometheus_param_schema_file: resources/schemas/prometheus.json
   prometheus:
     - name: vm
       url: http://localhost:8428
   victoria_logs_description: "Query logs using LogsQL. Returns log entries."
+  victoria_logs_param_schema_file: resources/schemas/victorialogs.json
   victoria_logs:
     - name: vl
       url: http://localhost:9428
   # loki_description: "Query logs using LogQL. Returns log entries with timestamps and labels."
+  # loki_param_schema_file: resources/schemas/loki.json
   # loki:
   #   - name: loki
   #     url: http://localhost:3100
@@ -39,7 +42,7 @@ tools:
   #     description: "Query my custom API for status information."
   #     url: http://my-api:8080/status
   #     method: GET
-  #     param_schema_file: config/schemas/my-api.json
+  #     param_schema_file: resources/schemas/my-api.json
 
 analyzer:
   # provider: openai (default) or anthropic

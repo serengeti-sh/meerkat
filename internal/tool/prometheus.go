@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
@@ -16,19 +17,28 @@ import (
 type PrometheusTool struct {
 	name        string
 	description string
+	params      json.RawMessage
 	v1api       v1.API
 }
 
 // NewPrometheusTool creates a tool backed by one Prometheus-compatible endpoint.
-func NewPrometheusTool(name, description, baseURL string, client *http.Client) (Tool, error) {
+func NewPrometheusTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
 	if name == "" {
 		return nil, fmt.Errorf("prometheus tool: name is required")
 	}
 	if description == "" {
 		return nil, fmt.Errorf("prometheus tool %q: description is required", name)
 	}
+	if paramSchemaFile == "" {
+		return nil, fmt.Errorf("prometheus tool %q: param_schema_file is required", name)
+	}
 	if baseURL == "" {
 		return nil, fmt.Errorf("prometheus tool %q: url is required", name)
+	}
+
+	params, err := os.ReadFile(paramSchemaFile)
+	if err != nil {
+		return nil, fmt.Errorf("prometheus tool %q: failed to read param schema %q: %w", name, paramSchemaFile, err)
 	}
 
 	promClient, err := api.NewClient(api.Config{
@@ -42,6 +52,7 @@ func NewPrometheusTool(name, description, baseURL string, client *http.Client) (
 	return &PrometheusTool{
 		name:        name,
 		description: description,
+		params:      json.RawMessage(params),
 		v1api:       v1.NewAPI(promClient),
 	}, nil
 }
@@ -50,15 +61,7 @@ func (t *PrometheusTool) Name() string { return t.name }
 
 func (t *PrometheusTool) Description() string { return t.description }
 
-func (t *PrometheusTool) Parameters() json.RawMessage {
-	return json.RawMessage(`{
-		"type": "object",
-		"properties": {
-			"query": {"type": "string", "description": "PromQL query expression"}
-		},
-		"required": ["query"]
-	}`)
-}
+func (t *PrometheusTool) Parameters() json.RawMessage { return t.params }
 
 func (t *PrometheusTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
 	var params struct {

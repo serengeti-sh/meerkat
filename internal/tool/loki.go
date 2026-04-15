@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
@@ -14,38 +15,39 @@ import (
 type LokiTool struct {
 	name        string
 	description string
+	params      json.RawMessage
 	baseURL     string
 	client      *http.Client
 }
 
 // NewLokiTool creates a tool backed by one Loki endpoint.
-func NewLokiTool(name, description, baseURL string, client *http.Client) (Tool, error) {
+func NewLokiTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
 	if name == "" {
 		return nil, fmt.Errorf("loki tool: name is required")
 	}
 	if description == "" {
 		return nil, fmt.Errorf("loki tool %q: description is required", name)
 	}
+	if paramSchemaFile == "" {
+		return nil, fmt.Errorf("loki tool %q: param_schema_file is required", name)
+	}
 	if baseURL == "" {
 		return nil, fmt.Errorf("loki tool %q: url is required", name)
 	}
-	return &LokiTool{name: name, description: description, baseURL: baseURL, client: client}, nil
+
+	params, err := os.ReadFile(paramSchemaFile)
+	if err != nil {
+		return nil, fmt.Errorf("loki tool %q: failed to read param schema %q: %w", name, paramSchemaFile, err)
+	}
+
+	return &LokiTool{name: name, description: description, params: json.RawMessage(params), baseURL: baseURL, client: client}, nil
 }
 
 func (t *LokiTool) Name() string { return t.name }
 
 func (t *LokiTool) Description() string { return t.description }
 
-func (t *LokiTool) Parameters() json.RawMessage {
-	return json.RawMessage(`{
-		"type": "object",
-		"properties": {
-			"query": {"type": "string", "description": "LogQL query expression"},
-			"limit": {"type": "integer", "description": "Max log entries to return", "default": 50}
-		},
-		"required": ["query"]
-	}`)
-}
+func (t *LokiTool) Parameters() json.RawMessage { return t.params }
 
 func (t *LokiTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
 	var params struct {

@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "PromQL query expression"
+    }
+  },
+  "required": ["query"]
+}

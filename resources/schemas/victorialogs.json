@@ -1,0 +1,15 @@
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "LogsQL query expression"
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Max log entries to return",
+      "default": 50
+    }
+  },
+  "required": ["query"]
+}

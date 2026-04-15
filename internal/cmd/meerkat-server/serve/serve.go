@@ -87,7 +87,7 @@ func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
 		}
-		t, err := tool.NewPrometheusTool(pc.Name, cfg.Tools.PrometheusDescription, pc.URL, httpClient)
+		t, err := tool.NewPrometheusTool(pc.Name, cfg.Tools.PrometheusDescription, cfg.Tools.PrometheusParamSchemaFile, pc.URL, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
 		}
@@ -99,7 +99,7 @@ func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
 		}
-		t, err := tool.NewLokiTool(lc.Name, cfg.Tools.LokiDescription, lc.URL, httpClient)
+		t, err := tool.NewLokiTool(lc.Name, cfg.Tools.LokiDescription, cfg.Tools.LokiParamSchemaFile, lc.URL, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
 		}
@@ -111,7 +111,7 @@ func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", vc.Name, err)
 		}
-		t, err := tool.NewVictoriaLogsTool(vc.Name, cfg.Tools.VictoriaLogsDescription, vc.URL, httpClient)
+		t, err := tool.NewVictoriaLogsTool(vc.Name, cfg.Tools.VictoriaLogsDescription, cfg.Tools.VictoriaLogsParamSchemaFile, vc.URL, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", vc.Name, err)
 		}

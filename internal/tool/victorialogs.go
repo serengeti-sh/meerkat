@@ -7,44 +7,46 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 )
 
 // VictoriaLogsTool queries logs from a single Victoria Logs endpoint.
 type VictoriaLogsTool struct {
 	name        string
 	description string
+	params      json.RawMessage
 	baseURL     string
 	client      *http.Client
 }
 
 // NewVictoriaLogsTool creates a tool backed by one Victoria Logs endpoint.
-func NewVictoriaLogsTool(name, description, baseURL string, client *http.Client) (Tool, error) {
+func NewVictoriaLogsTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
 	if name == "" {
 		return nil, fmt.Errorf("victorialogs tool: name is required")
 	}
 	if description == "" {
 		return nil, fmt.Errorf("victorialogs tool %q: description is required", name)
 	}
+	if paramSchemaFile == "" {
+		return nil, fmt.Errorf("victorialogs tool %q: param_schema_file is required", name)
+	}
 	if baseURL == "" {
 		return nil, fmt.Errorf("victorialogs tool %q: url is required", name)
 	}
-	return &VictoriaLogsTool{name: name, description: description, baseURL: baseURL, client: client}, nil
+
+	params, err := os.ReadFile(paramSchemaFile)
+	if err != nil {
+		return nil, fmt.Errorf("victorialogs tool %q: failed to read param schema %q: %w", name, paramSchemaFile, err)
+	}
+
+	return &VictoriaLogsTool{name: name, description: description, params: json.RawMessage(params), baseURL: baseURL, client: client}, nil
 }
 
 func (t *VictoriaLogsTool) Name() string { return t.name }
 
 func (t *VictoriaLogsTool) Description() string { return t.description }
 
-func (t *VictoriaLogsTool) Parameters() json.RawMessage {
-	return json.RawMessage(`{
-		"type": "object",
-		"properties": {
-			"query": {"type": "string", "description": "LogsQL query expression"},
-			"limit": {"type": "integer", "description": "Max log entries to return", "default": 50}
-		},
-		"required": ["query"]
-	}`)
-}
+func (t *VictoriaLogsTool) Parameters() json.RawMessage { return t.params }
 
 func (t *VictoriaLogsTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
 	var params struct {

@@ -48,13 +48,16 @@ type StoreConfig struct {
 
 // ToolConfig groups tool configurations by type.
 type ToolConfig struct {
-	Prometheus              []PrometheusToolConfig   `mapstructure:"prometheus"`
-	PrometheusDescription   string                   `mapstructure:"prometheus_description"`
-	VictoriaLogs            []VictoriaLogsToolConfig `mapstructure:"victoria_logs"`
-	VictoriaLogsDescription string                   `mapstructure:"victoria_logs_description"`
-	Loki                    []LokiToolConfig         `mapstructure:"loki"`
-	LokiDescription         string                   `mapstructure:"loki_description"`
-	Custom                  []CustomToolConfig       `mapstructure:"custom"`
+	Prometheus                  []PrometheusToolConfig   `mapstructure:"prometheus"`
+	PrometheusDescription       string                   `mapstructure:"prometheus_description"`
+	PrometheusParamSchemaFile   string                   `mapstructure:"prometheus_param_schema_file"`
+	VictoriaLogs                []VictoriaLogsToolConfig `mapstructure:"victoria_logs"`
+	VictoriaLogsDescription     string                   `mapstructure:"victoria_logs_description"`
+	VictoriaLogsParamSchemaFile string                   `mapstructure:"victoria_logs_param_schema_file"`
+	Loki                        []LokiToolConfig         `mapstructure:"loki"`
+	LokiDescription             string                   `mapstructure:"loki_description"`
+	LokiParamSchemaFile         string                   `mapstructure:"loki_param_schema_file"`
+	Custom                      []CustomToolConfig       `mapstructure:"custom"`
 }
 
 type PrometheusToolConfig struct {
