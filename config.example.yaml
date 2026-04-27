@@ -17,32 +17,43 @@ store:
   sslmode: disable
 
 tools:
-  prometheus_description: "Query metrics using PromQL. Returns time series data."
-  prometheus_param_schema_file: resources/schemas/prometheus.json
+  # Descriptions and schema files are optional — sensible defaults are built in.
+  # The Docker image includes default schemas at /app/resources/schemas/.
+  # Uncomment and modify to override defaults or use custom schemas.
+  #
+  # prometheus_description: "Query metrics using PromQL. Returns time series data."
+  # prometheus_param_schema_file: resources/schemas/prometheus.json
   prometheus:
     - name: vm
       url: http://localhost:8428
-  victoria_logs_description: "Query logs using LogsQL. Returns log entries."
-  victoria_logs_param_schema_file: resources/schemas/victorialogs.json
+
+  # victoria_logs_description: "Query logs using LogsQL. Returns log entries."
+  # victoria_logs_param_schema_file: resources/schemas/victorialogs.json
   victoria_logs:
     - name: vl
       url: http://localhost:9428
+
   # loki_description: "Query logs using LogQL. Returns log entries with timestamps and labels."
   # loki_param_schema_file: resources/schemas/loki.json
   # loki:
   #   - name: loki
   #     url: http://localhost:3100
+
   # For HTTPS connections with internal CA:
   # prometheus:
   #   - name: vm-tls
   #     url: https://victoriametrics-server:8428
   #     ca_file: /app/ca/ca.crt
+
+  # Custom tools require description, url, method, and param_schema_file.
+  # Unlike built-in tools, custom tools have NO defaults. The schema file
+  # MUST exist at the specified path (mount it if running in Docker/K8s).
   # custom:
   #   - name: my-api
   #     description: "Query my custom API for status information."
   #     url: http://my-api:8080/status
   #     method: GET
-  #     param_schema_file: resources/schemas/my-api.json
+  #     param_schema_file: /app/custom/schemas/my-api.json
 
 analyzer:
   # provider: openai (default) or anthropic

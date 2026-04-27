@@ -137,14 +137,36 @@ config:
     sslmode: disable
 
   tools:
+    # Tool descriptions and schema files are optional. Sensible defaults are built
+    # into the Docker image at /app/resources/schemas/. To use custom schemas,
+    # mount them via extraVolumes + extraVolumeMounts and reference the path here.
+    #
+    # Example with custom schema mount:
+    #   extraVolumes:
+    #     - name: custom-schemas
+    #       configMap:
+    #         name: meerkat-custom-schemas
+    #   extraVolumeMounts:
+    #     - name: custom-schemas
+    #       mountPath: /app/custom/schemas
+    #   prometheus_param_schema_file: /app/custom/schemas/prometheus.json
+    #
+    # prometheus_description: "Query metrics using PromQL. Returns time series data."
+    # prometheus_param_schema_file: resources/schemas/prometheus.json
     prometheus: []
     #  - name: vm
     #    url: https://victoriametrics-server:8428
     #    ca_file: /app/ca/ca.crt
+
+    # victoria_logs_description: "Query logs using LogsQL. Returns log entries."
+    # victoria_logs_param_schema_file: resources/schemas/victorialogs.json
     victoria_logs: []
     #  - name: vl
     #    url: https://victorialogs-server:9428
     #    ca_file: /app/ca/ca.crt
+
+    # loki_description: "Query logs using LogQL. Returns log entries with timestamps and labels."
+    # loki_param_schema_file: resources/schemas/loki.json
     loki: []
     #  - name: loki
     #    url: http://loki:3100
