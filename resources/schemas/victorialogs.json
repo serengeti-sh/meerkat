@@ -4,7 +4,7 @@
   "properties": {
     "query": {
       "type": "string",
-      "description": "LogsQL query expression"
+      "description": "LogsQL query expression. Examples: _stream:{pod=\"my-pod\"} \"error\", _stream:{namespace=\"default\"} |~ \"error|panic\", _time:5m \"timeout\", _stream:{app=\"nginx\"} AND _time:1h \"500\""
     },
     "limit": {
       "type": "integer",
