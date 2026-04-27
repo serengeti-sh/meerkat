@@ -13,6 +13,8 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/tool"
 )
 
+const vlSchema = `{"type":"object","properties":{"query":{"type":"string","description":"LogsQL query expression"},"limit":{"type":"integer","description":"Max log entries to return","default":50}},"required":["query"]}`
+
 func TestVictoriaLogsTool_Execute_JSON(t *testing.T) {
 	response := `[{"_time":"2024-01-01T00:00:00Z","_stream":"app:api","level":"error","_msg":"connection refused"}]`
 
@@ -24,9 +26,10 @@ func TestVictoriaLogsTool_Execute_JSON(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	v := tool.NewVictoriaLogsTool("test-vl", srv.URL, http.DefaultClient)
+	v, err := tool.NewVictoriaLogsTool("test-vl", "test vl", writeSchemaFile(t, vlSchema), srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
-	assert.Equal(t, "query_victorialogs_logs", v.Name())
+	assert.Equal(t, "test-vl", v.Name())
 
 	result, err := v.Execute(context.Background(), json.RawMessage(`{"query": "error"}`))
 	require.NoError(t, err)
@@ -50,7 +53,8 @@ func TestVictoriaLogsTool_Execute_JSONL(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	v := tool.NewVictoriaLogsTool("test", srv.URL, http.DefaultClient)
+	v, err := tool.NewVictoriaLogsTool("test", "test vl", writeSchemaFile(t, vlSchema), srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
 	result, err := v.Execute(context.Background(), json.RawMessage(`{"query": "*"}`))
 	require.NoError(t, err)
@@ -69,9 +73,10 @@ func TestVictoriaLogsTool_Execute_ServerError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	v := tool.NewVictoriaLogsTool("test", srv.URL, http.DefaultClient)
+	v, err := tool.NewVictoriaLogsTool("test", "test vl", writeSchemaFile(t, vlSchema), srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
-	_, err := v.Execute(context.Background(), json.RawMessage(`{"query": "test"}`))
+	_, err = v.Execute(context.Background(), json.RawMessage(`{"query": "test"}`))
 	require.Error(t, err)
 }
 
@@ -79,8 +84,9 @@ func TestVictoriaLogsTool_Execute_InvalidParams(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer srv.Close()
 
-	v := tool.NewVictoriaLogsTool("test", srv.URL, http.DefaultClient)
+	v, err := tool.NewVictoriaLogsTool("test", "test vl", writeSchemaFile(t, vlSchema), srv.URL, http.DefaultClient)
+	require.NoError(t, err)
 
-	_, err := v.Execute(context.Background(), json.RawMessage(`not json`))
+	_, err = v.Execute(context.Background(), json.RawMessage(`not json`))
 	require.Error(t, err)
 }

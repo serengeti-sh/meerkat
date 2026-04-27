@@ -10,16 +10,38 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // PrometheusTool queries metrics from a single Prometheus/VictoriaMetrics endpoint.
 type PrometheusTool struct {
-	name  string
-	v1api v1.API
+	name        string
+	description string
+	params      json.RawMessage
+	schema      *jsonschema.Schema
+	v1api       v1.API
 }
 
 // NewPrometheusTool creates a tool backed by one Prometheus-compatible endpoint.
-func NewPrometheusTool(name, baseURL string, client *http.Client) (Tool, error) {
+func NewPrometheusTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
+	if name == "" {
+		return nil, fmt.Errorf("prometheus tool: name is required")
+	}
+	if description == "" {
+		return nil, fmt.Errorf("prometheus tool %q: description is required", name)
+	}
+	if paramSchemaFile == "" {
+		return nil, fmt.Errorf("prometheus tool %q: param_schema_file is required", name)
+	}
+	if baseURL == "" {
+		return nil, fmt.Errorf("prometheus tool %q: url is required", name)
+	}
+
+	schema, params, err := compileSchema(paramSchemaFile)
+	if err != nil {
+		return nil, fmt.Errorf("prometheus tool %q: %w", name, err)
+	}
+
 	promClient, err := api.NewClient(api.Config{
 		Address:      baseURL,
 		RoundTripper: client.Transport,
@@ -29,36 +51,53 @@ func NewPrometheusTool(name, baseURL string, client *http.Client) (Tool, error) 
 	}
 
 	return &PrometheusTool{
-		name:  name,
-		v1api: v1.NewAPI(promClient),
+		name:        name,
+		description: description,
+		params:      params,
+		schema:      schema,
+		v1api:       v1.NewAPI(promClient),
 	}, nil
 }
 
-func (t *PrometheusTool) Name() string { return "query_metrics" }
+func (t *PrometheusTool) Name() string { return t.name }
 
-func (t *PrometheusTool) Description() string {
-	return fmt.Sprintf("Query metrics using PromQL from datasource %q. Returns time series data.", t.name)
-}
+func (t *PrometheusTool) Description() string { return t.description }
 
-func (t *PrometheusTool) Parameters() json.RawMessage {
-	return json.RawMessage(`{
-		"type": "object",
-		"properties": {
-			"query": {"type": "string", "description": "PromQL query expression"}
-		},
-		"required": ["query"]
-	}`)
-}
+func (t *PrometheusTool) Parameters() json.RawMessage { return t.params }
 
 func (t *PrometheusTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
+	if err := validateArgs(t.schema, args); err != nil {
+		return "", err
+	}
+
 	var params struct {
-		Query string `json:"query"`
+		Query   string `json:"query"`
+		Time    string `json:"time"`
+		Timeout string `json:"timeout"`
 	}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return "", fmt.Errorf("invalid parameters: %w", err)
 	}
 
-	result, _, err := t.v1api.Query(ctx, params.Query, time.Now())
+	evalTime := time.Now()
+	if params.Time != "" {
+		t, err := parseTime(params.Time)
+		if err != nil {
+			return "", fmt.Errorf("invalid time parameter: %w", err)
+		}
+		evalTime = t
+	}
+
+	opts := make([]v1.Option, 0, 1)
+	if params.Timeout != "" {
+		d, err := time.ParseDuration(params.Timeout)
+		if err != nil {
+			return "", fmt.Errorf("invalid timeout parameter: %w", err)
+		}
+		opts = append(opts, v1.WithTimeout(d))
+	}
+
+	result, _, err := t.v1api.Query(ctx, params.Query, evalTime, opts...)
 	if err != nil {
 		return "", fmt.Errorf("metrics query failed: %w", err)
 	}

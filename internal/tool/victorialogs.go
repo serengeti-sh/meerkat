@@ -7,54 +7,57 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // VictoriaLogsTool queries logs from a single Victoria Logs endpoint.
 type VictoriaLogsTool struct {
-	name    string
-	baseURL string
-	client  *http.Client
+	name        string
+	description string
+	params      json.RawMessage
+	schema      *jsonschema.Schema
+	baseURL     string
+	client      *http.Client
 }
 
 // NewVictoriaLogsTool creates a tool backed by one Victoria Logs endpoint.
-func NewVictoriaLogsTool(name, baseURL string, client *http.Client) Tool {
-	return &VictoriaLogsTool{name: name, baseURL: baseURL, client: client}
+func NewVictoriaLogsTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
+	if name == "" {
+		return nil, fmt.Errorf("victorialogs tool: name is required")
+	}
+	if description == "" {
+		return nil, fmt.Errorf("victorialogs tool %q: description is required", name)
+	}
+	if paramSchemaFile == "" {
+		return nil, fmt.Errorf("victorialogs tool %q: param_schema_file is required", name)
+	}
+	if baseURL == "" {
+		return nil, fmt.Errorf("victorialogs tool %q: url is required", name)
+	}
+
+	schema, params, err := compileSchema(paramSchemaFile)
+	if err != nil {
+		return nil, fmt.Errorf("victorialogs tool %q: %w", name, err)
+	}
+
+	return &VictoriaLogsTool{name: name, description: description, params: params, schema: schema, baseURL: baseURL, client: client}, nil
 }
 
-func (t *VictoriaLogsTool) Name() string { return "query_victorialogs_logs" }
+func (t *VictoriaLogsTool) Name() string { return t.name }
 
-func (t *VictoriaLogsTool) Description() string {
-	return fmt.Sprintf("Query logs from Victoria Logs datasource %q using LogsQL. Returns log entries.", t.name)
-}
+func (t *VictoriaLogsTool) Description() string { return t.description }
 
-func (t *VictoriaLogsTool) Parameters() json.RawMessage {
-	return json.RawMessage(`{
-		"type": "object",
-		"properties": {
-			"query": {"type": "string", "description": "LogsQL query expression"},
-			"limit": {"type": "integer", "description": "Max log entries to return", "default": 50}
-		},
-		"required": ["query"]
-	}`)
-}
+func (t *VictoriaLogsTool) Parameters() json.RawMessage { return t.params }
 
 func (t *VictoriaLogsTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
-	var params struct {
-		Query string `json:"query"`
-		Limit int    `json:"limit"`
-	}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return "", fmt.Errorf("invalid parameters: %w", err)
-	}
-	if params.Limit <= 0 {
-		params.Limit = 50
-	}
-
 	u, _ := url.Parse(t.baseURL)
 	u.Path = "/select/logsql/query"
-	q := u.Query()
-	q.Set("query", params.Query)
-	q.Set("limit", fmt.Sprintf("%d", params.Limit))
+
+	q, err := argsToQueryParams(t.schema, args, url.Values{"limit": {"50"}})
+	if err != nil {
+		return "", err
+	}
 	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)

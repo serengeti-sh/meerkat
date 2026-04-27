@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "LogQL query expression"
+    },
+    "limit": {
+      "type": "integer",
+      "description": "Maximum number of log entries to return",
+      "default": 50,
+      "minimum": 1
+    },
+    "start": {
+      "type": "string",
+      "description": "Start time for the query. Accepts Unix nanoseconds, RFC3339, or relative duration (e.g. '1h')"
+    },
+    "end": {
+      "type": "string",
+      "description": "End time for the query. Accepts Unix nanoseconds, RFC3339, or relative duration (e.g. 'now')"
+    },
+    "since": {
+      "type": "string",
+      "description": "Relative duration to calculate start from end (e.g. '1h', '30m'). Superseded by start if both are provided"
+    },
+    "step": {
+      "type": "string",
+      "description": "Query resolution step width for metric queries (e.g. '5m', '1h'). Only applies to matrix (metric) responses"
+    },
+    "direction": {
+      "type": "string",
+      "description": "Sort order of log results",
+      "enum": ["forward", "backward"],
+      "default": "backward"
+    }
+  },
+  "required": ["query"]
+}
