@@ -4,7 +4,7 @@
   "properties": {
     "query": {
       "type": "string",
-      "description": "LogsQL query expression. LogsQL is VictoriaLogs' query language. Basic syntax: (1) Simple word search: 'error' or 'timeout' (2) Time filter: '_time:5m' for last 5 minutes, '_time:1h' for last hour (3) Stream filter: '_stream:{k8s.namespace.name=\\"default\\"}' or '{app=\\"nginx\\"}' (4) Field search: 'log.level:error' or 'status_code:500' (5) Combined: '_time:5m _stream:{k8s.namespace.name=\\"default\\"} error' (6) Exclude: '_time:5m error NOT debug' or '_time:5m error -debug' (7) Phrase search: '\\"connection refused\\"' (8) Regex: 'level:~\\"err.*\\"'"
+      "description": "LogsQL query expression. LogsQL is VictoriaLogs' query language. Basic syntax: (1) Simple word search: 'error' or 'timeout' (2) Time filter: '_time:5m' for last 5 minutes, '_time:1h' for last hour (3) Stream filter: '_stream:{k8s.namespace.name=\"default\"}' or '{app=\"nginx\"}' (4) Field search: 'log.level:error' or 'status_code:500' (5) Combined: '_time:5m _stream:{k8s.namespace.name=\"default\"} error' (6) Exclude: '_time:5m error NOT debug' or '_time:5m error -debug' (7) Phrase search: '\"connection refused\"' (8) Regex: 'level:~\"err.*\"'"
     },
     "limit": {
       "type": "integer",
