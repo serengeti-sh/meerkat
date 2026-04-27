@@ -245,6 +245,10 @@ systemPrompt: |
   ## Tool Usage Rules
 
   - When calling tools, use the EXACT tool name as provided in the tool list. Do NOT invent tool names.
+  - Each tool has its own query language. Refer to the parameter schema for syntax examples:
+    * victoriametrics (Prometheus): Uses PromQL. Examples: 'up', 'rate(http_requests_total[5m])', 'container_memory_usage_bytes{namespace="default"}'
+    * victoria-logs (VictoriaLogs): Uses LogsQL. Examples: 'error', '_time:5m _stream:{k8s.namespace.name="default"} error', '_time:1h {app="nginx"} |~ "err.*"'
+    * loki (if configured): Uses LogQL. Examples: '{app="nginx"} |= "error"', '{namespace="default"} |~ "err.*"'
   - If a tool call fails (datasource unreachable, timeout, query error), do NOT guess or make assumptions.
     Instead, report the failure honestly and try alternative datasources if available.
   - If ALL datasources fail, set severity based on alert status:
