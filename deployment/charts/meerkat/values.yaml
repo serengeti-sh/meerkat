@@ -137,14 +137,36 @@ config:
     sslmode: disable
 
   tools:
+    # Tool descriptions and schema files are optional. Sensible defaults are built
+    # into the Docker image at /app/resources/schemas/. To use custom schemas,
+    # mount them via extraVolumes + extraVolumeMounts and reference the path here.
+    #
+    # Example with custom schema mount:
+    #   extraVolumes:
+    #     - name: custom-schemas
+    #       configMap:
+    #         name: meerkat-custom-schemas
+    #   extraVolumeMounts:
+    #     - name: custom-schemas
+    #       mountPath: /app/custom/schemas
+    #   prometheus_param_schema_file: /app/custom/schemas/prometheus.json
+    #
+    # prometheus_description: "Query metrics using PromQL. Returns time series data."
+    # prometheus_param_schema_file: resources/schemas/prometheus.json
     prometheus: []
     #  - name: vm
     #    url: https://victoriametrics-server:8428
     #    ca_file: /app/ca/ca.crt
+
+    # victoria_logs_description: "Query logs using LogsQL. Returns log entries."
+    # victoria_logs_param_schema_file: resources/schemas/victorialogs.json
     victoria_logs: []
     #  - name: vl
     #    url: https://victorialogs-server:9428
     #    ca_file: /app/ca/ca.crt
+
+    # loki_description: "Query logs using LogQL. Returns log entries with timestamps and labels."
+    # loki_param_schema_file: resources/schemas/loki.json
     loki: []
     #  - name: loki
     #    url: http://loki:3100
@@ -223,6 +245,10 @@ systemPrompt: |
   ## Tool Usage Rules
 
   - When calling tools, use the EXACT tool name as provided in the tool list. Do NOT invent tool names.
+  - Each tool has its own query language. Refer to the parameter schema for syntax examples:
+    * victoriametrics (Prometheus): Uses PromQL. Examples: 'up', 'rate(http_requests_total[5m])', 'container_memory_usage_bytes{namespace="default"}'
+    * victoria-logs (VictoriaLogs): Uses LogsQL. Examples: 'error', '_time:5m _stream:{k8s.namespace.name="default"} error', '_time:1h {app="nginx"} |~ "err.*"'
+    * loki (if configured): Uses LogQL. Examples: '{app="nginx"} |= "error"', '{namespace="default"} |~ "err.*"'
   - If a tool call fails (datasource unreachable, timeout, query error), do NOT guess or make assumptions.
     Instead, report the failure honestly and try alternative datasources if available.
   - If ALL datasources fail, set severity based on alert status:

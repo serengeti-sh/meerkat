@@ -4,7 +4,7 @@
   "properties": {
     "query": {
       "type": "string",
-      "description": "LogQL query expression"
+      "description": "LogQL query expression. LogQL is Grafana Loki's query language. Basic syntax: (1) Simple filter: '{app=\"nginx\"} |= \"error\"' (2) Regex filter: '{namespace=\"default\"} |~ \"err.*\"' (3) JSON parse: '{app=\"myapp\"} | json' (4) Line format: '{app=\"myapp\"} | line_format \"{{.level}}: {{.msg}}\"' (5) Aggregate: 'sum(rate({app=\"nginx\"} [5m]))'"
     },
     "limit": {
       "type": "integer",
