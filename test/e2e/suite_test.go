@@ -66,7 +66,14 @@ func (s *Suite) Start(ctx context.Context) error {
 	// Create temporary system prompt file for tests
 	tmpDir := os.TempDir()
 	s.systemPromptFile = filepath.Join(tmpDir, fmt.Sprintf("meerkat-test-prompt-%d.txt", time.Now().UnixNano()))
-	testPrompt := `You are a test AI agent. Respond with JSON: {"severity": "info", "summary": "test", "detail": "test details"}`
+	testPrompt := `You are a test AI agent analyzing observability data.
+
+When calling tools, use the EXACT tool name as provided. Do NOT invent tool names.
+If a tool call fails, do NOT guess. Report the failure honestly.
+If ALL datasources fail, set severity to "info" for resolved alerts or "warning" for firing alerts.
+
+Respond with JSON only:
+{"severity": "info|warning|critical", "summary": "...", "detail": "..."}`
 	if err := os.WriteFile(s.systemPromptFile, []byte(testPrompt), 0600); err != nil {
 		return fmt.Errorf("create test system prompt file: %w", err)
 	}
@@ -161,7 +168,7 @@ func (s *Suite) Start(ctx context.Context) error {
 	s.Client = entClient
 
 	// Tool registry
-	promTool, err := tool.NewPrometheusTool("test-vm", s.MockPrometheus.URL(), http.DefaultClient)
+	promTool, err := tool.NewPrometheusTool("test-vm", "test prometheus", filepath.Join("..", "..", "resources", "schemas", "prometheus.json"), s.MockPrometheus.URL(), http.DefaultClient)
 	if err != nil {
 		return fmt.Errorf("create prometheus tool: %w", err)
 	}

@@ -108,10 +108,11 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 
 			log.Printf("[meerkat] tool call #%d: %s(%s)", i+1, tc.Name, string(tc.Arguments))
 
-			result, err := tool.Execute(ctx, tc.Arguments)
-			if err != nil {
-				result = fmt.Sprintf("Error executing tool %q: %v", tc.Name, err)
-			}
+		result, err := tool.Execute(ctx, tc.Arguments)
+		if err != nil {
+			// Categorize and format tool errors so the LLM can reason about them
+			result = formatToolError(tc.Name, tc.Arguments, err)
+		}
 
 			// Truncate oversized tool results
 			result = s.truncateToolResult(result)
@@ -142,6 +143,35 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 	}
 	result.RawMessages = messages
 	return result, nil
+}
+
+// formatToolError categorizes a tool execution error and returns a structured
+// message for the LLM. It helps the LLM distinguish between parameter errors,
+// connection failures, and query errors so it can decide whether to retry,
+// try another datasource, or report failure honestly.
+func formatToolError(toolName string, args json.RawMessage, err error) string {
+	errStr := err.Error()
+
+	// Categorize by common error patterns
+	category := "execution"
+	switch {
+	case strings.Contains(errStr, "invalid parameters") || strings.Contains(errStr, "jsonschema"):
+		category = "parameter_validation"
+	case strings.Contains(errStr, "connection refused") || strings.Contains(errStr, "no such host") || strings.Contains(errStr, "timeout"):
+		category = "connection"
+	case strings.Contains(errStr, "metrics query failed") || strings.Contains(errStr, "query failed") || strings.Contains(errStr, "returned status"):
+		category = "query"
+	}
+
+	return fmt.Sprintf(
+		"TOOL_ERROR [tool=%s category=%s]: %v\n\n"+
+		"Arguments: %s\n\n"+
+		"Do NOT guess or assume data based on this error. "+
+		"If this is a connection error, you may try another datasource. "+
+		"If this is a parameter validation error, fix the arguments and retry. "+
+		"If all datasources fail, report the failure honestly without speculation.",
+		toolName, category, err, string(args),
+	)
 }
 
 func (s *service) buildInitialMessages(input *AnalysisInput) []Message {

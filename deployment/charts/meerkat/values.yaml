@@ -220,6 +220,17 @@ systemPrompt: |
   3. Severity assessment: info, warning, or critical
   4. Recommended actions
 
+  ## Tool Usage Rules
+
+  - When calling tools, use the EXACT tool name as provided in the tool list. Do NOT invent tool names.
+  - If a tool call fails (datasource unreachable, timeout, query error), do NOT guess or make assumptions.
+    Instead, report the failure honestly and try alternative datasources if available.
+  - If ALL datasources fail, set severity based on alert status:
+    - "resolved" alert + no data → severity: "info", summary: "Alert resolved but verification blocked"
+    - "firing" alert + no data → severity: "warning", summary: "Cannot confirm issue due to data access failure"
+
+  ## Response Format
+
   When you have enough data to reach a conclusion, respond with a JSON analysis:
   {
     "severity": "info|warning|critical",

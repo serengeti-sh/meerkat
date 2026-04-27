@@ -7,8 +7,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
+
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // LokiTool queries logs from a single Grafana Loki endpoint.
@@ -16,6 +17,7 @@ type LokiTool struct {
 	name        string
 	description string
 	params      json.RawMessage
+	schema      *jsonschema.Schema
 	baseURL     string
 	client      *http.Client
 }
@@ -35,12 +37,12 @@ func NewLokiTool(name, description, paramSchemaFile, baseURL string, client *htt
 		return nil, fmt.Errorf("loki tool %q: url is required", name)
 	}
 
-	params, err := os.ReadFile(paramSchemaFile)
+	schema, params, err := compileSchema(paramSchemaFile)
 	if err != nil {
-		return nil, fmt.Errorf("loki tool %q: failed to read param schema %q: %w", name, paramSchemaFile, err)
+		return nil, fmt.Errorf("loki tool %q: %w", name, err)
 	}
 
-	return &LokiTool{name: name, description: description, params: json.RawMessage(params), baseURL: baseURL, client: client}, nil
+	return &LokiTool{name: name, description: description, params: params, schema: schema, baseURL: baseURL, client: client}, nil
 }
 
 func (t *LokiTool) Name() string { return t.name }
@@ -50,25 +52,18 @@ func (t *LokiTool) Description() string { return t.description }
 func (t *LokiTool) Parameters() json.RawMessage { return t.params }
 
 func (t *LokiTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
-	var params struct {
-		Query string `json:"query"`
-		Limit int    `json:"limit"`
-	}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return "", fmt.Errorf("invalid parameters: %w", err)
-	}
-	if params.Limit <= 0 {
-		params.Limit = 50
+	now := time.Now()
+	q, err := argsToQueryParams(t.schema, args, url.Values{
+		"limit": {"50"},
+		"start": {fmt.Sprintf("%d", now.Add(-time.Hour).UnixNano())},
+		"end":   {fmt.Sprintf("%d", now.UnixNano())},
+	})
+	if err != nil {
+		return "", err
 	}
 
 	u, _ := url.Parse(t.baseURL)
 	u.Path = "/loki/api/v1/query_range"
-	q := u.Query()
-	q.Set("query", params.Query)
-	q.Set("limit", fmt.Sprintf("%d", params.Limit))
-	now := time.Now()
-	q.Set("start", fmt.Sprintf("%d", now.Add(-time.Hour).UnixNano()))
-	q.Set("end", fmt.Sprintf("%d", now.UnixNano()))
 	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)

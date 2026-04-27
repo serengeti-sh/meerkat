@@ -7,7 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"os"
+
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // VictoriaLogsTool queries logs from a single Victoria Logs endpoint.
@@ -15,6 +16,7 @@ type VictoriaLogsTool struct {
 	name        string
 	description string
 	params      json.RawMessage
+	schema      *jsonschema.Schema
 	baseURL     string
 	client      *http.Client
 }
@@ -34,12 +36,12 @@ func NewVictoriaLogsTool(name, description, paramSchemaFile, baseURL string, cli
 		return nil, fmt.Errorf("victorialogs tool %q: url is required", name)
 	}
 
-	params, err := os.ReadFile(paramSchemaFile)
+	schema, params, err := compileSchema(paramSchemaFile)
 	if err != nil {
-		return nil, fmt.Errorf("victorialogs tool %q: failed to read param schema %q: %w", name, paramSchemaFile, err)
+		return nil, fmt.Errorf("victorialogs tool %q: %w", name, err)
 	}
 
-	return &VictoriaLogsTool{name: name, description: description, params: json.RawMessage(params), baseURL: baseURL, client: client}, nil
+	return &VictoriaLogsTool{name: name, description: description, params: params, schema: schema, baseURL: baseURL, client: client}, nil
 }
 
 func (t *VictoriaLogsTool) Name() string { return t.name }
@@ -49,22 +51,13 @@ func (t *VictoriaLogsTool) Description() string { return t.description }
 func (t *VictoriaLogsTool) Parameters() json.RawMessage { return t.params }
 
 func (t *VictoriaLogsTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
-	var params struct {
-		Query string `json:"query"`
-		Limit int    `json:"limit"`
-	}
-	if err := json.Unmarshal(args, &params); err != nil {
-		return "", fmt.Errorf("invalid parameters: %w", err)
-	}
-	if params.Limit <= 0 {
-		params.Limit = 50
-	}
-
 	u, _ := url.Parse(t.baseURL)
 	u.Path = "/select/logsql/query"
-	q := u.Query()
-	q.Set("query", params.Query)
-	q.Set("limit", fmt.Sprintf("%d", params.Limit))
+
+	q, err := argsToQueryParams(t.schema, args, url.Values{"limit": {"50"}})
+	if err != nil {
+		return "", err
+	}
 	u.RawQuery = q.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)

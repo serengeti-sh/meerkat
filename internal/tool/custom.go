@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
+
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // CustomTool calls an arbitrary HTTP endpoint configured by the user.
@@ -17,6 +18,7 @@ type CustomTool struct {
 	method      string
 	baseURL     string
 	params      json.RawMessage
+	schema      *jsonschema.Schema
 	client      *http.Client
 }
 
@@ -40,9 +42,9 @@ func NewCustomTool(name, description, method, baseURL, paramSchemaFile string, c
 		m = http.MethodGet
 	}
 
-	params, err := os.ReadFile(paramSchemaFile)
+	schema, params, err := compileSchema(paramSchemaFile)
 	if err != nil {
-		return nil, fmt.Errorf("custom tool %q: failed to read param schema file %q: %w", name, paramSchemaFile, err)
+		return nil, fmt.Errorf("custom tool %q: %w", name, err)
 	}
 
 	return &CustomTool{
@@ -50,7 +52,8 @@ func NewCustomTool(name, description, method, baseURL, paramSchemaFile string, c
 		description: description,
 		method:      m,
 		baseURL:     baseURL,
-		params:      json.RawMessage(params),
+		params:      params,
+		schema:      schema,
 		client:      client,
 	}, nil
 }
@@ -62,6 +65,10 @@ func (t *CustomTool) Description() string { return t.description }
 func (t *CustomTool) Parameters() json.RawMessage { return t.params }
 
 func (t *CustomTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
+	if err := validateArgs(t.schema, args); err != nil {
+		return "", err
+	}
+
 	var params map[string]any
 	if err := json.Unmarshal(args, &params); err != nil {
 		return "", fmt.Errorf("invalid parameters: %w", err)
@@ -105,7 +112,7 @@ func (t *CustomTool) buildGetRequest(ctx context.Context, params map[string]any)
 	}
 	q := req.URL.Query()
 	for k, v := range params {
-		q.Set(k, fmt.Sprintf("%v", v))
+		q.Set(k, formatParam(v))
 	}
 	req.URL.RawQuery = q.Encode()
 	return req, nil

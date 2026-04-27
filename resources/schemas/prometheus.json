@@ -1,9 +1,18 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
     "query": {
       "type": "string",
       "description": "PromQL query expression"
+    },
+    "time": {
+      "type": "string",
+      "description": "Evaluation timestamp. Accepts RFC3339 or Unix timestamp in seconds. Defaults to current server time"
+    },
+    "timeout": {
+      "type": "string",
+      "description": "Evaluation timeout duration (e.g. '30s', '1m')"
     }
   },
   "required": ["query"]

@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // PrometheusTool queries metrics from a single Prometheus/VictoriaMetrics endpoint.
@@ -18,6 +18,7 @@ type PrometheusTool struct {
 	name        string
 	description string
 	params      json.RawMessage
+	schema      *jsonschema.Schema
 	v1api       v1.API
 }
 
@@ -36,9 +37,9 @@ func NewPrometheusTool(name, description, paramSchemaFile, baseURL string, clien
 		return nil, fmt.Errorf("prometheus tool %q: url is required", name)
 	}
 
-	params, err := os.ReadFile(paramSchemaFile)
+	schema, params, err := compileSchema(paramSchemaFile)
 	if err != nil {
-		return nil, fmt.Errorf("prometheus tool %q: failed to read param schema %q: %w", name, paramSchemaFile, err)
+		return nil, fmt.Errorf("prometheus tool %q: %w", name, err)
 	}
 
 	promClient, err := api.NewClient(api.Config{
@@ -52,7 +53,8 @@ func NewPrometheusTool(name, description, paramSchemaFile, baseURL string, clien
 	return &PrometheusTool{
 		name:        name,
 		description: description,
-		params:      json.RawMessage(params),
+		params:      params,
+		schema:      schema,
 		v1api:       v1.NewAPI(promClient),
 	}, nil
 }
@@ -64,14 +66,38 @@ func (t *PrometheusTool) Description() string { return t.description }
 func (t *PrometheusTool) Parameters() json.RawMessage { return t.params }
 
 func (t *PrometheusTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
+	if err := validateArgs(t.schema, args); err != nil {
+		return "", err
+	}
+
 	var params struct {
-		Query string `json:"query"`
+		Query   string `json:"query"`
+		Time    string `json:"time"`
+		Timeout string `json:"timeout"`
 	}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return "", fmt.Errorf("invalid parameters: %w", err)
 	}
 
-	result, _, err := t.v1api.Query(ctx, params.Query, time.Now())
+	evalTime := time.Now()
+	if params.Time != "" {
+		t, err := parseTime(params.Time)
+		if err != nil {
+			return "", fmt.Errorf("invalid time parameter: %w", err)
+		}
+		evalTime = t
+	}
+
+	opts := make([]v1.Option, 0, 1)
+	if params.Timeout != "" {
+		d, err := time.ParseDuration(params.Timeout)
+		if err != nil {
+			return "", fmt.Errorf("invalid timeout parameter: %w", err)
+		}
+		opts = append(opts, v1.WithTimeout(d))
+	}
+
+	result, _, err := t.v1api.Query(ctx, params.Query, evalTime, opts...)
 	if err != nil {
 		return "", fmt.Errorf("metrics query failed: %w", err)
 	}
