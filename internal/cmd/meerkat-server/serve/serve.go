@@ -87,7 +87,15 @@ func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
 		}
-		t, err := tool.NewPrometheusTool(pc.Name, cfg.Tools.PrometheusDescription, cfg.Tools.PrometheusParamSchemaFile, pc.URL, httpClient)
+		description := cfg.Tools.PrometheusDescription
+		if description == "" {
+			description = "Query metrics using PromQL. Returns time series data."
+		}
+		schemaFile := cfg.Tools.PrometheusParamSchemaFile
+		if schemaFile == "" {
+			schemaFile = "resources/schemas/prometheus.json"
+		}
+		t, err := tool.NewPrometheusTool(pc.Name, description, schemaFile, pc.URL, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
 		}
@@ -99,7 +107,15 @@ func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
 		}
-		t, err := tool.NewLokiTool(lc.Name, cfg.Tools.LokiDescription, cfg.Tools.LokiParamSchemaFile, lc.URL, httpClient)
+		description := cfg.Tools.LokiDescription
+		if description == "" {
+			description = "Query logs using LogQL. Returns log entries with timestamps and labels."
+		}
+		schemaFile := cfg.Tools.LokiParamSchemaFile
+		if schemaFile == "" {
+			schemaFile = "resources/schemas/loki.json"
+		}
+		t, err := tool.NewLokiTool(lc.Name, description, schemaFile, lc.URL, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
 		}
@@ -111,7 +127,15 @@ func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", vc.Name, err)
 		}
-		t, err := tool.NewVictoriaLogsTool(vc.Name, cfg.Tools.VictoriaLogsDescription, cfg.Tools.VictoriaLogsParamSchemaFile, vc.URL, httpClient)
+		description := cfg.Tools.VictoriaLogsDescription
+		if description == "" {
+			description = "Query logs using LogsQL. Returns log entries."
+		}
+		schemaFile := cfg.Tools.VictoriaLogsParamSchemaFile
+		if schemaFile == "" {
+			schemaFile = "resources/schemas/victorialogs.json"
+		}
+		t, err := tool.NewVictoriaLogsTool(vc.Name, description, schemaFile, vc.URL, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", vc.Name, err)
 		}
