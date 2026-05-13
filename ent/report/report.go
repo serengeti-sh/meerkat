@@ -110,11 +110,12 @@ func TriggerValidator(t Trigger) error {
 // Status defines the type for the "status" enum field.
 type Status string
 
-// StatusPending is the default value of the Status enum.
-const DefaultStatus = StatusPending
+// StatusQueued is the default value of the Status enum.
+const DefaultStatus = StatusQueued
 
 // Status values.
 const (
+	StatusQueued    Status = "queued"
 	StatusPending   Status = "pending"
 	StatusRunning   Status = "running"
 	StatusCompleted Status = "completed"
@@ -128,7 +129,7 @@ func (s Status) String() string {
 // StatusValidator is a validator for the "status" field enum values. It is called by the builders before save.
 func StatusValidator(s Status) error {
 	switch s {
-	case StatusPending, StatusRunning, StatusCompleted, StatusFailed:
+	case StatusQueued, StatusPending, StatusRunning, StatusCompleted, StatusFailed:
 		return nil
 	default:
 		return fmt.Errorf("report: invalid enum value for status field: %q", s)

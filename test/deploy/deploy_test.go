@@ -183,7 +183,7 @@ func waitForDeployment(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	retrySleep := 5 * time.Second
 
 	for i := 0; i < maxRetries; i++ {
-		deploy, err := k8s.GetDeploymentE(t, kubectlOptions, "meerkat")
+		deploy, err := k8s.GetDeploymentE(t, kubectlOptions, "meerkat-analyzer")
 		if err == nil && k8s.IsDeploymentAvailable(deploy) {
 			t.Log("Deployment is available")
 			return
@@ -243,7 +243,7 @@ func verifyHealthEndpoint(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	// Start port-forward in background
 	pfCmd := exec.Command("kubectl", "port-forward",
 		"-n", namespace,
-		"svc/meerkat", "18080:8080",
+		"svc/meerkat-analyzer", "18080:8080",
 	)
 	pfCmd.Stdout = os.Stderr
 	pfCmd.Stderr = os.Stderr

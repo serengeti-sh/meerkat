@@ -1,0 +1,32 @@
+{{- if .Values.analyzer.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "meerkat.fullname" . }}
+  labels:
+    {{- include "meerkat.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "meerkat.fullname" . }}-analyzer
+  minReplicas: {{ .Values.analyzer.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.analyzer.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.analyzer.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.analyzer.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.analyzer.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.analyzer.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

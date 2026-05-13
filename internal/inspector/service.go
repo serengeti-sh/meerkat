@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,16 +13,27 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 )
 
+// DatasourceRefs provides the current list of datasource references for analysis.
+type DatasourceRefs func() []analyzer.DatasourceRef
+
 type service struct {
 	analyzerSvc analyzer.AnalyzerService
 	reportRepo  ReportRepository
 	reporterSvc reporter.ReporterService
 	dsRefs      DatasourceRefs
 	dedupWindow time.Duration
+	queueSize   int
+	workerCount int
+	queue       chan *analysisJob
+	wg          sync.WaitGroup
+	ctx         context.Context
+	cancel      context.CancelFunc
 }
 
-// DatasourceRefs provides the current list of datasource references for analysis.
-type DatasourceRefs func() []analyzer.DatasourceRef
+type analysisJob struct {
+	report *Report
+	input  *analyzer.AnalysisInput
+}
 
 func NewService(
 	analyzerSvc analyzer.AnalyzerService,
@@ -29,17 +41,58 @@ func NewService(
 	reporterSvc reporter.ReporterService,
 	dsRefs DatasourceRefs,
 	dedupWindow time.Duration,
+	queueSize int,
+	workerCount int,
 ) InspectorService {
-	return &service{
+	if queueSize <= 0 {
+		queueSize = 1000
+	}
+	if workerCount <= 0 {
+		workerCount = 10
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	s := &service{
 		analyzerSvc: analyzerSvc,
 		reportRepo:  reportRepo,
 		reporterSvc: reporterSvc,
 		dsRefs:      dsRefs,
 		dedupWindow: dedupWindow,
+		queueSize:   queueSize,
+		workerCount: workerCount,
+		queue:       make(chan *analysisJob, queueSize),
+		ctx:         ctx,
+		cancel:      cancel,
+	}
+
+	// Start worker pool
+	for i := 0; i < workerCount; i++ {
+		s.wg.Add(1)
+		go s.worker(i)
+	}
+
+	return s
+}
+
+func (s *service) worker(id int) {
+	defer s.wg.Done()
+	log.Printf("[inspector] worker %d started", id)
+
+	for {
+		select {
+		case <-s.ctx.Done():
+			log.Printf("[inspector] worker %d shutting down", id)
+			return
+		case job := <-s.queue:
+			if job == nil {
+				return
+			}
+			s.runAnalysis(s.ctx, job.report, job.input)
+		}
 	}
 }
 
-// Inspect creates a pending report and runs the agent in a goroutine.
+// Inspect creates a queued report and submits it to the worker pool.
 func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, apperrors.Error) {
 	refs := s.dsRefs()
 	if len(refs) == 0 {
@@ -69,7 +122,7 @@ func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, app
 		uuid.New().String(),
 		"manual",
 		triggerID,
-		StatusPending,
+		StatusQueued,
 		SeverityInfo,
 		"",
 		"",
@@ -83,18 +136,35 @@ func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, app
 		return nil, apperrors.New(apperrors.ErrInternal, "failed to create report")
 	}
 
-	// Run agent in background
-	go s.runAnalysis(context.Background(), report, &analyzer.AnalysisInput{
-		Trigger:     "manual",
-		TriggerID:   triggerID,
-		Query:       query,
-		Datasources: refs,
-	})
+	job := &analysisJob{
+		report: report,
+		input: &analyzer.AnalysisInput{
+			Trigger:     "manual",
+			TriggerID:   triggerID,
+			Query:       query,
+			Datasources: refs,
+		},
+	}
 
-	return report, nil
+	select {
+	case s.queue <- job:
+		log.Printf("[inspector] report %s queued (queue: %d/%d)", report.ID(), len(s.queue), s.queueSize)
+		return report, nil
+	default:
+		// Queue is full — update report to failed and reject
+		failedReport := NewReport(
+			report.ID(), report.Trigger(), report.TriggerID(),
+			StatusFailed, SeverityInfo, "Analysis queue is full, request rejected",
+			"", report.Query(), report.Datasources(), 0, report.CreatedAt(),
+		)
+		if err := s.reportRepo.Update(ctx, failedReport); err != nil {
+			log.Printf("[meerkat] failed to update report %s: %v", report.ID(), err)
+		}
+		return nil, apperrors.New(apperrors.ErrRateLimit, "analysis queue is full, try again later")
+	}
 }
 
-// InspectByWebhook creates a pending report and runs the agent in a goroutine.
+// InspectByWebhook creates a queued report and submits it to the worker pool.
 func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) (*Report, apperrors.Error) {
 	refs := s.dsRefs()
 	if len(refs) == 0 {
@@ -116,7 +186,7 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 		uuid.New().String(),
 		"webhook",
 		triggerID,
-		StatusPending,
+		StatusQueued,
 		SeverityInfo,
 		"",
 		"",
@@ -130,26 +200,43 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 		return nil, apperrors.New(apperrors.ErrInternal, "failed to create report")
 	}
 
-	go s.runAnalysis(context.Background(), report, &analyzer.AnalysisInput{
-		Trigger:     "webhook",
-		TriggerID:   triggerID,
-		Context:     fmt.Sprintf("Source: %s\nAlert: %s\nMessage: %s\nData: %s", payload.Source, payload.Alert, payload.Message, string(payload.Data)),
-		Datasources: refs,
-	})
+	job := &analysisJob{
+		report: report,
+		input: &analyzer.AnalysisInput{
+			Trigger:     "webhook",
+			TriggerID:   triggerID,
+			Context:     fmt.Sprintf("Source: %s\nAlert: %s\nMessage: %s\nData: %s", payload.Source, payload.Alert, payload.Message, string(payload.Data)),
+			Datasources: refs,
+		},
+	}
 
-	return report, nil
+	select {
+	case s.queue <- job:
+		log.Printf("[inspector] report %s queued (queue: %d/%d)", report.ID(), len(s.queue), s.queueSize)
+		return report, nil
+	default:
+		failedReport := NewReport(
+			report.ID(), report.Trigger(), report.TriggerID(),
+			StatusFailed, SeverityInfo, "Analysis queue is full, request rejected",
+			"", report.Query(), report.Datasources(), 0, report.CreatedAt(),
+		)
+		if err := s.reportRepo.Update(ctx, failedReport); err != nil {
+			log.Printf("[meerkat] failed to update report %s: %v", report.ID(), err)
+		}
+		return nil, apperrors.New(apperrors.ErrRateLimit, "analysis queue is full, try again later")
+	}
 }
 
-// runAnalysis executes the agent loop in the background.
+// runAnalysis executes the agent loop.
 func (s *service) runAnalysis(ctx context.Context, report *Report, input *analyzer.AnalysisInput) {
 	// Update status to running
-	report = NewReport(
+	runningReport := NewReport(
 		report.ID(), report.Trigger(), report.TriggerID(),
 		StatusRunning, report.Severity(), report.Summary(),
 		report.Detail(), report.Query(), report.Datasources(), report.Iterations(),
 		report.CreatedAt(),
 	)
-	if err := s.reportRepo.Update(ctx, report); err != nil {
+	if err := s.reportRepo.Update(ctx, runningReport); err != nil {
 		log.Printf("[meerkat] failed to update report %s to running: %v", report.ID(), err)
 	}
 

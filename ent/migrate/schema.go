@@ -16,7 +16,7 @@ var (
 		{Name: "update_time", Type: field.TypeTime},
 		{Name: "trigger", Type: field.TypeEnum, Enums: []string{"manual", "webhook", "scheduled"}},
 		{Name: "trigger_id", Type: field.TypeString},
-		{Name: "status", Type: field.TypeEnum, Enums: []string{"pending", "running", "completed", "failed"}, Default: "pending"},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"queued", "pending", "running", "completed", "failed"}, Default: "queued"},
 		{Name: "severity", Type: field.TypeEnum, Enums: []string{"info", "warning", "critical"}, Default: "info"},
 		{Name: "summary", Type: field.TypeString, Default: ""},
 		{Name: "detail", Type: field.TypeString, Size: 2147483647, Default: ""},

@@ -1,7 +1,5 @@
 # Default values for meerkat.
 
-replicaCount: 1
-
 image:
   repository: ghcr.io/serengeti-sh/meerkat-server
   pullPolicy: IfNotPresent
@@ -35,84 +33,113 @@ securityContext:
   runAsNonRoot: true
   runAsUser: 1001
 
-service:
-  type: ClusterIP
-  port: 8080
+# Analyzer server
+analyzer:
+  replicaCount: 1
 
-ingress:
+  service:
+    type: ClusterIP
+    port: 8080
+
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: meerkat.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+
+  httpRoute:
+    enabled: false
+    annotations: {}
+    parentRefs: []
+    hostnames: []
+    rules:
+      - matches:
+          - path:
+              type: PathPrefix
+              value: /
+
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  startupProbe:
+    httpGet:
+      path: /v1/health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 30
+
+  livenessProbe:
+    httpGet:
+      path: /v1/health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /v1/health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  tls:
+    server:
+      enabled: false
+      existingSecret: ""
+      mountPath: /app/tls
+
+# Log collector server
+collector:
   enabled: false
-  className: ""
-  annotations: {}
-  hosts:
-    - host: meerkat.local
-      paths:
-        - path: /
-          pathType: Prefix
-  tls: []
+  replicaCount: 1
 
-httpRoute:
-  enabled: false
-  annotations: {}
-  # parentRefs:
-  #   - name: my-gateway
-  #     namespace: gateway
-  #     sectionName: http
-  #     port: 80
-  # hostnames:
-  #   - meerkat.example.com
-  parentRefs: []
-  hostnames: []
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
+  service:
+    type: ClusterIP
+    port: 4317
 
-resources:
-  limits:
-    cpu: 500m
-    memory: 256Mi
-  requests:
-    cpu: 100m
-    memory: 128Mi
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
 
-startupProbe:
-  httpGet:
-    path: /v1/health
-    port: http
-  initialDelaySeconds: 5
-  periodSeconds: 5
-  timeoutSeconds: 3
-  failureThreshold: 30
-
-livenessProbe:
-  httpGet:
-    path: /v1/health
-    port: http
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 3
-  failureThreshold: 3
-
-readinessProbe:
-  httpGet:
-    path: /v1/health
-    port: http
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 3
-  failureThreshold: 3
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 80
-  targetMemoryUtilizationPercentage: 80
-
+# Node scheduling
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+# Additional environment variables
+extraEnv: []
+extraEnvFrom: []
+
+# Additional volume mounts and volumes
+extraVolumeMounts: []
+extraVolumes: []
 
 # Application configuration
 config:
@@ -124,9 +151,6 @@ config:
   http:
     host: "0.0.0.0"
     port: 8080
-    # tls:
-    #   cert_file: /app/tls/tls.crt
-    #   key_file: /app/tls/tls.key
 
   store:
     driver: postgres
@@ -137,39 +161,9 @@ config:
     sslmode: disable
 
   tools:
-    # Tool descriptions and schema files are optional. Sensible defaults are built
-    # into the Docker image at /app/resources/schemas/. To use custom schemas,
-    # mount them via extraVolumes + extraVolumeMounts and reference the path here.
-    #
-    # Example with custom schema mount:
-    #   extraVolumes:
-    #     - name: custom-schemas
-    #       configMap:
-    #         name: meerkat-custom-schemas
-    #   extraVolumeMounts:
-    #     - name: custom-schemas
-    #       mountPath: /app/custom/schemas
-    #   prometheus_param_schema_file: /app/custom/schemas/prometheus.json
-    #
-    # prometheus_description: "Query metrics using PromQL. Returns time series data."
-    # prometheus_param_schema_file: resources/schemas/prometheus.json
     prometheus: []
-    #  - name: vm
-    #    url: https://victoriametrics-server:8428
-    #    ca_file: /app/ca/ca.crt
-
-    # victoria_logs_description: "Query logs using LogsQL. Returns log entries."
-    # victoria_logs_param_schema_file: resources/schemas/victorialogs.json
     victoria_logs: []
-    #  - name: vl
-    #    url: https://victorialogs-server:9428
-    #    ca_file: /app/ca/ca.crt
-
-    # loki_description: "Query logs using LogQL. Returns log entries with timestamps and labels."
-    # loki_param_schema_file: resources/schemas/loki.json
     loki: []
-    #  - name: loki
-    #    url: http://loki:3100
 
   analyzer:
     provider: openai
@@ -192,6 +186,32 @@ config:
     webhook_url: ""
     min_severity: warning
 
+  collector:
+    otlp_bind_addr: ":4317"
+    batch_size: 100
+    flush_interval: 5s
+
+  embedder:
+    provider: openai
+    model: text-embedding-3-small
+
+  vector_store:
+    milvus:
+      address: ""
+      database: ""
+      collection: logs
+      dimension: 1536
+      retention: 72h
+      auth:
+        enabled: false
+        user: ""
+        password: ""
+        token: ""
+      tls:
+        enabled: false
+        ca_file: ""
+        skip_verify: false
+
 # Secrets (passed as environment variables)
 secrets:
   database:
@@ -206,30 +226,18 @@ secrets:
     webhookURL: ""
     existingSecret: ""
     existingSecretKey: reporter-webhook-url
-
-# TLS certificates — mount secrets and reference them in config above
-# Example with cert-manager:
-#   config.http.tls.cert_file: /app/tls/tls.crt
-#   config.http.tls.key_file: /app/tls/tls.key
-#   tls.server.enabled: true
-#   tls.server.existingSecret: meerkat-server-tls
-tls:
-  server:
-    enabled: false
+  embedder:
+    apiKey: ""
     existingSecret: ""
-    mountPath: /app/tls
-
-# Additional environment variables
-extraEnv: []
-
-# Additional environment variables from ConfigMap or Secret
-extraEnvFrom: []
-
-# Additional volume mounts
-extraVolumeMounts: []
-
-# Additional volumes
-extraVolumes: []
+    existingSecretKey: embedder-api-key
+  milvus:
+    user: ""
+    password: ""
+    token: ""
+    existingSecret: ""
+    existingSecretKeyUser: milvus-user
+    existingSecretKeyPassword: milvus-password
+    existingSecretKeyToken: milvus-token
 
 # System prompt content (rendered as /app/config/system_prompt.txt)
 systemPrompt: |
@@ -267,19 +275,6 @@ systemPrompt: |
 
 # Skills configuration (rendered as /app/config/skills.yaml)
 skills: []
-#  - name: "log-pattern-analysis"
-#    prompt: |
-#      When analyzing logs, look for these patterns:
-#      1. Error spikes correlated with specific timestamps
-#      2. Cascading failures across services
-#      3. Resource exhaustion indicators (OOM, connection limits)
-#  - name: "incident-summary"
-#    prompt: |
-#      Structure incident summaries as:
-#      ## Impact
-#      ## Root Cause
-#      ## Resolution
-#      ## Prevention
 
 # Migration job settings (ArgoCD PreSync hook)
 migration:

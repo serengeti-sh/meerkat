@@ -51,10 +51,10 @@ func NewMockOpenAI() *MockOpenAI {
 								{
 									"id":   "call_tool_1",
 									"type": "function",
-								"function": map[string]any{
-									"name":      "test-vm",
-									"arguments": `{"query":"rate(http_errors_total[5m])"}`,
-								},
+									"function": map[string]any{
+										"name":      "test-vm",
+										"arguments": `{"query":"rate(http_errors_total[5m])"}`,
+									},
 								},
 							},
 						},

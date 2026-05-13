@@ -108,11 +108,11 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 
 			log.Printf("[meerkat] tool call #%d: %s(%s)", i+1, tc.Name, string(tc.Arguments))
 
-		result, err := tool.Execute(ctx, tc.Arguments)
-		if err != nil {
-			// Categorize and format tool errors so the LLM can reason about them
-			result = formatToolError(tc.Name, tc.Arguments, err)
-		}
+			result, err := tool.Execute(ctx, tc.Arguments)
+			if err != nil {
+				// Categorize and format tool errors so the LLM can reason about them
+				result = formatToolError(tc.Name, tc.Arguments, err)
+			}
 
 			// Truncate oversized tool results
 			result = s.truncateToolResult(result)
@@ -165,11 +165,11 @@ func formatToolError(toolName string, args json.RawMessage, err error) string {
 
 	return fmt.Sprintf(
 		"TOOL_ERROR [tool=%s category=%s]: %v\n\n"+
-		"Arguments: %s\n\n"+
-		"Do NOT guess or assume data based on this error. "+
-		"If this is a connection error, you may try another datasource. "+
-		"If this is a parameter validation error, fix the arguments and retry. "+
-		"If all datasources fail, report the failure honestly without speculation.",
+			"Arguments: %s\n\n"+
+			"Do NOT guess or assume data based on this error. "+
+			"If this is a connection error, you may try another datasource. "+
+			"If this is a parameter validation error, fix the arguments and retry. "+
+			"If all datasources fail, report the failure honestly without speculation.",
 		toolName, category, err, string(args),
 	)
 }

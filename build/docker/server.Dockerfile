@@ -52,7 +52,7 @@ LABEL org.opencontainers.image.title="Meerkat Server" \
 
 RUN apk add --no-cache \
       ca-certificates=20260413-r0 \
-      tzdata=2026a-r0 \
+      tzdata=2026b-r0 \
       curl=8.17.0-r1 && \
     adduser -D -u 1001 meerkat
 
@@ -75,4 +75,4 @@ ENV PORT=8080 \
     HTTP_OPENAPI_PATH=/app/api/openapi.bundled.json
 
 ENTRYPOINT ["/app/meerkat-server"]
-CMD ["serve"]
+CMD ["analyzer", "serve"]

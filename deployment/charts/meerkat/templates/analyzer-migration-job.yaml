@@ -33,6 +33,7 @@ spec:
           image: {{ include "meerkat.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
+            - analyzer
             - migrate
             - apply
             - --config

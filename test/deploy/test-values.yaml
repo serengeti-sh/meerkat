@@ -1,5 +1,54 @@
 # Deployment test values - Kind cluster integration test
-replicaCount: 1
+analyzer:
+  replicaCount: 1
+
+  service:
+    type: ClusterIP
+    port: 8080
+
+  ingress:
+    enabled: false
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+  startupProbe:
+    httpGet:
+      path: /v1/health
+      port: http
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 30
+
+  livenessProbe:
+    httpGet:
+      path: /v1/health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /v1/health
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  autoscaling:
+    enabled: false
+
+collector:
+  enabled: false
 
 image:
   repository: meerkat-server
@@ -33,51 +82,6 @@ securityContext:
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1001
-
-service:
-  type: ClusterIP
-  port: 8080
-
-ingress:
-  enabled: false
-
-resources:
-  limits:
-    cpu: 500m
-    memory: 256Mi
-  requests:
-    cpu: 50m
-    memory: 64Mi
-
-startupProbe:
-  httpGet:
-    path: /v1/health
-    port: http
-  initialDelaySeconds: 5
-  periodSeconds: 5
-  timeoutSeconds: 3
-  failureThreshold: 30
-
-livenessProbe:
-  httpGet:
-    path: /v1/health
-    port: http
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 3
-  failureThreshold: 3
-
-readinessProbe:
-  httpGet:
-    path: /v1/health
-    port: http
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 3
-  failureThreshold: 3
-
-autoscaling:
-  enabled: false
 
 nodeSelector: {}
 tolerations: []

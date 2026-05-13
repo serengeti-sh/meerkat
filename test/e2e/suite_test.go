@@ -6,10 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
-	"net"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -18,40 +17,29 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
-
-	"github.com/serengeti-sh/meerkat/ent"
-	"github.com/serengeti-sh/meerkat/internal/analyzer"
-	"github.com/serengeti-sh/meerkat/internal/config"
-	"github.com/serengeti-sh/meerkat/internal/handler"
-	"github.com/serengeti-sh/meerkat/internal/inspector"
-	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
-	"github.com/serengeti-sh/meerkat/internal/reporter"
-	"github.com/serengeti-sh/meerkat/internal/scheduler"
-	"github.com/serengeti-sh/meerkat/internal/store"
-	"github.com/serengeti-sh/meerkat/internal/tool"
-	"github.com/serengeti-sh/meerkat/test/e2e/mock"
-
-	_ "github.com/lib/pq"
 )
 
-// Suite manages the e2e test environment with mock services.
+// Suite manages the end-to-end test environment by running the actual binary.
 type Suite struct {
 	t          *testing.T
-	Client     *ent.Client
 	BaseURL    string
 	HTTPClient *http.Client
-	DSN        string
 
-	// Mock services
-	MockPrometheus *mock.MockPrometheus
-	MockOpenAI     *mock.MockOpenAI
+	// Infrastructure
+	pgContainer testcontainers.Container
+	pgHost      string
+	pgPort      int
 
-	// Internal
-	server           *http.Server
-	systemPromptFile string
+	// Mock services (running in-process for convenience)
+	mockOpenAI     *mockOpenAIServer
+	mockPrometheus *mockPrometheusServer
+
+	// Server under test
+	serverCmd *exec.Cmd
+	tmpDir    string
 }
 
-// NewSuite creates a new e2e test suite.
+// NewSuite creates a new end-to-end test suite.
 func NewSuite(t *testing.T) *Suite {
 	return &Suite{
 		t: t,
@@ -61,27 +49,15 @@ func NewSuite(t *testing.T) *Suite {
 	}
 }
 
-// Start initializes the full test environment
+// Start initializes the full e2e test environment with the real binary.
 func (s *Suite) Start(ctx context.Context) error {
-	// Create temporary system prompt file for tests
-	tmpDir := os.TempDir()
-	s.systemPromptFile = filepath.Join(tmpDir, fmt.Sprintf("meerkat-test-prompt-%d.txt", time.Now().UnixNano()))
-	testPrompt := `You are a test AI agent analyzing observability data.
+	// 1. Create temp directory for config and binary
+	s.tmpDir = s.t.TempDir()
 
-When calling tools, use the EXACT tool name as provided. Do NOT invent tool names.
-If a tool call fails, do NOT guess. Report the failure honestly.
-If ALL datasources fail, set severity to "info" for resolved alerts or "warning" for firing alerts.
-
-Respond with JSON only:
-{"severity": "info|warning|critical", "summary": "...", "detail": "..."}`
-	if err := os.WriteFile(s.systemPromptFile, []byte(testPrompt), 0600); err != nil {
-		return fmt.Errorf("create test system prompt file: %w", err)
-	}
-
-	// 1. Start PostgreSQL container
+	// 2. Start PostgreSQL container
 	c, err := postgres.Run(ctx,
 		"postgres:17-alpine",
-		postgres.WithDatabase("meerkat_test"),
+		postgres.WithDatabase("meerkat_e2e"),
 		postgres.WithUsername("meerkat"),
 		postgres.WithPassword("meerkat"),
 		testcontainers.WithWaitStrategy(
@@ -93,14 +69,8 @@ Respond with JSON only:
 	if err != nil {
 		return fmt.Errorf("start postgres container: %w", err)
 	}
+	s.pgContainer = c
 
-	dsn, err := c.ConnectionString(ctx, "sslmode=disable")
-	if err != nil {
-		return fmt.Errorf("get connection string: %w", err)
-	}
-	s.DSN = dsn
-
-	// Extract host and port from container for StoreConfig
 	pgHost, err := c.Host(ctx)
 	if err != nil {
 		return fmt.Errorf("get postgres host: %w", err)
@@ -109,161 +79,132 @@ Respond with JSON only:
 	if err != nil {
 		return fmt.Errorf("get postgres port: %w", err)
 	}
-	pgPort := pgPortNat.Int()
+	s.pgHost = pgHost
+	s.pgPort = pgPortNat.Int()
 
-	// 2. Start mock Prometheus
-	s.MockPrometheus = mock.NewMockPrometheus()
+	// 3. Start mock services
+	s.mockOpenAI = newMockOpenAIServer()
+	s.mockPrometheus = newMockPrometheusServer()
 
-	// 3. Start mock OpenAI
-	s.MockOpenAI = mock.NewMockOpenAI()
-
-	// 4. Build config with mock URLs
-	cfg := &config.Config{
-		App: config.AppConfig{
-			Name: "meerkat",
-			Env:  "test",
-		},
-		HTTP: config.HTTPConfig{
-			Host: "127.0.0.1",
-			Port: 0, // random port
-		},
-		Store: config.StoreConfig{
-			Driver:   "postgres",
-			Host:     pgHost,
-			Port:     pgPort,
-			Name:     "meerkat_test",
-			User:     "meerkat",
-			Password: "meerkat",
-			SSLMode:  "disable",
-		},
-		Tools: config.ToolConfig{
-			Prometheus: []config.PrometheusToolConfig{
-				{Name: "test-vm", URL: s.MockPrometheus.URL()},
-			},
-		},
-		Analyzer: config.AnalyzerConfig{
-			Provider:         "openai",
-			URL:              s.MockOpenAI.URL(),
-			APIKey:           "test-key",
-			Model:            "gpt-4o-mock",
-			MaxIterations:    5,
-			MaxTokens:        1024,
-			Temperature:      0.3,
-			SystemPromptFile: s.systemPromptFile,
-		},
-		Scheduler: config.SchedulerConfig{
-			Enabled: false,
-		},
-		Reporter: config.ReporterConfig{},
+	// 4. Copy resources to temp dir so the binary can find schema files
+	if err := copyDir(filepath.Join(repoRoot(s.t), "resources"), filepath.Join(s.tmpDir, "resources")); err != nil {
+		return fmt.Errorf("copy resources: %w", err)
 	}
 
-	// 5. Wire up dependencies (same as server.go but without fx)
-	entClient, err := store.NewEntClient(cfg)
+	// 5. Build meerkat-server binary
+	binaryPath := filepath.Join(s.tmpDir, "meerkat-server")
+	buildCmd := exec.CommandContext(ctx, "go", "build",
+		"-o", binaryPath,
+		"./cmd/meerkat-server",
+	)
+	buildCmd.Dir = repoRoot(s.t)
+	out, err := buildCmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("connect to database: %w", err)
-	}
-	if err := store.Migrate(ctx, entClient); err != nil {
-		return fmt.Errorf("run migrations: %w", err)
-	}
-	s.Client = entClient
-
-	// Tool registry
-	promTool, err := tool.NewPrometheusTool("test-vm", "test prometheus", filepath.Join("..", "..", "resources", "schemas", "prometheus.json"), s.MockPrometheus.URL(), http.DefaultClient)
-	if err != nil {
-		return fmt.Errorf("create prometheus tool: %w", err)
-	}
-	toolRegistry := analyzer.NewToolRegistry(promTool)
-
-	// Analyzer
-	llmProvider := analyzer.NewLLMProvider(analyzer.ProviderConfig{
-		Provider:    cfg.Analyzer.Provider,
-		URL:         cfg.Analyzer.URL,
-		APIKey:      cfg.Analyzer.APIKey,
-		Model:       cfg.Analyzer.Model,
-		MaxTokens:   cfg.Analyzer.MaxTokens,
-		Temperature: cfg.Analyzer.Temperature,
-	})
-	systemPrompt, err := analyzer.LoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
-	if err != nil {
-		return fmt.Errorf("load system prompt: %w", err)
-	}
-	analyzerSvc := analyzer.NewService(llmProvider, toolRegistry, analyzer.ServiceConfig{
-		MaxIterations:       cfg.Analyzer.MaxIterations,
-		SystemPrompt:        systemPrompt,
-		MaxToolResultChars:  cfg.Analyzer.MaxToolResultChars,
-		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
-		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
-	})
-
-	// Reporter (no-op in tests)
-	reporterSvc := reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity)
-
-	// Inspector service
-	reportRepo := insprepo.NewRepository(entClient)
-	dsRefs := func() []analyzer.DatasourceRef {
-		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
-	}
-	inspectorSvc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute)
-
-	// Scheduler (disabled)
-	sched := scheduler.NewCronScheduler(inspectorSvc, cfg)
-
-	// HTTP handler
-	h := handler.NewHandler(inspectorSvc)
-
-	// Start HTTP server on random port
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		return fmt.Errorf("listen: %w", err)
+		return fmt.Errorf("build meerkat-server: %w\n%s", err, out)
 	}
 
-	s.server = &http.Server{
-		Handler:           mux,
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      60 * time.Second,
+	// 5. Write e2e config file
+	configPath := filepath.Join(s.tmpDir, "config.yaml")
+	configContent := fmt.Sprintf(`
+app:
+  name: meerkat
+  env: e2e
+  debug: true
+
+http:
+  host: 127.0.0.1
+  port: 18080
+
+store:
+  driver: postgres
+  host: %s
+  port: %d
+  name: meerkat_e2e
+  user: meerkat
+  password: meerkat
+  sslmode: disable
+
+tools:
+  prometheus:
+    - name: test-vm
+      url: %s
+
+analyzer:
+  provider: openai
+  url: %s
+  api_key: test-key
+  model: gpt-4o-mock
+  max_iterations: 5
+  max_tokens: 1024
+  temperature: 0.3
+  system_prompt_file: %s
+  skills_file: /dev/null
+
+scheduler:
+  enabled: false
+
+inspector:
+  dedup_window: 5m
+  queue_size: 100
+  worker_count: 2
+
+reporter:
+  webhook_url: ""
+  min_severity: warning
+`, s.pgHost, s.pgPort, s.mockPrometheus.URL(), s.mockOpenAI.URL(), writeSystemPrompt(s.t, s.tmpDir))
+
+	if err := os.WriteFile(configPath, []byte(configContent), 0644); err != nil {
+		return fmt.Errorf("write config file: %w", err)
 	}
-	s.BaseURL = fmt.Sprintf("http://%s", ln.Addr())
 
-	go func() {
-		if err := s.server.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Printf("server error: %v", err)
-		}
-	}()
+	// 6. Start meerkat-server binary
+	s.serverCmd = exec.CommandContext(ctx, binaryPath, "analyzer", "serve", "--config", configPath)
+	s.serverCmd.Dir = s.tmpDir
+	s.serverCmd.Stdout = os.Stdout
+	s.serverCmd.Stderr = os.Stderr
+	if err := s.serverCmd.Start(); err != nil {
+		return fmt.Errorf("start meerkat-server: %w", err)
+	}
 
-	// Verify server is up
-	for i := 0; i < 10; i++ {
-		resp, err := s.HTTPClient.Get(s.BaseURL + "/v1/health")
+	// 7. Wait for server to be ready (poll health endpoint)
+	s.BaseURL = s.waitForServer(ctx, 30*time.Second)
+	if s.BaseURL == "" {
+		return fmt.Errorf("server failed to start within timeout")
+	}
+
+	return nil
+}
+
+func (s *Suite) waitForServer(ctx context.Context, timeout time.Duration) string {
+	url := "http://127.0.0.1:18080/v1/health"
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		resp, err := s.HTTPClient.Get(url)
 		if err == nil {
 			_ = resp.Body.Close()
-			break
+			if resp.StatusCode == http.StatusOK {
+				return "http://127.0.0.1:18080"
+			}
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
-
-	_ = sched // scheduler disabled, not started
-	return nil
+	return ""
 }
 
 // Stop cleans up the test environment.
 func (s *Suite) Stop() {
-	if s.server != nil {
-		_ = s.server.Shutdown(context.Background())
+	if s.serverCmd != nil && s.serverCmd.Process != nil {
+		_ = s.serverCmd.Process.Kill()
+		_ = s.serverCmd.Wait()
 	}
-	if s.MockPrometheus != nil {
-		s.MockPrometheus.Close()
+	if s.mockOpenAI != nil {
+		s.mockOpenAI.Close()
 	}
-	if s.MockOpenAI != nil {
-		s.MockOpenAI.Close()
+	if s.mockPrometheus != nil {
+		s.mockPrometheus.Close()
 	}
-	if s.Client != nil {
-		_ = s.Client.Close()
-	}
-	if s.systemPromptFile != "" {
-		_ = os.Remove(s.systemPromptFile)
+	if s.pgContainer != nil {
+		_ = s.pgContainer.Terminate(context.Background())
 	}
 }
 
@@ -327,18 +268,63 @@ func (s *Suite) WaitForReportStatus(reportID string, expectedStatus string, time
 	return nil, fmt.Errorf("timed out waiting for report %s to reach status %s", reportID, expectedStatus)
 }
 
-// SetupSuite creates and starts a full test suite with mock services.
+func repoRoot(t *testing.T) string {
+	t.Helper()
+	dir, err := filepath.Abs(filepath.Join("..", ".."))
+	require.NoError(t, err)
+	return dir
+}
+
+func writeSystemPrompt(t *testing.T, tmpDir string) string {
+	t.Helper()
+	path := filepath.Join(tmpDir, "system_prompt.txt")
+	content := `You are a test AI agent analyzing observability data.
+
+When calling tools, use the EXACT tool name as provided. Do NOT invent tool names.
+If a tool call fails, do NOT guess. Report the failure honestly.
+If ALL datasources fail, set severity to "info" for resolved alerts or "warning" for firing alerts.
+
+Respond with JSON only:
+{"severity": "info|warning|critical", "summary": "...", "detail": "..."}`
+	require.NoError(t, os.WriteFile(path, []byte(content), 0600))
+	return path
+}
+
+func copyDir(src, dst string) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		relPath, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		dstPath := filepath.Join(dst, relPath)
+		if info.IsDir() {
+			return os.MkdirAll(dstPath, info.Mode())
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(dstPath, data, info.Mode())
+	})
+}
+
+// SetupSuite creates and starts a full end-to-end test suite with the real binary.
 func SetupSuite(t *testing.T) *Suite {
 	if testing.Short() {
 		t.Skip("Skipping e2e test in short mode")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
-	defer cancel()
 
 	suite := NewSuite(t)
-	require.NoError(t, suite.Start(ctx), "Failed to start test suite")
-	t.Cleanup(func() { suite.Stop() })
+	require.NoError(t, suite.Start(ctx), "Failed to start e2e test suite")
+	t.Cleanup(func() {
+		cancel()
+		suite.Stop()
+	})
 
 	return suite
 }

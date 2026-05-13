@@ -15,6 +15,7 @@ import (
 	"github.com/serengeti-sh/meerkat/ent"
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
+	"github.com/serengeti-sh/meerkat/internal/embedder"
 	"github.com/serengeti-sh/meerkat/internal/handler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
@@ -22,6 +23,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
 	"github.com/serengeti-sh/meerkat/internal/store"
 	"github.com/serengeti-sh/meerkat/internal/tool"
+	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 	"go.uber.org/fx"
 )
 
@@ -64,6 +66,29 @@ func ProvideEntClient(cfg *config.Config, lc fx.Lifecycle) (*ent.Client, error) 
 	return client, nil
 }
 
+func ProvideEmbedder(cfg *config.Config) embedder.Embedder {
+	return embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
+}
+
+func ProvideVectorStore(cfg *config.Config, lc fx.Lifecycle) (vectorstore.VectorStore, error) {
+	if cfg.VectorStore.Milvus.Address == "" {
+		return nil, nil
+	}
+
+	vs, err := vectorstore.NewMilvusClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			return vs.Close()
+		},
+	})
+
+	return vs, nil
+}
+
 func ProvideAnalyzerProvider(cfg *config.Config) analyzer.LLMProvider {
 	return analyzer.NewLLMProvider(analyzer.ProviderConfig{
 		Provider:    cfg.Analyzer.Provider,
@@ -79,7 +104,7 @@ func ProvideAnalyzerProvider(cfg *config.Config) analyzer.LLMProvider {
 	})
 }
 
-func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
+func ProvideToolRegistry(cfg *config.Config, emb embedder.Embedder, vs vectorstore.VectorStore) (*analyzer.ToolRegistry, error) {
 	var tools []tool.Tool
 
 	for _, pc := range cfg.Tools.Prometheus {
@@ -154,6 +179,11 @@ func ProvideToolRegistry(cfg *config.Config) (*analyzer.ToolRegistry, error) {
 		tools = append(tools, t)
 	}
 
+	// Register the RAG search_logs tool if vector store is configured.
+	if vs != nil {
+		tools = append(tools, tool.NewSearchLogsTool(emb, vs))
+	}
+
 	return analyzer.NewToolRegistry(tools...), nil
 }
 
@@ -178,6 +208,14 @@ func ProvideDatasourceRefs(cfg *config.Config) inspector.DatasourceRefs {
 
 func ProvideDedupWindow(cfg *config.Config) time.Duration {
 	return cfg.Inspector.GetDedupWindow()
+}
+
+func ProvideQueueSize(cfg *config.Config) int {
+	return cfg.Inspector.QueueSize
+}
+
+func ProvideWorkerCount(cfg *config.Config) int {
+	return cfg.Inspector.WorkerCount
 }
 
 func ProvideReporterService(cfg *config.Config) reporter.ReporterService {
@@ -290,13 +328,19 @@ func NewFXApp(cfgFile string, port int) *fx.App {
 		),
 
 		fx.Provide(
+			ProvideEmbedder,
+			ProvideVectorStore,
 			ProvideToolRegistry,
 			ProvideDatasourceRefs,
 			insprepo.NewRepository,
 			ProvideAnalyzerProvider,
 			ProvideDedupWindow,
+			fx.Annotate(ProvideQueueSize, fx.ResultTags(`name:"queueSize"`)),
+			fx.Annotate(ProvideWorkerCount, fx.ResultTags(`name:"workerCount"`)),
+			fx.Annotate(inspector.NewService,
+				fx.ParamTags(``, ``, ``, ``, ``, `name:"queueSize"`, `name:"workerCount"`),
+			),
 			ProvideAnalyzerService,
-			inspector.NewService,
 			ProvideReporterService,
 			scheduler.NewCronScheduler,
 		),

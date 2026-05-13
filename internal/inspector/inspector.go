@@ -22,6 +22,7 @@ const (
 type Status string
 
 const (
+	StatusQueued    Status = "queued"
 	StatusPending   Status = "pending"
 	StatusRunning   Status = "running"
 	StatusCompleted Status = "completed"

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/serengeti-sh/meerkat/test/e2e/mock"
+	"github.com/serengeti-sh/meerkat/test/integration/mock"
 )
 
 func TestE2E_Inspect_Manual(t *testing.T) {
@@ -28,7 +28,7 @@ func TestE2E_Inspect_Manual(t *testing.T) {
 		var createResult map[string]any
 		require.NoError(t, suite.ReadJSON(resp, &createResult))
 		assert.NotEmpty(t, createResult["id"])
-		assert.Equal(t, "pending", createResult["status"])
+		assert.Equal(t, "queued", createResult["status"])
 		assert.Equal(t, "manual", createResult["trigger"])
 
 		reportID := createResult["id"].(string)
@@ -73,7 +73,7 @@ func TestE2E_Inspect_Webhook(t *testing.T) {
 		var createResult map[string]any
 		require.NoError(t, suite.ReadJSON(resp, &createResult))
 		assert.NotEmpty(t, createResult["id"])
-		assert.Equal(t, "pending", createResult["status"])
+		assert.Equal(t, "queued", createResult["status"])
 		assert.Equal(t, "webhook", createResult["trigger"])
 
 		reportID := createResult["id"].(string)

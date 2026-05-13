@@ -113,5 +113,3 @@ func parseFloat(s string) (float64, error) {
 	_, err := fmt.Sscanf(s, "%f", &f)
 	return f, err
 }
-
-

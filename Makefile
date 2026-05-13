@@ -66,10 +66,14 @@ gen: ent-gen ogen mock ## Generate all code (ent, ogen, mocks)
 # Testing
 .PHONY: test
 test: ## Run unit tests
-	go test -v $$(go list ./... | grep -v -e /mocks -e /test/e2e -e /test/deploy) --coverprofile cover-unit.out
+	go test -v $$(go list ./... | grep -v -e /mocks -e /test/integration -e /test/e2e -e /test/deploy) --coverprofile cover-unit.out
+
+.PHONY: test-integration
+test-integration: ## Run integration tests (uses in-memory DI, not real binary)
+	go test -v ./test/integration/... -timeout 10m --coverprofile cover-integration.out
 
 .PHONY: test-e2e
-test-e2e: ## Run e2e tests
+test-e2e: ## Run end-to-end tests (uses real built binary)
 	go test -v ./test/e2e/... -timeout 10m --coverprofile cover-e2e.out
 
 .PHONY: test-deploy

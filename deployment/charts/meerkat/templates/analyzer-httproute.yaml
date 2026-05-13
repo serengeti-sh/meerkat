@@ -1,17 +1,17 @@
-{{- if .Values.httpRoute.enabled -}}
+{{- if .Values.analyzer.httpRoute.enabled -}}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: {{ include "meerkat.fullname" . }}
   labels:
     {{- include "meerkat.labels" . | nindent 4 }}
-  {{- with .Values.httpRoute.annotations }}
+  {{- with .Values.analyzer.httpRoute.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
   parentRefs:
-    {{- range .Values.httpRoute.parentRefs }}
+    {{- range .Values.analyzer.httpRoute.parentRefs }}
     - name: {{ .name }}
       {{- if .namespace }}
       namespace: {{ .namespace }}
@@ -24,16 +24,16 @@ spec:
       {{- end }}
     {{- end }}
   hostnames:
-    {{- range .Values.httpRoute.hostnames }}
+    {{- range .Values.analyzer.httpRoute.hostnames }}
     - {{ . | quote }}
     {{- end }}
   rules:
-    {{- range .Values.httpRoute.rules }}
+    {{- range .Values.analyzer.httpRoute.rules }}
     - backendRefs:
         - group: ""
           kind: Service
-          name: {{ include "meerkat.fullname" $ }}
-          port: {{ $.Values.service.port }}
+          name: {{ include "meerkat.fullname" $ }}-analyzer
+          port: {{ $.Values.analyzer.service.port }}
           weight: 1
       {{- with .filters }}
       filters:
