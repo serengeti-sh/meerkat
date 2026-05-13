@@ -84,7 +84,7 @@ func (r *entReportRepository) FindActiveByQuery(ctx context.Context, trigger str
 		Where(
 			entReport.TriggerEQ(entReport.Trigger(trigger)),
 			entReport.QueryEQ(query),
-			entReport.StatusIn(entReport.StatusPending, entReport.StatusRunning),
+			entReport.StatusIn(entReport.StatusQueued, entReport.StatusPending, entReport.StatusRunning),
 			entReport.CreateTimeGTE(since),
 		).
 		Order(ent.Desc(entReport.FieldCreateTime)).

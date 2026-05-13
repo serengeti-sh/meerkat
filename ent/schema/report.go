@@ -37,8 +37,8 @@ func (Report) Fields() []ent.Field {
 			Values("manual", "webhook", "scheduled"),
 		field.String("trigger_id"),
 		field.Enum("status").
-			Values("pending", "running", "completed", "failed").
-			Default("pending"),
+			Values("queued", "pending", "running", "completed", "failed").
+			Default("queued"),
 		field.Enum("severity").
 			Values("info", "warning", "critical").
 			Default("info"),
