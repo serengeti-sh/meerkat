@@ -203,7 +203,7 @@ Respond with JSON only:
 	dsRefs := func() []analyzer.DatasourceRef {
 		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
 	}
-	inspectorSvc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute)
+	inspectorSvc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10)
 
 	// Scheduler (disabled)
 	sched := scheduler.NewCronScheduler(inspectorSvc, cfg)

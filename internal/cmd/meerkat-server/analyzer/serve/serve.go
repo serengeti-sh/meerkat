@@ -206,6 +206,14 @@ func ProvideDedupWindow(cfg *config.Config) time.Duration {
 	return cfg.Inspector.GetDedupWindow()
 }
 
+func ProvideQueueSize(cfg *config.Config) int {
+	return cfg.Inspector.QueueSize
+}
+
+func ProvideWorkerCount(cfg *config.Config) int {
+	return cfg.Inspector.WorkerCount
+}
+
 func ProvideReporterService(cfg *config.Config) reporter.ReporterService {
 	return reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity)
 }
@@ -323,6 +331,8 @@ func NewFXApp(cfgFile string, port int) *fx.App {
 			insprepo.NewRepository,
 			ProvideAnalyzerProvider,
 			ProvideDedupWindow,
+			ProvideQueueSize,
+			ProvideWorkerCount,
 			ProvideAnalyzerService,
 			inspector.NewService,
 			ProvideReporterService,

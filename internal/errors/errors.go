@@ -13,6 +13,7 @@ const (
 	ErrForbidden      ErrorType = "forbidden"
 	ErrNotImplemented ErrorType = "not_implemented"
 	ErrUnavailable    ErrorType = "unavailable"
+	ErrRateLimit      ErrorType = "rate_limit"
 )
 
 type err struct {
@@ -56,6 +57,8 @@ func HTTPStatus(errType ErrorType) int {
 		return http.StatusNotImplemented
 	case ErrUnavailable:
 		return http.StatusServiceUnavailable
+	case ErrRateLimit:
+		return http.StatusTooManyRequests
 	default:
 		return http.StatusInternalServerError
 	}

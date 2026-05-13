@@ -126,6 +126,8 @@ type ReporterConfig struct {
 
 type InspectorConfig struct {
 	DedupWindow string `mapstructure:"dedup_window"` // e.g. "5m", "30m"
+	QueueSize   int    `mapstructure:"queue_size"`   // max queued analyses before rejecting
+	WorkerCount int    `mapstructure:"worker_count"` // concurrent analysis workers
 }
 
 // DSN builds the database connection string from individual config fields.
