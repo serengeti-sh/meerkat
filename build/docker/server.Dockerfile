@@ -75,4 +75,4 @@ ENV PORT=8080 \
     HTTP_OPENAPI_PATH=/app/api/openapi.bundled.json
 
 ENTRYPOINT ["/app/meerkat-server"]
-CMD ["serve"]
+CMD ["analyzer", "serve"]
