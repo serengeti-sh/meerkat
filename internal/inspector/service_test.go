@@ -2,6 +2,7 @@ package inspector_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -133,4 +134,103 @@ func TestService_ListReports(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Len(t, reports, 2)
+}
+
+func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
+	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
+	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
+	reporterSvc := reporterMocks.NewReporterServiceMock(t)
+
+	// Queue size 1, 1 worker that blocks
+	blockCh := make(chan struct{})
+	callCount := 0
+	analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, input *analyzer.AnalysisInput) (*analyzer.AnalysisResult, error) {
+		callCount++
+		if callCount == 1 {
+			<-blockCh // First call blocks until test signals
+		}
+		return &analyzer.AnalysisResult{Severity: analyzer.SeverityInfo, Summary: "done", Iterations: 1}, nil
+	}).Twice()
+
+	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 1, 1)
+
+	// First request - worker picks it up and blocks
+	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "query-1", mock.Anything).Return(nil, nil)
+	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
+	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running
+
+	report1, err := svc.Inspect(context.Background(), inspector.InspectRequest{Query: "query-1"})
+	require.NoError(t, err)
+	assert.Equal(t, inspector.StatusQueued, report1.Status())
+
+	// Wait for worker to pick up the job and block in Analyze
+	time.Sleep(50 * time.Millisecond)
+
+	// Second request fills the queue (channel buffer size 1)
+	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "query-2", mock.Anything).Return(nil, nil)
+	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
+
+	report2, err := svc.Inspect(context.Background(), inspector.InspectRequest{Query: "query-2"})
+	require.NoError(t, err)
+	assert.Equal(t, inspector.StatusQueued, report2.Status())
+
+	// Third request should be rejected (queue full)
+	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "query-3", mock.Anything).Return(nil, nil)
+	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
+	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // failed status update
+
+	_, err = svc.Inspect(context.Background(), inspector.InspectRequest{Query: "query-3"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "queue is full")
+
+	// Expectations for when worker completes jobs after unblocking
+	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // completed for job 1
+	reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
+	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running for job 2
+	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // completed for job 2
+	reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
+
+	// Unblock the worker
+	close(blockCh)
+	time.Sleep(200 * time.Millisecond)
+}
+
+func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
+	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
+	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
+	reporterSvc := reporterMocks.NewReporterServiceMock(t)
+
+	// Queue size 10, 2 workers
+	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 10, 2)
+
+	// Submit 3 jobs
+	for i := 0; i < 3; i++ {
+		reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", mock.Anything, mock.Anything).Return(nil, nil)
+		reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
+	}
+
+	// Each job gets processed: running + completed updates
+	for i := 0; i < 3; i++ {
+		reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running
+		reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // completed
+		analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).Return(&analyzer.AnalysisResult{
+			Severity:   analyzer.SeverityInfo,
+			Summary:    fmt.Sprintf("result-%d", i),
+			Iterations: 1,
+		}, nil)
+		reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
+	}
+
+	reports := make([]*inspector.Report, 3)
+	for i := 0; i < 3; i++ {
+		report, err := svc.Inspect(context.Background(), inspector.InspectRequest{
+			Query: fmt.Sprintf("query-%d", i),
+		})
+		require.NoError(t, err)
+		reports[i] = report
+		assert.Equal(t, inspector.StatusQueued, report.Status())
+	}
+
+	// Wait for all workers to finish
+	time.Sleep(200 * time.Millisecond)
 }
