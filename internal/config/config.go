@@ -7,14 +7,17 @@ import (
 )
 
 type Config struct {
-	App       AppConfig       `mapstructure:"app"`
-	HTTP      HTTPConfig      `mapstructure:"http"`
-	Store     StoreConfig     `mapstructure:"store"`
-	Tools     ToolConfig      `mapstructure:"tools"`
-	Analyzer  AnalyzerConfig  `mapstructure:"analyzer"`
-	Scheduler SchedulerConfig `mapstructure:"scheduler"`
-	Inspector InspectorConfig `mapstructure:"inspector"`
-	Reporter  ReporterConfig  `mapstructure:"reporter"`
+	App         AppConfig         `mapstructure:"app"`
+	HTTP        HTTPConfig        `mapstructure:"http"`
+	Store       StoreConfig       `mapstructure:"store"`
+	Tools       ToolConfig        `mapstructure:"tools"`
+	Analyzer    AnalyzerConfig    `mapstructure:"analyzer"`
+	Scheduler   SchedulerConfig   `mapstructure:"scheduler"`
+	Inspector   InspectorConfig   `mapstructure:"inspector"`
+	Reporter    ReporterConfig    `mapstructure:"reporter"`
+	Collector   CollectorConfig   `mapstructure:"collector"`
+	Embedder    EmbedderConfig    `mapstructure:"embedder"`
+	VectorStore VectorStoreConfig `mapstructure:"vector_store"`
 }
 
 type AppConfig struct {
@@ -148,6 +151,46 @@ func (c InspectorConfig) GetDedupWindow() time.Duration {
 		return 5 * time.Minute
 	}
 	return d
+}
+
+type CollectorConfig struct {
+	OTLPBindAddr  string        `mapstructure:"otlp_bind_addr"`
+	BatchSize     int           `mapstructure:"batch_size"`
+	FlushInterval time.Duration `mapstructure:"flush_interval"`
+}
+
+type EmbedderConfig struct {
+	Provider string `mapstructure:"provider"`
+	Model    string `mapstructure:"model"`
+	APIKey   string `mapstructure:"api_key"`
+	BaseURL  string `mapstructure:"base_url"`
+}
+
+type VectorStoreConfig struct {
+	Milvus MilvusConfig `mapstructure:"milvus"`
+}
+
+type MilvusConfig struct {
+	Address    string        `mapstructure:"address"`
+	Database   string        `mapstructure:"database"`
+	Collection string        `mapstructure:"collection"`
+	Dimension  int           `mapstructure:"dimension"`
+	Retention  time.Duration `mapstructure:"retention"`
+	Auth       MilvusAuth    `mapstructure:"auth"`
+	TLS        MilvusTLS     `mapstructure:"tls"`
+}
+
+type MilvusAuth struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	Token    string `mapstructure:"token"`
+}
+
+type MilvusTLS struct {
+	Enabled    bool   `mapstructure:"enabled"`
+	CAFile     string `mapstructure:"ca_file"`
+	SkipVerify bool   `mapstructure:"skip_verify"`
 }
 
 func (c *Config) IsDevelopment() bool {

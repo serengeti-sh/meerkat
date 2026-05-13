@@ -1,15 +1,17 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "meerkat.fullname" . }}
+  name: {{ include "meerkat.fullname" . }}-analyzer
   labels:
     {{- include "meerkat.labels" . | nindent 4 }}
+    app.kubernetes.io/component: analyzer
 spec:
-  type: {{ .Values.service.type }}
+  type: {{ .Values.analyzer.service.type }}
   ports:
-    - port: {{ .Values.service.port }}
+    - port: {{ .Values.analyzer.service.port }}
       targetPort: http
       protocol: TCP
       name: http
   selector:
     {{- include "meerkat.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: analyzer

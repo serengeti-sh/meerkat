@@ -104,3 +104,31 @@ inspector:
 reporter:
   webhook_url: ""
   min_severity: warning
+
+collector:
+  otlp_bind_addr: ":4317"
+  batch_size: 100
+  flush_interval: 5s
+
+embedder:
+  provider: openai
+  api_key: ""
+  base_url: ""
+  model: text-embedding-3-small
+
+vector_store:
+  milvus:
+    address: localhost:19530
+    collection: logs
+    dimension: 1536
+    retention: 72h
+    database: default
+    auth:
+      enabled: false
+      # user: ""
+      # password: ""
+      # token: ""
+    tls:
+      enabled: false
+      # ca_file: ""
+      # skip_verify: false

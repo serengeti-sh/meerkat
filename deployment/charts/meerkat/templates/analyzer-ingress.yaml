@@ -1,21 +1,21 @@
-{{- if .Values.ingress.enabled -}}
+{{- if .Values.analyzer.ingress.enabled -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ include "meerkat.fullname" . }}
   labels:
     {{- include "meerkat.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+  {{- with .Values.analyzer.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.ingress.className }}
-  ingressClassName: {{ .Values.ingress.className }}
+  {{- if .Values.analyzer.ingress.className }}
+  ingressClassName: {{ .Values.analyzer.ingress.className }}
   {{- end }}
-  {{- if .Values.ingress.tls }}
+  {{- if .Values.analyzer.ingress.tls }}
   tls:
-    {{- range .Values.ingress.tls }}
+    {{- range .Values.analyzer.ingress.tls }}
     - hosts:
         {{- range .hosts }}
         - {{ . | quote }}
@@ -24,7 +24,7 @@ spec:
     {{- end }}
   {{- end }}
   rules:
-    {{- range .Values.ingress.hosts }}
+    {{- range .Values.analyzer.ingress.hosts }}
     - host: {{ .host | quote }}
       http:
         paths:
@@ -33,9 +33,9 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "meerkat.fullname" $ }}
+                name: {{ include "meerkat.fullname" $ }}-analyzer
                 port:
-                  number: {{ $.Values.service.port }}
+                  number: {{ $.Values.analyzer.service.port }}
           {{- end }}
     {{- end }}
 {{- end }}

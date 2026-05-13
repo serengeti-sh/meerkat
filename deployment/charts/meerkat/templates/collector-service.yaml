@@ -1,0 +1,19 @@
+{{- if .Values.collector.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "meerkat.fullname" . }}-collector
+  labels:
+    {{- include "meerkat.labels" . | nindent 4 }}
+    app.kubernetes.io/component: collector
+spec:
+  type: {{ .Values.collector.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.collector.service.port | default 4317 }}
+      targetPort: grpc
+      protocol: TCP
+      name: grpc
+  selector:
+    {{- include "meerkat.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: collector
+{{- end }}

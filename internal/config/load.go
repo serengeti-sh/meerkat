@@ -114,6 +114,19 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("analyzer.max_context_messages", 50)
 
 	v.SetDefault("scheduler.enabled", false)
+
+	v.SetDefault("collector.otlp_bind_addr", ":4317")
+	v.SetDefault("collector.batch_size", 100)
+	v.SetDefault("collector.flush_interval", "5s")
+
+	v.SetDefault("embedder.provider", "openai")
+	v.SetDefault("embedder.model", "text-embedding-3-small")
+
+	v.SetDefault("vector_store.milvus.address", "localhost:19530")
+	v.SetDefault("vector_store.milvus.database", "")
+	v.SetDefault("vector_store.milvus.collection", "logs")
+	v.SetDefault("vector_store.milvus.dimension", 1536)
+	v.SetDefault("vector_store.milvus.retention", "72h")
 }
 
 func bindEnvVars(v *viper.Viper) {
@@ -129,4 +142,9 @@ func bindEnvVars(v *viper.Viper) {
 	_ = v.BindEnv("reporter.min_severity", "REPORTER_MIN_SEVERITY")
 	_ = v.BindEnv("http.tls.cert_file", "TLS_CERT_FILE")
 	_ = v.BindEnv("http.tls.key_file", "TLS_KEY_FILE")
+	_ = v.BindEnv("embedder.api_key", "EMBEDDER_API_KEY", "OPENAI_API_KEY")
+	_ = v.BindEnv("vector_store.milvus.address", "MILVUS_ADDRESS")
+	_ = v.BindEnv("vector_store.milvus.auth.user", "MILVUS_USER")
+	_ = v.BindEnv("vector_store.milvus.auth.password", "MILVUS_PASSWORD")
+	_ = v.BindEnv("vector_store.milvus.auth.token", "MILVUS_TOKEN")
 }

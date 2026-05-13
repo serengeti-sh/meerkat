@@ -3,8 +3,8 @@ package server
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat-server/migrate"
-	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat-server/serve"
+	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat-server/analyzer"
+	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat-server/collector"
 )
 
 func NewCmd() *cobra.Command {
@@ -13,8 +13,8 @@ func NewCmd() *cobra.Command {
 		Short: "Meerkat AI agent server",
 	}
 
-	cmd.AddCommand(serve.NewCmd())
-	cmd.AddCommand(migrate.NewCmd())
+	cmd.AddCommand(analyzer.NewCmd())
+	cmd.AddCommand(collector.NewCmd())
 
 	return cmd
 }
