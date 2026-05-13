@@ -125,7 +125,6 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("embedder.provider", "openai")
 	v.SetDefault("embedder.model", "text-embedding-3-small")
 
-	v.SetDefault("vector_store.milvus.address", "localhost:19530")
 	v.SetDefault("vector_store.milvus.database", "")
 	v.SetDefault("vector_store.milvus.collection", "logs")
 	v.SetDefault("vector_store.milvus.dimension", 1536)

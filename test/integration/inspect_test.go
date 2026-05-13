@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/serengeti-sh/meerkat/test/e2e/mock"
+	"github.com/serengeti-sh/meerkat/test/integration/mock"
 )
 
 func TestE2E_Inspect_Manual(t *testing.T) {

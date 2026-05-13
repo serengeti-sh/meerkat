@@ -71,6 +71,10 @@ func ProvideEmbedder(cfg *config.Config) embedder.Embedder {
 }
 
 func ProvideVectorStore(cfg *config.Config, lc fx.Lifecycle) (vectorstore.VectorStore, error) {
+	if cfg.VectorStore.Milvus.Address == "" {
+		return nil, nil
+	}
+
 	vs, err := vectorstore.NewMilvusClient(cfg)
 	if err != nil {
 		return nil, err
