@@ -15,6 +15,16 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+const (
+	idMaxLength        = "64"
+	serviceMaxLength   = "128"
+	severityMaxLength  = "32"
+	bodyMaxLength      = "4096"
+	hnswM              = 18
+	hnswEfConstruction = 300
+	searchEF           = 30
+)
+
 // milvusStore implements VectorStore using Milvus.
 type milvusStore struct {
 	client     client.Client
@@ -95,7 +105,7 @@ func (s *milvusStore) ensureCollection(ctx context.Context, retention time.Durat
 				Name:       "id",
 				DataType:   entity.FieldTypeVarChar,
 				PrimaryKey: true,
-				TypeParams: map[string]string{"max_length": "64"},
+				TypeParams: map[string]string{"max_length": idMaxLength},
 			},
 			{
 				Name:       "vector",
@@ -109,17 +119,17 @@ func (s *milvusStore) ensureCollection(ctx context.Context, retention time.Durat
 			{
 				Name:       "service",
 				DataType:   entity.FieldTypeVarChar,
-				TypeParams: map[string]string{"max_length": "128"},
+				TypeParams: map[string]string{"max_length": serviceMaxLength},
 			},
 			{
 				Name:       "severity",
 				DataType:   entity.FieldTypeVarChar,
-				TypeParams: map[string]string{"max_length": "32"},
+				TypeParams: map[string]string{"max_length": severityMaxLength},
 			},
 			{
 				Name:       "body",
 				DataType:   entity.FieldTypeVarChar,
-				TypeParams: map[string]string{"max_length": "4096"},
+				TypeParams: map[string]string{"max_length": bodyMaxLength},
 			},
 			{
 				Name:     "attributes",
@@ -132,7 +142,7 @@ func (s *milvusStore) ensureCollection(ctx context.Context, retention time.Durat
 		return fmt.Errorf("create collection: %w", err)
 	}
 
-	idx, err := entity.NewIndexHNSW(entity.L2, 18, 300)
+	idx, err := entity.NewIndexHNSW(entity.L2, hnswM, hnswEfConstruction)
 	if err != nil {
 		return fmt.Errorf("create index: %w", err)
 	}
@@ -201,7 +211,7 @@ func (s *milvusStore) Search(ctx context.Context, vector []float32, limit int, t
 		expr = fmt.Sprintf("timestamp >= %d", cutoff)
 	}
 
-	sp, err := entity.NewIndexHNSWSearchParam(30)
+	sp, err := entity.NewIndexHNSWSearchParam(searchEF)
 	if err != nil {
 		return nil, fmt.Errorf("create search param: %w", err)
 	}

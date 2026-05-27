@@ -10,7 +10,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/serengeti-sh/meerkat/ent/report"
+	"github.com/serengeti-sh/meerkat/internal/ent/report"
 )
 
 // ReportCreate is the builder for creating a Report entity.

@@ -182,7 +182,7 @@ func waitForDeployment(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	maxRetries := 60
 	retrySleep := 5 * time.Second
 
-	for i := 0; i < maxRetries; i++ {
+	for i := range maxRetries {
 		deploy, err := k8s.GetDeploymentE(t, kubectlOptions, "meerkat-analyzer")
 		if err == nil && k8s.IsDeploymentAvailable(deploy) {
 			t.Log("Deployment is available")

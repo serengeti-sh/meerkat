@@ -204,13 +204,13 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 10, 2)
 
 	// Submit 3 jobs
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", mock.Anything, mock.Anything).Return(nil, nil)
 		reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 	}
 
 	// Each job gets processed: running + completed updates
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running
 		reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // completed
 		analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).Return(&analyzer.AnalysisResult{
@@ -222,7 +222,7 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 	}
 
 	reports := make([]*inspector.Report, 3)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		report, err := svc.Inspect(context.Background(), inspector.InspectRequest{
 			Query: fmt.Sprintf("query-%d", i),
 		})

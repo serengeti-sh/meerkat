@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/serengeti-sh/meerkat/ent/report"
+	"github.com/serengeti-sh/meerkat/internal/ent/report"
 )
 
 // ent aliases to avoid import conflicts in user's code.

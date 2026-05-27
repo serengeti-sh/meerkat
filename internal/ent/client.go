@@ -9,12 +9,12 @@ import (
 	"log"
 	"reflect"
 
-	"github.com/serengeti-sh/meerkat/ent/migrate"
+	"github.com/serengeti-sh/meerkat/internal/ent/migrate"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
-	"github.com/serengeti-sh/meerkat/ent/report"
+	"github.com/serengeti-sh/meerkat/internal/ent/report"
 )
 
 // Client is the client that holds all ent builders.

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/ent"
 	"github.com/serengeti-sh/meerkat/internal/config"
+	"github.com/serengeti-sh/meerkat/internal/ent"
 	"github.com/serengeti-sh/meerkat/internal/store"
 )
 

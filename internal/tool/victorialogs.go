@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
@@ -54,7 +55,8 @@ func (t *VictoriaLogsTool) Execute(ctx context.Context, args json.RawMessage) (s
 	u, _ := url.Parse(t.baseURL)
 	u.Path = "/select/logsql/query"
 
-	q, err := argsToQueryParams(t.schema, args, url.Values{"limit": {"50"}})
+	const defaultLogLimit = 50
+	q, err := argsToQueryParams(t.schema, args, url.Values{"limit": {strconv.Itoa(defaultLogLimit)}})
 	if err != nil {
 		return "", err
 	}

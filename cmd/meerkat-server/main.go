@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat-server"
+	server "github.com/serengeti-sh/meerkat/internal/cmd/meerkat-server"
 )
 
 var version = "dev"

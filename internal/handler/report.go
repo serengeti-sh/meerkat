@@ -5,8 +5,10 @@ import (
 	"strconv"
 )
 
+const defaultListLimit = 50
+
 func (h *Handler) ListReports(w http.ResponseWriter, r *http.Request) {
-	limit := 50
+	limit := defaultListLimit
 	if l := r.URL.Query().Get("limit"); l != "" {
 		if v, err := strconv.Atoi(l); err == nil && v > 0 {
 			limit = v

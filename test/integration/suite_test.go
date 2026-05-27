@@ -19,9 +19,9 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/serengeti-sh/meerkat/ent"
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
+	"github.com/serengeti-sh/meerkat/internal/ent"
 	"github.com/serengeti-sh/meerkat/internal/handler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
@@ -196,7 +196,7 @@ Respond with JSON only:
 	})
 
 	// Reporter (no-op in tests)
-	reporterSvc := reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity)
+	reporterSvc := reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
 
 	// Inspector service
 	reportRepo := insprepo.NewRepository(entClient)
@@ -235,7 +235,7 @@ Respond with JSON only:
 	}()
 
 	// Verify server is up
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		resp, err := s.HTTPClient.Get(s.BaseURL + "/v1/health")
 		if err == nil {
 			_ = resp.Body.Close()

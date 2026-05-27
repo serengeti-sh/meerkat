@@ -11,8 +11,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/serengeti-sh/meerkat/ent/predicate"
-	"github.com/serengeti-sh/meerkat/ent/report"
+	"github.com/serengeti-sh/meerkat/internal/ent/predicate"
+	"github.com/serengeti-sh/meerkat/internal/ent/report"
 )
 
 const (

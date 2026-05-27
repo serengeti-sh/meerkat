@@ -26,7 +26,7 @@ func TestService_Report_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	svc := reporter.NewService(srv.URL, "warning")
+	svc := reporter.NewService(srv.URL, "warning", http.DefaultClient)
 	err := svc.Report(context.Background(), &reporter.ReportData{
 		ID:       "r-1",
 		Severity: "critical",
@@ -41,7 +41,7 @@ func TestService_Report_Success(t *testing.T) {
 }
 
 func TestService_Report_EmptyWebhookURL(t *testing.T) {
-	svc := reporter.NewService("", "warning")
+	svc := reporter.NewService("", "warning", http.DefaultClient)
 	err := svc.Report(context.Background(), &reporter.ReportData{
 		ID:       "r-1",
 		Severity: "critical",
@@ -58,7 +58,7 @@ func TestService_Report_SeverityFilter(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	svc := reporter.NewService(srv.URL, "warning")
+	svc := reporter.NewService(srv.URL, "warning", http.DefaultClient)
 
 	// info severity is below warning threshold
 	err := svc.Report(context.Background(), &reporter.ReportData{
@@ -85,7 +85,7 @@ func TestService_Report_ServerError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	svc := reporter.NewService(srv.URL, "info")
+	svc := reporter.NewService(srv.URL, "info", http.DefaultClient)
 	err := svc.Report(context.Background(), &reporter.ReportData{
 		ID:       "r-1",
 		Severity: "critical",
@@ -102,7 +102,7 @@ func TestService_Report_ContextCancelled(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	svc := reporter.NewService(srv.URL, "info")
+	svc := reporter.NewService(srv.URL, "info", http.DefaultClient)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -133,7 +133,7 @@ func TestBuildSlackPayload(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	svc := reporter.NewService(srv.URL, "info")
+	svc := reporter.NewService(srv.URL, "info", http.DefaultClient)
 	_ = svc.Report(context.Background(), report)
 
 	assert.Contains(t, payload["text"], "critical")

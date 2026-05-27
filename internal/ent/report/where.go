@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
-	"github.com/serengeti-sh/meerkat/ent/predicate"
+	"github.com/serengeti-sh/meerkat/internal/ent/predicate"
 )
 
 // ID filters vertices based on their ID field.

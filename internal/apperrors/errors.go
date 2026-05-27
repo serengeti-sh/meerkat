@@ -1,6 +1,10 @@
-package errors
+package apperrors
 
-import "net/http"
+import (
+	"errors"
+	"fmt"
+	"net/http"
+)
 
 type ErrorType string
 
@@ -16,29 +20,53 @@ const (
 	ErrRateLimit      ErrorType = "rate_limit"
 )
 
-type err struct {
+type appError struct {
 	errorType ErrorType
 	message   string
+	cause     error
 }
 
 func New(errType ErrorType, message string) Error {
-	return &err{
+	return &appError{
 		errorType: errType,
 		message:   message,
 	}
 }
 
-func (e *err) Error() string {
+func Wrap(errType ErrorType, message string, cause error) Error {
+	return &appError{
+		errorType: errType,
+		message:   message,
+		cause:     cause,
+	}
+}
+
+func (e *appError) Error() string {
+	if e.cause != nil {
+		return fmt.Sprintf("%s: %v", e.message, e.cause)
+	}
 	return e.message
 }
 
-func (e *err) Type() ErrorType {
+func (e *appError) Unwrap() error {
+	return e.cause
+}
+
+func (e *appError) Type() ErrorType {
 	return e.errorType
 }
 
 type Error interface {
 	error
 	Type() ErrorType
+}
+
+func Is(err error, target ErrorType) bool {
+	var appErr Error
+	if errors.As(err, &appErr) {
+		return appErr.Type() == target
+	}
+	return false
 }
 
 func HTTPStatus(errType ErrorType) int {

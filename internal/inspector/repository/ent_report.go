@@ -2,10 +2,11 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/ent"
-	entReport "github.com/serengeti-sh/meerkat/ent/report"
+	"github.com/serengeti-sh/meerkat/internal/ent"
+	entReport "github.com/serengeti-sh/meerkat/internal/ent/report"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
 
@@ -30,11 +31,14 @@ func (r *entReportRepository) Create(ctx context.Context, report *inspector.Repo
 		SetDatasources(report.Datasources()).
 		SetIterations(report.Iterations()).
 		Save(ctx)
-	return err
+	if err != nil {
+		return fmt.Errorf("create report: %w", err)
+	}
+	return nil
 }
 
 func (r *entReportRepository) Update(ctx context.Context, report *inspector.Report) error {
-	return r.client.Report.UpdateOneID(report.ID()).
+	if err := r.client.Report.UpdateOneID(report.ID()).
 		SetStatus(entReport.Status(string(report.Status()))).
 		SetSeverity(entReport.Severity(string(report.Severity()))).
 		SetSummary(report.Summary()).
@@ -42,20 +46,27 @@ func (r *entReportRepository) Update(ctx context.Context, report *inspector.Repo
 		SetQuery(report.Query()).
 		SetDatasources(report.Datasources()).
 		SetIterations(report.Iterations()).
-		Exec(ctx)
+		Exec(ctx); err != nil {
+		return fmt.Errorf("update report: %w", err)
+	}
+	return nil
 }
 
 func (r *entReportRepository) GetByID(ctx context.Context, id string) (*inspector.Report, error) {
 	ds, err := r.client.Report.Get(ctx, id)
 	if err != nil {
-		return nil, err
+		if ent.IsNotFound(err) {
+			return nil, fmt.Errorf("get report by id %s: %w", id, err)
+		}
+		return nil, fmt.Errorf("get report by id %s: %w", id, err)
 	}
 	return entToReport(ds)
 }
 
 func (r *entReportRepository) List(ctx context.Context, limit int) ([]*inspector.Report, error) {
+	const defaultListLimit = 50
 	if limit <= 0 {
-		limit = 50
+		limit = defaultListLimit
 	}
 
 	list, err := r.client.Report.Query().
@@ -63,14 +74,14 @@ func (r *entReportRepository) List(ctx context.Context, limit int) ([]*inspector
 		Limit(limit).
 		All(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("list reports: %w", err)
 	}
 
 	result := make([]*inspector.Report, 0, len(list))
 	for _, r := range list {
 		report, err := entToReport(r)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("convert report: %w", err)
 		}
 		result = append(result, report)
 	}
@@ -93,7 +104,7 @@ func (r *entReportRepository) FindActiveByQuery(ctx context.Context, trigger str
 		if ent.IsNotFound(err) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("find active report: %w", err)
 	}
 	return entToReport(ds)
 }

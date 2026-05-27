@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const defaultHTTPTimeout = 30 * time.Second
+
 // ReportData is a decoupled report representation for the reporter package.
 type ReportData struct {
 	ID          string    `json:"id"`
@@ -38,13 +40,18 @@ var severityRank = map[string]int{
 type service struct {
 	webhookURL  string
 	minSeverity string
+	httpClient  *http.Client
 }
 
 // NewService creates a ReporterService that sends reports to the configured webhook URL.
-func NewService(webhookURL, minSeverity string) ReporterService {
+func NewService(webhookURL, minSeverity string, httpClient *http.Client) ReporterService {
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: defaultHTTPTimeout}
+	}
 	return &service{
 		webhookURL:  webhookURL,
 		minSeverity: minSeverity,
+		httpClient:  httpClient,
 	}
 }
 
@@ -69,7 +76,7 @@ func (s *service) Report(ctx context.Context, report *ReportData) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("send webhook: %w", err)
 	}

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	apperrors "github.com/serengeti-sh/meerkat/internal/errors"
+	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
 
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
