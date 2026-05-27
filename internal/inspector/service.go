@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,12 +12,25 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
+	"github.com/serengeti-sh/meerkat/pkg/ragclient"
 )
 
 const (
 	defaultQueueSize   = 1000
 	defaultWorkerCount = 10
+	ragContextWindow   = 15 * time.Minute
+	ragContextLimit    = 20
 )
+
+// ServiceOption configures the inspector service.
+type ServiceOption func(*service)
+
+// WithRAGClient sets the RAG client for online log retrieval.
+func WithRAGClient(client ragclient.Client) ServiceOption {
+	return func(s *service) {
+		s.ragClient = client
+	}
+}
 
 // DatasourceRefs provides the current list of datasource references for analysis.
 type DatasourceRefs func() []analyzer.DatasourceRef
@@ -25,6 +39,7 @@ type service struct {
 	analyzerSvc analyzer.AnalyzerService
 	reportRepo  ReportRepository
 	reporterSvc reporter.ReporterService
+	ragClient   ragclient.Client
 	dsRefs      DatasourceRefs
 	dedupWindow time.Duration
 	queueSize   int
@@ -33,8 +48,6 @@ type service struct {
 	wg          sync.WaitGroup
 	cancel      context.CancelFunc
 }
-
-var _ InspectorService = (*service)(nil)
 
 var _ InspectorService = (*service)(nil)
 
@@ -51,6 +64,7 @@ func NewService(
 	dedupWindow time.Duration,
 	queueSize int,
 	workerCount int,
+	opts ...ServiceOption,
 ) InspectorService {
 	if analyzerSvc == nil {
 		panic("inspector: analyzerSvc is required")
@@ -81,6 +95,10 @@ func NewService(
 		cancel:      cancel,
 	}
 
+	for _, opt := range opts {
+		opt(s)
+	}
+
 	// Start worker pool — pass ctx explicitly as function parameter
 	for i := 0; i < workerCount; i++ {
 		s.wg.Add(1)
@@ -108,7 +126,69 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 	contextStr := fmt.Sprintf("Source: %s\nAlert: %s\nMessage: %s\nData: %s",
 		payload.Source, payload.Alert, payload.Message, string(payload.Data))
 
+	// Online Retrieval: fetch recent log context from RAG
+	if s.ragClient != nil {
+		ragCtx := s.fetchRAGContext(ctx, payload)
+		if ragCtx != "" {
+			contextStr += "\n\n=== Recent Log Context ===\n" + ragCtx
+		}
+	}
+
 	return s.enqueue(ctx, TriggerWebhook, payload.Alert, contextStr)
+}
+
+// fetchRAGContext extracts a service name from the webhook payload and queries
+// the RAG index for recent log entries. Returns empty string on error.
+func (s *service) fetchRAGContext(ctx context.Context, payload WebhookPayload) string {
+	service := extractServiceFromAlert(payload.Alert, payload.Message)
+	if service == "" {
+		return ""
+	}
+
+	now := time.Now()
+	results, err := s.ragClient.GetContext(ctx, service, now.Add(-ragContextWindow), now, ragContextLimit)
+	if err != nil {
+		log.Printf("[inspector] failed to fetch RAG context for service %q: %v", service, err)
+		return ""
+	}
+	if len(results) == 0 {
+		return ""
+	}
+
+	var b strings.Builder
+	for _, r := range results {
+		fmt.Fprintf(&b, "[%s] %s: %s\n", r.Timestamp.Format(time.RFC3339), r.Severity, r.Body)
+	}
+	return b.String()
+}
+
+// extractServiceFromAlert attempts to find a service name in the alert or message.
+func extractServiceFromAlert(alert, message string) string {
+	// Simple heuristic: look for common service name patterns
+	// In production this would be more sophisticated (regex, known labels, etc.)
+	for _, text := range []string{alert, message} {
+		if text == "" {
+			continue
+		}
+		// Look for "service=" or "service:" patterns
+		if idx := strings.Index(text, "service="); idx != -1 {
+			start := idx + len("service=")
+			end := strings.IndexAny(text[start:], " \t\n,;}")
+			if end == -1 {
+				return text[start:]
+			}
+			return text[start : start+end]
+		}
+		if idx := strings.Index(text, "service:"); idx != -1 {
+			start := idx + len("service:")
+			end := strings.IndexAny(text[start:], " \t\n,;}")
+			if end == -1 {
+				return strings.TrimSpace(text[start:])
+			}
+			return strings.TrimSpace(text[start : start+end])
+		}
+	}
+	return ""
 }
 
 // enqueue is the shared logic for Inspect and InspectByWebhook.

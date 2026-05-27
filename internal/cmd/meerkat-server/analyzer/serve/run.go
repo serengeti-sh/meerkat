@@ -20,6 +20,7 @@ import (
 	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
 	"github.com/serengeti-sh/meerkat/internal/rag"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
+	"github.com/serengeti-sh/meerkat/pkg/ragclient"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
 	"github.com/serengeti-sh/meerkat/internal/store"
 	"github.com/serengeti-sh/meerkat/internal/tool"
@@ -109,7 +110,22 @@ func Run(cfgFile string, port int) error {
 	// 10. Datasource refs
 	dsRefs := buildDatasourceRefs(cfg)
 
-	// 11. Inspector service
+	// 11. RAG client (optional — for online log retrieval)
+	var inspectorOpts []inspector.ServiceOption
+	if cfg.RAG.Enabled && cfg.RAG.Address != "" {
+		ragCli, err := ragclient.New(cfg.RAG.Address)
+		if err != nil {
+			return fmt.Errorf("create rag client: %w", err)
+		}
+		defer func() {
+			if err := ragCli.Close(); err != nil {
+				log.Printf("failed to close rag client: %v", err)
+			}
+		}()
+		inspectorOpts = append(inspectorOpts, inspector.WithRAGClient(ragCli))
+	}
+
+	// 12. Inspector service
 	inspectorSvc := inspector.NewService(
 		analyzerSvc,
 		reportRepo,
@@ -118,16 +134,17 @@ func Run(cfgFile string, port int) error {
 		cfg.Inspector.GetDedupWindow(),
 		cfg.Inspector.QueueSize,
 		cfg.Inspector.WorkerCount,
+		inspectorOpts...,
 	)
 	defer inspectorSvc.Stop()
 
-	// 12. Scheduler
+	// 13. Scheduler
 	sched := scheduler.NewCronScheduler(inspectorSvc, cfg)
 
-	// 13. HTTP handler
+	// 14. HTTP handler
 	h := handler.NewHandler(inspectorSvc)
 
-	// 14. HTTP server
+	// 15. HTTP server
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
