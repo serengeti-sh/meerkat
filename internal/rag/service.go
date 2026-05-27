@@ -1,0 +1,270 @@
+package rag
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/serengeti-sh/meerkat/internal/embedder"
+	"github.com/serengeti-sh/meerkat/internal/rag/ragpb"
+	"github.com/serengeti-sh/meerkat/internal/vectorstore"
+	"google.golang.org/protobuf/types/known/timestamppb"
+)
+
+const (
+	defaultIngestBatchSize = 100
+	defaultSearchLimit     = 10
+	maxSearchLimit         = 100
+)
+
+// RAGService provides log ingestion and semantic search for AI analysis.
+type RAGService interface {
+	// Ingest adds log entries to the vector store after template extraction.
+	Ingest(ctx context.Context, entries []LogEntry) (*IngestResult, error)
+
+	// Search finds semantically similar log entries.
+	Search(ctx context.Context, query string, opts SearchOptions) ([]SearchResult, error)
+
+	// GetContext retrieves relevant log context for a given service and time range.
+	GetContext(ctx context.Context, service string, start, end time.Time, limit int) ([]SearchResult, error)
+}
+
+// LogEntry represents a single log line for ingestion.
+type LogEntry struct {
+	ID         string
+	Timestamp  time.Time
+	Service    string
+	Severity   string
+	Body       string
+	Attributes map[string]string
+}
+
+// IngestResult contains the outcome of an ingestion operation.
+type IngestResult struct {
+	IngestedCount      int
+	DeduplicatedCount  int
+}
+
+// SearchResult represents a single matching log entry.
+type SearchResult struct {
+	ID        string
+	Score     float32
+	Body      string
+	Service   string
+	Severity  string
+	Timestamp time.Time
+}
+
+// SearchOptions holds optional filters for semantic search.
+type SearchOptions struct {
+	Limit     int
+	TimeRange time.Duration
+	Service   string
+	Severity  string
+}
+
+type service struct {
+	embedder     embedder.Embedder
+	vectorStore  vectorstore.VectorStore
+	drain        *Drain
+	batchSize    int
+}
+
+var _ RAGService = (*service)(nil)
+
+// NewService creates a RAGService with the given dependencies.
+func NewService(emb embedder.Embedder, vs vectorstore.VectorStore) RAGService {
+	if emb == nil {
+		panic("rag: embedder is required")
+	}
+	if vs == nil {
+		panic("rag: vectorStore is required")
+	}
+
+	return &service{
+		embedder:    emb,
+		vectorStore: vs,
+		drain:       NewDrain(),
+		batchSize:   defaultIngestBatchSize,
+	}
+}
+
+func (s *service) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult, error) {
+	if len(entries) == 0 {
+		return &IngestResult{}, nil
+	}
+
+	var (
+		ingested     int
+		deduplicated int
+		records      []vectorstore.Record
+	)
+
+	for _, entry := range entries {
+		template, isNew := s.drain.Extract(entry.Body)
+		if !isNew {
+			deduplicated++
+			continue
+		}
+
+		records = append(records, vectorstore.NewRecord(
+			nil, // vector will be set after embedding
+			entry.Timestamp,
+			entry.Service,
+			entry.Severity,
+			template,
+			entry.Attributes,
+		))
+	}
+
+	if len(records) == 0 {
+		return &IngestResult{
+			IngestedCount:     ingested,
+			DeduplicatedCount: deduplicated,
+		}, nil
+	}
+
+	texts := make([]string, len(records))
+	for i, r := range records {
+		texts[i] = r.Body
+	}
+
+	vectors, err := s.embedder.Embed(ctx, texts)
+	if err != nil {
+		return nil, fmt.Errorf("embed log templates: %w", err)
+	}
+
+	if len(vectors) != len(records) {
+		return nil, fmt.Errorf("embedding count mismatch: got %d, want %d", len(vectors), len(records))
+	}
+
+	for i := range records {
+		records[i].Vector = vectors[i]
+		records[i].ID = uuid.New().String()
+	}
+
+	if err := s.vectorStore.Insert(ctx, records); err != nil {
+		return nil, fmt.Errorf("insert records: %w", err)
+	}
+
+	ingested = len(records)
+
+	return &IngestResult{
+		IngestedCount:     ingested,
+		DeduplicatedCount: deduplicated,
+	}, nil
+}
+
+func (s *service) Search(ctx context.Context, query string, opts SearchOptions) ([]SearchResult, error) {
+	if query == "" {
+		return nil, ErrEmptyQuery
+	}
+
+	if opts.Limit <= 0 {
+		opts.Limit = defaultSearchLimit
+	}
+	if opts.Limit > maxSearchLimit {
+		opts.Limit = maxSearchLimit
+	}
+
+	vectors, err := s.embedder.Embed(ctx, []string{query})
+	if err != nil {
+		return nil, fmt.Errorf("embed query: %w", err)
+	}
+
+	vsOpts := vectorstore.SearchOptions{
+		Limit:     opts.Limit,
+		TimeRange: opts.TimeRange,
+		Service:   opts.Service,
+		Severity:  opts.Severity,
+	}
+
+	results, err := s.vectorStore.Search(ctx, vectors[0], vsOpts)
+	if err != nil {
+		return nil, fmt.Errorf("search vector store: %w", err)
+	}
+
+	if len(results) == 0 {
+		return nil, ErrNoResults
+	}
+
+	out := make([]SearchResult, len(results))
+	for i, r := range results {
+		out[i] = SearchResult{
+			ID:        r.ID,
+			Score:     r.Score,
+			Body:      r.Body,
+			Service:   r.Service,
+			Severity:  r.Severity,
+			Timestamp: r.Timestamp,
+		}
+	}
+
+	return out, nil
+}
+
+func (s *service) GetContext(ctx context.Context, service string, start, end time.Time, limit int) ([]SearchResult, error) {
+	if start.After(end) {
+		return nil, ErrInvalidTimeRange
+	}
+
+	if limit <= 0 {
+		limit = defaultSearchLimit
+	}
+	if limit > maxSearchLimit {
+		limit = maxSearchLimit
+	}
+
+	timeRange := end.Sub(start)
+	if timeRange <= 0 {
+		return nil, ErrInvalidTimeRange
+	}
+
+	// Use an empty query to get recent records by time range and service.
+	// This requires a special handling in the embedder or vector store.
+	// For now, we use a generic service context query.
+	query := fmt.Sprintf("service:%s logs", service)
+
+	vectors, err := s.embedder.Embed(ctx, []string{query})
+	if err != nil {
+		return nil, fmt.Errorf("embed context query: %w", err)
+	}
+
+	vsOpts := vectorstore.SearchOptions{
+		Limit:     limit,
+		TimeRange: timeRange,
+		Service:   service,
+	}
+
+	results, err := s.vectorStore.Search(ctx, vectors[0], vsOpts)
+	if err != nil {
+		return nil, fmt.Errorf("search context: %w", err)
+	}
+
+	out := make([]SearchResult, len(results))
+	for i, r := range results {
+		out[i] = SearchResult{
+			ID:        r.ID,
+			Score:     r.Score,
+			Body:      r.Body,
+			Service:   r.Service,
+			Severity:  r.Severity,
+			Timestamp: r.Timestamp,
+		}
+	}
+
+	return out, nil
+}
+
+// ToProto converts a SearchResult to its protobuf representation.
+func (r SearchResult) ToProto() *ragpb.SearchResult {
+	return &ragpb.SearchResult{
+		Id:        r.ID,
+		Score:     r.Score,
+		Body:      r.Body,
+		Service:   r.Service,
+		Severity:  r.Severity,
+		Timestamp: timestamppb.New(r.Timestamp),
+	}
+}

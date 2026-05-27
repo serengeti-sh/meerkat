@@ -289,6 +289,28 @@ func parseSearchResults(result client.SearchResult) ([]SearchResult, error) {
 	return out, nil
 }
 
+func (s *milvusStore) Delete(ctx context.Context, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+
+	expr := fmt.Sprintf("id in [%s]", joinQuoted(ids))
+	err := s.client.Delete(ctx, s.collection, "", expr)
+	if err != nil {
+		return fmt.Errorf("delete records: %w", err)
+	}
+
+	return nil
+}
+
+func joinQuoted(ids []string) string {
+	quoted := make([]string, len(ids))
+	for i, id := range ids {
+		quoted[i] = fmt.Sprintf("%q", id)
+	}
+	return strings.Join(quoted, ", ")
+}
+
 func (s *milvusStore) Close() error {
 	return s.client.Close()
 }

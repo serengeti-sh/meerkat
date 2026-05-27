@@ -18,6 +18,7 @@ type Config struct {
 	Collector   CollectorConfig   `mapstructure:"collector"`
 	Embedder    EmbedderConfig    `mapstructure:"embedder"`
 	VectorStore VectorStoreConfig `mapstructure:"vector_store"`
+	RAG         RAGConfig         `mapstructure:"rag"`
 }
 
 type AppConfig struct {
@@ -169,7 +170,23 @@ type EmbedderConfig struct {
 }
 
 type VectorStoreConfig struct {
-	Milvus MilvusConfig `mapstructure:"milvus"`
+	Driver string         `mapstructure:"driver"` // milvus (default), qdrant
+	Milvus MilvusConfig   `mapstructure:"milvus"`
+	Qdrant QdrantConfig   `mapstructure:"qdrant"`
+}
+
+type QdrantConfig struct {
+	Address    string `mapstructure:"address"`
+	Collection string `mapstructure:"collection"`
+	Dimension  int    `mapstructure:"dimension"`
+	APIKey     string `mapstructure:"api_key"`
+}
+
+type RAGConfig struct {
+	Enabled           bool          `mapstructure:"enabled"`
+	IngestBatchSize   int           `mapstructure:"ingest_batch_size"`
+	SimilarityThreshold float64     `mapstructure:"similarity_threshold"`
+	MaxContextLogs    int           `mapstructure:"max_context_logs"`
 }
 
 type MilvusConfig struct {

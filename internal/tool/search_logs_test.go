@@ -41,6 +41,8 @@ func (m *mockVectorStore) Search(ctx context.Context, vector []float32, opts vec
 	return m.results, nil
 }
 
+func (m *mockVectorStore) Delete(ctx context.Context, ids []string) error { return nil }
+
 func (m *mockVectorStore) Close() error { return nil }
 
 func TestSearchLogsTool_Name(t *testing.T) {

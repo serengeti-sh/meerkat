@@ -150,6 +150,11 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("vector_store.milvus.collection", "logs")
 	v.SetDefault("vector_store.milvus.dimension", 1536)
 	v.SetDefault("vector_store.milvus.retention", "72h")
+
+	v.SetDefault("rag.enabled", false)
+	v.SetDefault("rag.ingest_batch_size", 100)
+	v.SetDefault("rag.similarity_threshold", 0.8)
+	v.SetDefault("rag.max_context_logs", 50)
 }
 
 func bindEnvVars(v *viper.Viper) {
