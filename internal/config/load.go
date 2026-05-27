@@ -23,7 +23,9 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("error reading config.yaml: %w", err)
 		}
 		if settings := v.AllSettings(); len(settings) > 0 {
-			normalizeKeys(settings)
+			if err := normalizeKeys(settings); err != nil {
+				return nil, fmt.Errorf("error normalizing config keys: %w", err)
+			}
 			for k, val := range settings {
 				v.Set(k, val)
 			}
@@ -50,7 +52,9 @@ func LoadFromPath(path string) (*Config, error) {
 	}
 
 	if settings := v.AllSettings(); len(settings) > 0 {
-		normalizeKeys(settings)
+		if err := normalizeKeys(settings); err != nil {
+			return nil, fmt.Errorf("error normalizing config keys: %w", err)
+		}
 		for k, val := range settings {
 			v.Set(k, val)
 		}
@@ -68,23 +72,40 @@ func camelToSnake(s string) string {
 	return strings.ToLower(camelRe.ReplaceAllString(s, "${1}_${2}"))
 }
 
-func normalizeKeys(m map[string]any) {
+func normalizeKeys(m map[string]any) error {
 	for key, value := range m {
 		newKey := camelToSnake(key)
 		if newKey != key {
+			if existing, ok := m[newKey]; ok && existing != value {
+				return fmt.Errorf("config key collision: %q and %q normalize to %q", key, findOriginalKey(m, newKey), newKey)
+			}
 			delete(m, key)
 			m[newKey] = value
 		}
 		if nested, ok := value.(map[string]any); ok {
-			normalizeKeys(nested)
+			if err := normalizeKeys(nested); err != nil {
+				return err
+			}
 		} else if slice, ok := value.([]any); ok {
 			for _, item := range slice {
 				if nested, ok := item.(map[string]any); ok {
-					normalizeKeys(nested)
+					if err := normalizeKeys(nested); err != nil {
+						return err
+					}
 				}
 			}
 		}
 	}
+	return nil
+}
+
+func findOriginalKey(m map[string]any, snakeKey string) string {
+	for k := range m {
+		if camelToSnake(k) == snakeKey && k != snakeKey {
+			return k
+		}
+	}
+	return ""
 }
 
 func setDefaults(v *viper.Viper) {

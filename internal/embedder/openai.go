@@ -62,5 +62,11 @@ func (e *openAIEmbedder) Embed(ctx context.Context, texts []string) ([][]float32
 		vectors[idx] = vec
 	}
 
+	for i, v := range vectors {
+		if v == nil {
+			return nil, fmt.Errorf("missing embedding for text at index %d", i)
+		}
+	}
+
 	return vectors, nil
 }

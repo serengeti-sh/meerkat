@@ -61,6 +61,9 @@ func stripCodeBlocks(s string) string {
 			if start < len(s) {
 				start++ // skip newline
 			}
+			if start >= end {
+				return s
+			}
 			return s[start:end]
 		}
 	}

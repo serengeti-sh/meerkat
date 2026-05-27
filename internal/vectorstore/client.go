@@ -26,15 +26,21 @@ type SearchResult struct {
 	Timestamp time.Time
 }
 
+// SearchOptions holds optional filters for vector search.
+type SearchOptions struct {
+	Limit     int
+	TimeRange time.Duration
+	Service   string
+	Severity  string
+}
+
 // VectorStore defines the interface for vector database operations.
 type VectorStore interface {
 	// Insert adds vector records to the store.
 	Insert(ctx context.Context, records []Record) error
 
 	// Search finds the most similar vectors to the given query vector.
-	// limit controls the maximum number of results.
-	// timeRange restricts results to records newer than Now() - timeRange.
-	Search(ctx context.Context, vector []float32, limit int, timeRange time.Duration) ([]SearchResult, error)
+	Search(ctx context.Context, vector []float32, opts SearchOptions) ([]SearchResult, error)
 
 	// Close releases resources held by the store.
 	Close() error

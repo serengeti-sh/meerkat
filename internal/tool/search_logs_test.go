@@ -34,7 +34,7 @@ func (m *mockVectorStore) Insert(ctx context.Context, records []vectorstore.Reco
 	return nil
 }
 
-func (m *mockVectorStore) Search(ctx context.Context, vector []float32, limit int, timeRange time.Duration) ([]vectorstore.SearchResult, error) {
+func (m *mockVectorStore) Search(ctx context.Context, vector []float32, opts vectorstore.SearchOptions) ([]vectorstore.SearchResult, error) {
 	if m.err != nil {
 		return nil, m.err
 	}

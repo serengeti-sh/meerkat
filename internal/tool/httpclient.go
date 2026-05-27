@@ -12,7 +12,11 @@ import (
 // NewHTTPClient creates an *http.Client with optional CA cert trust.
 // If caFile is empty, the system default cert pool is used.
 func NewHTTPClient(caFile string) (*http.Client, error) {
-	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport, ok := http.DefaultTransport.(*http.Transport)
+	if !ok {
+		return nil, fmt.Errorf("http.DefaultTransport is not *http.Transport")
+	}
+	cloned := transport.Clone()
 
 	if caFile != "" {
 		caData, err := os.ReadFile(caFile)
@@ -23,7 +27,7 @@ func NewHTTPClient(caFile string) (*http.Client, error) {
 		if !pool.AppendCertsFromPEM(caData) {
 			return nil, fmt.Errorf("no certificates found in %s", caFile)
 		}
-		transport.TLSClientConfig = &tls.Config{
+		cloned.TLSClientConfig = &tls.Config{
 			RootCAs:    pool,
 			MinVersion: tls.VersionTLS12,
 		}
@@ -31,6 +35,6 @@ func NewHTTPClient(caFile string) (*http.Client, error) {
 
 	return &http.Client{
 		Timeout:   15 * time.Second,
-		Transport: transport,
+		Transport: cloned,
 	}, nil
 }

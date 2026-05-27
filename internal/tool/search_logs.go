@@ -49,6 +49,14 @@ func (t *searchLogsTool) Parameters() json.RawMessage {
 				"type": "string",
 				"description": "Time range for search, e.g., '15m', '1h'",
 				"default": "1h"
+			},
+			"service": {
+				"type": "string",
+				"description": "Filter by service name (optional)"
+			},
+			"severity": {
+				"type": "string",
+				"description": "Filter by severity level, e.g., 'ERROR', 'WARN' (optional)"
 			}
 		},
 		"required": ["query"]
@@ -60,6 +68,8 @@ func (t *searchLogsTool) Execute(ctx context.Context, args json.RawMessage) (str
 		Query     string `json:"query"`
 		Limit     int    `json:"limit"`
 		TimeRange string `json:"time_range"`
+		Service   string `json:"service"`
+		Severity  string `json:"severity"`
 	}
 	if err := json.Unmarshal(args, &params); err != nil {
 		return "", fmt.Errorf("invalid parameters: %w", err)
@@ -89,7 +99,13 @@ func (t *searchLogsTool) Execute(ctx context.Context, args json.RawMessage) (str
 		return "", fmt.Errorf("embed query: %w", err)
 	}
 
-	results, err := t.vectorstore.Search(ctx, vectors[0], params.Limit, timeRange)
+	opts := vectorstore.SearchOptions{
+		Limit:     params.Limit,
+		TimeRange: timeRange,
+		Service:   params.Service,
+		Severity:  params.Severity,
+	}
+	results, err := t.vectorstore.Search(ctx, vectors[0], opts)
 	if err != nil {
 		return "", fmt.Errorf("search logs: %w", err)
 	}

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/milvus-io/milvus-sdk-go/v2/client"
@@ -204,11 +205,21 @@ func (s *milvusStore) Insert(ctx context.Context, records []Record) error {
 	return nil
 }
 
-func (s *milvusStore) Search(ctx context.Context, vector []float32, limit int, timeRange time.Duration) ([]SearchResult, error) {
+func (s *milvusStore) Search(ctx context.Context, vector []float32, opts SearchOptions) ([]SearchResult, error) {
+	var exprs []string
+	if opts.TimeRange > 0 {
+		cutoff := time.Now().Add(-opts.TimeRange).UnixMilli()
+		exprs = append(exprs, fmt.Sprintf("timestamp >= %d", cutoff))
+	}
+	if opts.Service != "" {
+		exprs = append(exprs, fmt.Sprintf("service == %q", opts.Service))
+	}
+	if opts.Severity != "" {
+		exprs = append(exprs, fmt.Sprintf("severity == %q", opts.Severity))
+	}
 	var expr string
-	if timeRange > 0 {
-		cutoff := time.Now().Add(-timeRange).UnixMilli()
-		expr = fmt.Sprintf("timestamp >= %d", cutoff)
+	if len(exprs) > 0 {
+		expr = strings.Join(exprs, " && ")
 	}
 
 	sp, err := entity.NewIndexHNSWSearchParam(searchEF)
@@ -220,7 +231,7 @@ func (s *milvusStore) Search(ctx context.Context, vector []float32, limit int, t
 		[]string{"id", "body", "service", "severity", "timestamp"},
 		[]entity.Vector{entity.FloatVector(vector)},
 		"vector",
-		entity.L2, limit, sp,
+		entity.L2, opts.Limit, sp,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("search: %w", err)
