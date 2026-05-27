@@ -15,7 +15,7 @@ import (
 )
 
 func TestNewCronScheduler_InvalidInterval(t *testing.T) {
-	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
+	mockSvc := inspectorMocks.NewServiceMock(t)
 	cfg := &config.Config{
 		Scheduler: config.SchedulerConfig{
 			Enabled: false,
@@ -37,7 +37,7 @@ func TestNewCronScheduler_InvalidInterval(t *testing.T) {
 }
 
 func TestCronScheduler_StartStop(t *testing.T) {
-	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
+	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("Inspect", mock.Anything, inspector.InspectRequest{
 		MetricQuery: "up",
 		LogQuery:    "",
@@ -71,7 +71,7 @@ func TestCronScheduler_StartStop(t *testing.T) {
 }
 
 func TestCronScheduler_StartStop_NoJobs(t *testing.T) {
-	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
+	mockSvc := inspectorMocks.NewServiceMock(t)
 	cfg := &config.Config{
 		Scheduler: config.SchedulerConfig{
 			Enabled: false,

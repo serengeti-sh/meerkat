@@ -23,7 +23,7 @@ type Job struct {
 }
 
 type cronScheduler struct {
-	inspectorSvc inspector.InspectorService
+	inspectorSvc inspector.Service
 	jobs         []Job
 	cancel       context.CancelFunc
 	wg           sync.WaitGroup
@@ -31,7 +31,7 @@ type cronScheduler struct {
 
 var _ Scheduler = (*cronScheduler)(nil)
 
-func NewCronScheduler(inspectorSvc inspector.InspectorService, cfg *config.Config) Scheduler {
+func NewCronScheduler(inspectorSvc inspector.Service, cfg *config.Config) Scheduler {
 	var jobs []Job
 	for _, j := range cfg.Scheduler.Jobs {
 		d, err := time.ParseDuration(j.Interval)

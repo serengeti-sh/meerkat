@@ -65,7 +65,7 @@ func Run(cfgFile string, port int) error {
 	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
 
 	// 5. Vector store
-	var vs vectorstore.VectorStore
+	var vs vectorstore.Store
 	if cfg.VectorStore.Milvus.Address != "" {
 		vs, err = vectorstore.NewMilvusClient(cfg)
 		if err != nil {
@@ -231,8 +231,8 @@ func loadConfig(cfgFile string, port int) (*config.Config, error) {
 	return cfg, nil
 }
 
-func buildToolRegistry(cfg *config.Config, emb embedder.Embedder, vs vectorstore.VectorStore) (*analyzer.ToolRegistry, error) {
-	var tools []tool.Tool
+func buildToolRegistry(cfg *config.Config, emb embedder.Embedder, vs vectorstore.Store) (*analyzer.ToolRegistry, error) {
+	var tools []tool.Interface
 
 	for _, pc := range cfg.Tools.Prometheus {
 		httpClient, err := tool.NewHTTPClient(pc.CAFile)
@@ -318,7 +318,7 @@ func buildToolRegistry(cfg *config.Config, emb embedder.Embedder, vs vectorstore
 	return analyzer.NewToolRegistry(tools...), nil
 }
 
-func buildAnalyzerService(provider analyzer.LLMProvider, registry *analyzer.ToolRegistry, cfg *config.Config) (analyzer.AnalyzerService, error) {
+func buildAnalyzerService(provider analyzer.LLMProvider, registry *analyzer.ToolRegistry, cfg *config.Config) (analyzer.Service, error) {
 	systemPrompt, err := analyzer.LoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
 	if err != nil {
 		return nil, fmt.Errorf("load system prompt: %w", err)

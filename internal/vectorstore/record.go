@@ -37,8 +37,8 @@ type SearchOptions struct {
 	Severity  string
 }
 
-// VectorStore defines the interface for vector database operations.
-type VectorStore interface {
+// Store defines the interface for vector database operations.
+type Store interface {
 	// Insert adds vector records to the store.
 	Insert(ctx context.Context, records []Record) error
 

@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/serengeti-sh/meerkat/internal/rag/ragpb"
+	"github.com/serengeti-sh/meerkat/pkg/ragpb"
 )
 
 // Client is a gRPC client for the RAG service.

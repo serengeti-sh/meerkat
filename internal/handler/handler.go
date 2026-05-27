@@ -10,11 +10,11 @@ import (
 )
 
 type Handler struct {
-	inspectorSvc inspector.InspectorService
+	inspectorSvc inspector.Service
 }
 
 func NewHandler(
-	inspectorSvc inspector.InspectorService,
+	inspectorSvc inspector.Service,
 ) *Handler {
 	if inspectorSvc == nil {
 		panic("handler: inspectorSvc is required")

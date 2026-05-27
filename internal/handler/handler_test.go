@@ -18,7 +18,7 @@ import (
 )
 
 func TestHandler_Health(t *testing.T) {
-	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
+	mockSvc := inspectorMocks.NewServiceMock(t)
 	h := handler.NewHandler(mockSvc)
 
 	mux := http.NewServeMux()
@@ -36,7 +36,7 @@ func TestHandler_Health(t *testing.T) {
 }
 
 func TestHandler_Inspect(t *testing.T) {
-	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
+	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("Inspect", mock.Anything, inspector.InspectRequest{
 		MetricQuery: "up",
 		LogQuery:    "",
@@ -65,7 +65,7 @@ func TestHandler_Inspect(t *testing.T) {
 }
 
 func TestHandler_Inspect_InvalidBody(t *testing.T) {
-	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
+	mockSvc := inspectorMocks.NewServiceMock(t)
 	h := handler.NewHandler(mockSvc)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -79,7 +79,7 @@ func TestHandler_Inspect_InvalidBody(t *testing.T) {
 }
 
 func TestHandler_Webhook(t *testing.T) {
-	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
+	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("InspectByWebhook", mock.Anything, inspector.WebhookPayload{
 		Source:  "grafana",
 		Alert:   "High CPU",
@@ -109,7 +109,7 @@ func TestHandler_Webhook(t *testing.T) {
 }
 
 func TestHandler_Webhook_InvalidBody(t *testing.T) {
-	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
+	mockSvc := inspectorMocks.NewServiceMock(t)
 	h := handler.NewHandler(mockSvc)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -123,7 +123,7 @@ func TestHandler_Webhook_InvalidBody(t *testing.T) {
 }
 
 func TestHandler_ListReports(t *testing.T) {
-	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
+	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("ListReports", mock.Anything, 50).Return(
 		[]*inspector.Report{
 			inspector.NewReport("r-1", inspector.TriggerManual, "", inspector.StatusCompleted, inspector.SeverityInfo, "ok", "", "", []string{}, 1, time.Now()),
@@ -148,7 +148,7 @@ func TestHandler_ListReports(t *testing.T) {
 }
 
 func TestHandler_ListReports_WithLimit(t *testing.T) {
-	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
+	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("ListReports", mock.Anything, 10).Return(
 		[]*inspector.Report{},
 		nil,
@@ -166,7 +166,7 @@ func TestHandler_ListReports_WithLimit(t *testing.T) {
 }
 
 func TestHandler_GetReport(t *testing.T) {
-	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
+	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("GetReport", mock.Anything, "r-1").Return(
 		inspector.NewReport("r-1", inspector.TriggerManual, "", inspector.StatusCompleted, inspector.SeverityCritical, "critical issue", "details", "", []string{"vm"}, 3, time.Now()),
 		nil,

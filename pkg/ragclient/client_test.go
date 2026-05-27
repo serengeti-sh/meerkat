@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/serengeti-sh/meerkat/internal/rag"
-	"github.com/serengeti-sh/meerkat/internal/rag/ragpb"
+	"github.com/serengeti-sh/meerkat/pkg/ragpb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 	"github.com/serengeti-sh/meerkat/pkg/ragclient"
 )

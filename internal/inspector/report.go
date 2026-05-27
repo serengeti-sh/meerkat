@@ -9,8 +9,8 @@ import (
 	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
 )
 
-// InspectorService orchestrates inspections.
-type InspectorService interface {
+// Service orchestrates inspections.
+type Service interface {
 	Inspect(ctx context.Context, req InspectRequest) (*Report, apperrors.Error)
 	InspectByWebhook(ctx context.Context, payload WebhookPayload) (*Report, apperrors.Error)
 	GetReport(ctx context.Context, id string) (*Report, apperrors.Error)

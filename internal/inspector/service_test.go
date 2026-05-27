@@ -25,8 +25,8 @@ func testRefs() inspector.DatasourceRefs {
 
 func TestService_Inspect_ReturnsPending(t *testing.T) {
 	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
-	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
-	reporterSvc := reporterMocks.NewReporterServiceMock(t)
+	analyzerSvc := analyzerMocks.NewServiceMock(t)
+	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 
@@ -58,8 +58,8 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 
 func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
-	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
-	reporterSvc := reporterMocks.NewReporterServiceMock(t)
+	analyzerSvc := analyzerMocks.NewServiceMock(t)
+	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 
@@ -91,8 +91,8 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 
 func TestService_Inspect_NoDatasources(t *testing.T) {
 	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
-	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
-	reporterSvc := reporterMocks.NewReporterServiceMock(t)
+	analyzerSvc := analyzerMocks.NewServiceMock(t)
+	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	emptyRefs := func() []analyzer.DatasourceRef { return nil }
 	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, emptyRefs, 5*time.Minute, 100, 2)
@@ -104,8 +104,8 @@ func TestService_Inspect_NoDatasources(t *testing.T) {
 
 func TestService_GetReport(t *testing.T) {
 	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
-	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
-	reporterSvc := reporterMocks.NewReporterServiceMock(t)
+	analyzerSvc := analyzerMocks.NewServiceMock(t)
+	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 
@@ -121,8 +121,8 @@ func TestService_GetReport(t *testing.T) {
 
 func TestService_ListReports(t *testing.T) {
 	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
-	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
-	reporterSvc := reporterMocks.NewReporterServiceMock(t)
+	analyzerSvc := analyzerMocks.NewServiceMock(t)
+	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 
@@ -138,8 +138,8 @@ func TestService_ListReports(t *testing.T) {
 
 func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
-	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
-	reporterSvc := reporterMocks.NewReporterServiceMock(t)
+	analyzerSvc := analyzerMocks.NewServiceMock(t)
+	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	// Queue size 1, 1 worker that blocks
 	blockCh := make(chan struct{})
@@ -197,8 +197,8 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 
 func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
-	analyzerSvc := analyzerMocks.NewAnalyzerServiceMock(t)
-	reporterSvc := reporterMocks.NewReporterServiceMock(t)
+	analyzerSvc := analyzerMocks.NewServiceMock(t)
+	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	// Queue size 10, 2 workers
 	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 10, 2)

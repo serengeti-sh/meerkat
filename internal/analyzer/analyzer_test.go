@@ -13,6 +13,7 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	analyzerMocks "github.com/serengeti-sh/meerkat/internal/analyzer/mocks"
+	toolMocks "github.com/serengeti-sh/meerkat/internal/tool/mocks"
 )
 
 func TestService_Analyze_SingleResponse(t *testing.T) {
@@ -44,7 +45,7 @@ func TestService_Analyze_SingleResponse(t *testing.T) {
 
 func TestService_Analyze_ToolCalls(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	tool := analyzerMocks.NewToolMock(t)
+	tool := toolMocks.NewInterfaceMock(t)
 
 	// Registration + Defs
 	tool.EXPECT().Name().Return("query_metrics").Twice()
@@ -123,7 +124,7 @@ func TestService_Analyze_ToolCalls(t *testing.T) {
 
 func TestService_Analyze_MaxIterations(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	tool := analyzerMocks.NewToolMock(t)
+	tool := toolMocks.NewInterfaceMock(t)
 
 	// Registration + Defs
 	tool.EXPECT().Name().Return("query_metrics").Twice()
@@ -165,7 +166,7 @@ func TestService_Analyze_MaxIterations(t *testing.T) {
 
 func TestService_Analyze_ToolResultTruncation(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	tool := analyzerMocks.NewToolMock(t)
+	tool := toolMocks.NewInterfaceMock(t)
 
 	tool.EXPECT().Name().Return("query_metrics").Twice()
 	tool.EXPECT().Description().Return("query metrics")
@@ -221,7 +222,7 @@ func TestService_Analyze_ToolResultTruncation(t *testing.T) {
 
 func TestService_Analyze_ContextOverflowRecovery(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	tool := analyzerMocks.NewToolMock(t)
+	tool := toolMocks.NewInterfaceMock(t)
 
 	tool.EXPECT().Name().Return("query_metrics").Twice()
 	tool.EXPECT().Description().Return("query metrics")
@@ -296,7 +297,7 @@ func TestService_Analyze_ContextOverflowUnrecoverable(t *testing.T) {
 
 func TestToolRegistry(t *testing.T) {
 	t.Run("get existing tool", func(t *testing.T) {
-		tool := analyzerMocks.NewToolMock(t)
+		tool := toolMocks.NewInterfaceMock(t)
 		tool.EXPECT().Name().Return("test-tool")
 		reg := analyzer.NewToolRegistry(tool)
 		found, ok := reg.Get("test-tool")
@@ -311,7 +312,7 @@ func TestToolRegistry(t *testing.T) {
 	})
 
 	t.Run("defs returns tool definitions", func(t *testing.T) {
-		tool := analyzerMocks.NewToolMock(t)
+		tool := toolMocks.NewInterfaceMock(t)
 		tool.EXPECT().Name().Return("test-tool").Twice()
 		tool.EXPECT().Description().Return("a test tool")
 		tool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))

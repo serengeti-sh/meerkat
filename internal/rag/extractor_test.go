@@ -1,13 +1,15 @@
-package rag
+package rag_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/serengeti-sh/meerkat/internal/rag"
 )
 
 func TestExtractor_Extract(t *testing.T) {
-	d := NewExtractor()
+	d := rag.NewExtractor()
 
 	// First message creates a new template
 	tmpl1, isNew1 := d.Extract("connection refused to database")
@@ -36,7 +38,7 @@ func TestExtractor_Extract(t *testing.T) {
 }
 
 func TestExtractor_Templates(t *testing.T) {
-	d := NewExtractor()
+	d := rag.NewExtractor()
 
 	d.Extract("error: connection failed")
 	d.Extract("error: timeout occurred")
@@ -50,7 +52,7 @@ func TestExtractor_Templates(t *testing.T) {
 }
 
 func TestExtractor_Reset(t *testing.T) {
-	d := NewExtractor()
+	d := rag.NewExtractor()
 
 	d.Extract("error: something failed")
 	assert.Len(t, d.Templates(), 1)
@@ -60,7 +62,7 @@ func TestExtractor_Reset(t *testing.T) {
 }
 
 func TestExtractor_EmptyMessage(t *testing.T) {
-	d := NewExtractor()
+	d := rag.NewExtractor()
 
 	tmpl, isNew := d.Extract("")
 	assert.True(t, isNew)

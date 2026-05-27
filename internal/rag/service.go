@@ -64,7 +64,7 @@ type SearchOptions struct {
 
 type service struct {
 	embedder     embedder.Embedder
-	vectorStore  vectorstore.VectorStore
+	vectorStore  vectorstore.Store
 	extractor    *Extractor
 	batchSize    int
 }
@@ -72,7 +72,7 @@ type service struct {
 var _ Service = (*service)(nil)
 
 // NewService creates a Service with the given dependencies.
-func NewService(emb embedder.Embedder, vs vectorstore.VectorStore) Service {
+func NewService(emb embedder.Embedder, vs vectorstore.Store) Service {
 	if emb == nil {
 		panic("rag: embedder is required")
 	}
@@ -219,12 +219,10 @@ func (s *service) GetContext(ctx context.Context, service string, start, end tim
 		return nil, ErrInvalidTimeRange
 	}
 
-	// Use an empty query to get recent records by time range and service.
-	// This requires a special handling in the embedder or vector store.
-	// For now, we use a generic service context query.
-	query := fmt.Sprintf("service:%s logs", service)
-
-	vectors, err := s.embedder.Embed(ctx, []string{query})
+	// Empty query yields a zero vector, which is equidistant to all records.
+	// Combined with the service/time metadata filters, this returns the most
+	// recent records for the service without requiring a semantic query.
+	vectors, err := s.embedder.Embed(ctx, []string{""})
 	if err != nil {
 		return nil, fmt.Errorf("embed context query: %w", err)
 	}

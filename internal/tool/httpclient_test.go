@@ -1,4 +1,8 @@
-package tool
+package tool_test
+
+import (
+	"github.com/serengeti-sh/meerkat/internal/tool"
+)
 
 import (
 	"crypto/ecdsa"
@@ -22,7 +26,7 @@ import (
 )
 
 func TestNewHTTPClient_NoCA(t *testing.T) {
-	client, err := NewHTTPClient("")
+	client, err := tool.NewHTTPClient("")
 	require.NoError(t, err)
 	require.NotNil(t, client)
 	assert.Equal(t, 15*time.Second, client.Timeout)
@@ -45,7 +49,7 @@ func TestNewHTTPClient_WithCA(t *testing.T) {
 	srv.StartTLS()
 	defer srv.Close()
 
-	client, err := NewHTTPClient(caFile)
+	client, err := tool.NewHTTPClient(caFile)
 	require.NoError(t, err)
 
 	resp, err := client.Get(srv.URL)
@@ -55,7 +59,7 @@ func TestNewHTTPClient_WithCA(t *testing.T) {
 }
 
 func TestNewHTTPClient_InvalidCAFile(t *testing.T) {
-	_, err := NewHTTPClient("/nonexistent/ca.crt")
+	_, err := tool.NewHTTPClient("/nonexistent/ca.crt")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "reading CA cert")
 }
@@ -64,7 +68,7 @@ func TestNewHTTPClient_InvalidCAPEM(t *testing.T) {
 	caFile := filepath.Join(t.TempDir(), "ca.crt")
 	require.NoError(t, os.WriteFile(caFile, []byte("not a valid PEM"), 0644))
 
-	_, err := NewHTTPClient(caFile)
+	_, err := tool.NewHTTPClient(caFile)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "no certificates found")
 }

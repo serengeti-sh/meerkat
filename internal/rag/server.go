@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/internal/rag/ragpb"
+	"github.com/serengeti-sh/meerkat/pkg/ragpb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"

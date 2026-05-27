@@ -13,7 +13,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
 	"github.com/serengeti-sh/meerkat/internal/rag"
-	"github.com/serengeti-sh/meerkat/internal/rag/ragpb"
+	"github.com/serengeti-sh/meerkat/pkg/ragpb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 

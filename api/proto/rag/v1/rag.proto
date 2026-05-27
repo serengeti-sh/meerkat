@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package rag.v1;
 
-option go_package = "github.com/serengeti-sh/meerkat/internal/rag/ragpb";
+option go_package = "github.com/serengeti-sh/meerkat/pkg/ragpb";
 
 import "google/protobuf/timestamp.proto";
 

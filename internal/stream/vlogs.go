@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/serengeti-sh/meerkat/internal/rag"
 )
 
 // Connector reads log entries from VictoriaLogs in real-time.
@@ -27,20 +29,10 @@ func NewConnector(baseURL string, client *http.Client) *Connector {
 	}
 }
 
-// Entry represents a single log entry from the stream.
-type Entry struct {
-	ID         string            `json:"_msg_id"`
-	Timestamp  int64             `json:"_time"`
-	Service    string            `json:"service"`
-	Severity   string            `json:"severity"`
-	Body       string            `json:"_msg"`
-	Attributes map[string]string `json:"attributes"`
-}
-
 // Subscribe opens a persistent connection to VM Logs tail endpoint and
 // yields each log entry to the handler. The connection is closed when
 // the context is cancelled.
-func (c *Connector) Subscribe(ctx context.Context, query string, handler func(Entry)) error {
+func (c *Connector) Subscribe(ctx context.Context, query string, handler func(rag.LogEntry)) error {
 	u, err := url.Parse(c.baseURL)
 	if err != nil {
 		return fmt.Errorf("invalid base URL: %w", err)
@@ -79,13 +71,27 @@ func (c *Connector) Subscribe(ctx context.Context, query string, handler func(En
 			continue
 		}
 
-		var entry Entry
-		if err := json.Unmarshal(line, &entry); err != nil {
+		var raw struct {
+			ID         string            `json:"_msg_id"`
+			Timestamp  int64             `json:"_time"`
+			Service    string            `json:"service"`
+			Severity   string            `json:"severity"`
+			Body       string            `json:"_msg"`
+			Attributes map[string]string `json:"attributes"`
+		}
+		if err := json.Unmarshal(line, &raw); err != nil {
 			// Skip malformed lines rather than failing the entire stream.
 			continue
 		}
 
-		handler(entry)
+		handler(rag.LogEntry{
+			ID:         raw.ID,
+			Timestamp:  time.UnixMilli(raw.Timestamp),
+			Service:    raw.Service,
+			Severity:   raw.Severity,
+			Body:       raw.Body,
+			Attributes: raw.Attributes,
+		})
 	}
 
 	if err := scanner.Err(); err != nil {

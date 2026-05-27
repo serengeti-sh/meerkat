@@ -23,10 +23,10 @@ type qdrantStore struct {
 	dimension  int
 }
 
-var _ VectorStore = (*qdrantStore)(nil)
+var _ Store = (*qdrantStore)(nil)
 
-// NewQdrantClient creates a VectorStore backed by Qdrant.
-func NewQdrantClient(cfg *config.Config) (VectorStore, error) {
+// NewQdrantClient creates a Store backed by Qdrant.
+func NewQdrantClient(cfg *config.Config) (Store, error) {
 	qc := cfg.VectorStore.Qdrant
 
 	ctx, cancel := context.WithTimeout(context.Background(), qdrantDefaultTimeout)

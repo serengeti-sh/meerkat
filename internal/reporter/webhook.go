@@ -26,8 +26,8 @@ type ReportData struct {
 	CreatedAt   time.Time `json:"created_at"`
 }
 
-// ReporterService delivers reports to a configured webhook URL.
-type ReporterService interface {
+// Service delivers reports to a configured webhook URL.
+type Service interface {
 	Report(ctx context.Context, report *ReportData) error
 }
 
@@ -43,10 +43,10 @@ type service struct {
 	httpClient  *http.Client
 }
 
-var _ ReporterService = (*service)(nil)
+var _ Service = (*service)(nil)
 
-// NewService creates a ReporterService that sends reports to the configured webhook URL.
-func NewService(webhookURL, minSeverity string, httpClient *http.Client) ReporterService {
+// NewService creates a Service that sends reports to the configured webhook URL.
+func NewService(webhookURL, minSeverity string, httpClient *http.Client) Service {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: defaultHTTPTimeout}
 	}

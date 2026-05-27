@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 )
 
-// Tool is an interface for tools the LLM can invoke during the agent loop.
-type Tool interface {
+// Interface is an interface for tools the LLM can invoke during the agent loop.
+type Interface interface {
 	// Name returns the tool identifier.
 	Name() string
 
@@ -29,24 +29,24 @@ type ToolDef struct {
 
 // ToolRegistry holds available tools and looks them up by name.
 type ToolRegistry struct {
-	tools map[string]Tool
+	tools map[string]Interface
 }
 
-func NewToolRegistry(tools ...Tool) *ToolRegistry {
-	tr := &ToolRegistry{tools: make(map[string]Tool)}
+func NewToolRegistry(tools ...Interface) *ToolRegistry {
+	tr := &ToolRegistry{tools: make(map[string]Interface)}
 	for _, t := range tools {
 		tr.tools[t.Name()] = t
 	}
 	return tr
 }
 
-func (r *ToolRegistry) Get(name string) (Tool, bool) {
+func (r *ToolRegistry) Get(name string) (Interface, bool) {
 	t, ok := r.tools[name]
 	return t, ok
 }
 
-func (r *ToolRegistry) All() []Tool {
-	result := make([]Tool, 0, len(r.tools))
+func (r *ToolRegistry) All() []Interface {
+	result := make([]Interface, 0, len(r.tools))
 	for _, t := range r.tools {
 		result = append(result, t)
 	}

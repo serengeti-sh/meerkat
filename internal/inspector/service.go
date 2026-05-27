@@ -36,9 +36,9 @@ func WithRAGClient(client ragclient.Client) ServiceOption {
 type DatasourceRefs func() []analyzer.DatasourceRef
 
 type service struct {
-	analyzerSvc analyzer.AnalyzerService
+	analyzerSvc analyzer.Service
 	reportRepo  ReportRepository
-	reporterSvc reporter.ReporterService
+	reporterSvc reporter.Service
 	ragClient   ragclient.Client
 	dsRefs      DatasourceRefs
 	dedupWindow time.Duration
@@ -49,7 +49,7 @@ type service struct {
 	cancel      context.CancelFunc
 }
 
-var _ InspectorService = (*service)(nil)
+var _ Service = (*service)(nil)
 
 type analysisJob struct {
 	report *Report
@@ -57,15 +57,15 @@ type analysisJob struct {
 }
 
 func NewService(
-	analyzerSvc analyzer.AnalyzerService,
+	analyzerSvc analyzer.Service,
 	reportRepo ReportRepository,
-	reporterSvc reporter.ReporterService,
+	reporterSvc reporter.Service,
 	dsRefs DatasourceRefs,
 	dedupWindow time.Duration,
 	queueSize int,
 	workerCount int,
 	opts ...ServiceOption,
-) InspectorService {
+) Service {
 	if analyzerSvc == nil {
 		panic("inspector: analyzerSvc is required")
 	}

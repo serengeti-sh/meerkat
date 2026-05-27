@@ -3,27 +3,37 @@ package stream
 import (
 	"context"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/serengeti-sh/meerkat/internal/rag"
 )
 
+const (
+	defaultIngestWorkers = 10
+	ingestQueueFactor    = 2
+)
+
 // Processor consumes log entries from a Connector, indexes them into RAG,
 // and optionally triggers analysis when thresholds are breached.
 type Processor struct {
-	connector   *Connector
-	ragSvc     rag.Service
+	connector  *Connector
+	ragSvc    rag.Service
 	windowSize time.Duration
 	threshold  int
+	workers    int
+	ingestCh   chan rag.LogEntry
 }
 
 // NewProcessor creates a stream processor.
 func NewProcessor(conn *Connector, ragSvc rag.Service, windowSize time.Duration, threshold int) *Processor {
 	return &Processor{
-		connector:   conn,
-		ragSvc:     ragSvc,
+		connector:  conn,
+		ragSvc:    ragSvc,
 		windowSize: windowSize,
 		threshold:  threshold,
+		workers:    defaultIngestWorkers,
+		ingestCh:   make(chan rag.LogEntry, defaultIngestWorkers*ingestQueueFactor),
 	}
 }
 
@@ -31,11 +41,24 @@ func NewProcessor(conn *Connector, ragSvc rag.Service, windowSize time.Duration,
 func (p *Processor) Run(ctx context.Context, query string) error {
 	window := NewSlidingWindow(p.windowSize)
 
-	return p.connector.Subscribe(ctx, query, func(entry Entry) {
-		window.Add(time.UnixMilli(entry.Timestamp))
+	var wg sync.WaitGroup
+	for i := 0; i < p.workers; i++ {
+		wg.Add(1)
+		go p.worker(ctx, &wg)
+	}
+	defer func() {
+		close(p.ingestCh)
+		wg.Wait()
+	}()
 
-		// Index into RAG asynchronously.
-		go p.indexEntry(ctx, entry)
+	return p.connector.Subscribe(ctx, query, func(entry rag.LogEntry) {
+		window.Add(entry.Timestamp)
+
+		select {
+		case p.ingestCh <- entry:
+		default:
+			log.Printf("[stream] ingest queue full, dropping entry %s", entry.ID)
+		}
 
 		// Check threshold.
 		if window.Count() >= p.threshold {
@@ -45,17 +68,15 @@ func (p *Processor) Run(ctx context.Context, query string) error {
 	})
 }
 
-func (p *Processor) indexEntry(ctx context.Context, entry Entry) {
-	ragEntry := rag.LogEntry{
-		ID:        entry.ID,
-		Timestamp: time.UnixMilli(entry.Timestamp),
-		Service:   entry.Service,
-		Severity:  entry.Severity,
-		Body:      entry.Body,
-		Attributes: entry.Attributes,
+func (p *Processor) worker(ctx context.Context, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for entry := range p.ingestCh {
+		p.indexEntry(ctx, entry)
 	}
+}
 
-	_, err := p.ragSvc.Ingest(ctx, []rag.LogEntry{ragEntry})
+func (p *Processor) indexEntry(ctx context.Context, entry rag.LogEntry) {
+	_, err := p.ragSvc.Ingest(ctx, []rag.LogEntry{entry})
 	if err != nil {
 		log.Printf("[stream] failed to index entry %s: %v", entry.ID, err)
 	}

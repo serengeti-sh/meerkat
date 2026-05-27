@@ -14,8 +14,8 @@ const (
 	defaultMaxContextMessages = 50
 )
 
-// AnalyzerService defines the AI analysis service with agentic loop.
-type AnalyzerService interface {
+// Service defines the AI analysis service with agentic loop.
+type Service interface {
 	Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisResult, error)
 }
 
@@ -38,9 +38,9 @@ type service struct {
 	maxContextMsgs int
 }
 
-var _ AnalyzerService = (*service)(nil)
+var _ Service = (*service)(nil)
 
-func NewService(provider LLMProvider, toolRegistry *ToolRegistry, cfg ServiceConfig) *service {
+func NewService(provider LLMProvider, toolRegistry *ToolRegistry, cfg ServiceConfig) Service {
 	if provider == nil {
 		panic("analyzer: provider is required")
 	}

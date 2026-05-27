@@ -5,7 +5,7 @@ import (
 )
 
 // Tool is an interface for tools the LLM can invoke during the agent loop.
-type Tool = tool.Tool
+type Tool = tool.Interface
 
 // ToolRegistry holds available tools and looks them up by name.
 type ToolRegistry = tool.ToolRegistry

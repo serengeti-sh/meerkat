@@ -6,8 +6,8 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/config"
 )
 
-// New creates a VectorStore based on the configured driver.
-func New(cfg *config.Config) (VectorStore, error) {
+// New creates a Store based on the configured driver.
+func New(cfg *config.Config) (Store, error) {
 	switch cfg.VectorStore.Driver {
 	case "qdrant":
 		return NewQdrantClient(cfg)
