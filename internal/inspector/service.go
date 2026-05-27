@@ -140,7 +140,7 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 // fetchRAGContext extracts a service name from the webhook payload and queries
 // the RAG index for recent log entries. Returns empty string on error.
 func (s *service) fetchRAGContext(ctx context.Context, payload WebhookPayload) string {
-	service := extractServiceFromAlert(payload.Alert, payload.Message)
+	service := extractServiceFromAlert(payload.Alert, payload.Message, payload.Data)
 	if service == "" {
 		return ""
 	}
@@ -160,35 +160,6 @@ func (s *service) fetchRAGContext(ctx context.Context, payload WebhookPayload) s
 		fmt.Fprintf(&b, "[%s] %s: %s\n", r.Timestamp.Format(time.RFC3339), r.Severity, r.Body)
 	}
 	return b.String()
-}
-
-// extractServiceFromAlert attempts to find a service name in the alert or message.
-func extractServiceFromAlert(alert, message string) string {
-	// Simple heuristic: look for common service name patterns
-	// In production this would be more sophisticated (regex, known labels, etc.)
-	for _, text := range []string{alert, message} {
-		if text == "" {
-			continue
-		}
-		// Look for "service=" or "service:" patterns
-		if idx := strings.Index(text, "service="); idx != -1 {
-			start := idx + len("service=")
-			end := strings.IndexAny(text[start:], " \t\n,;}")
-			if end == -1 {
-				return text[start:]
-			}
-			return text[start : start+end]
-		}
-		if idx := strings.Index(text, "service:"); idx != -1 {
-			start := idx + len("service:")
-			end := strings.IndexAny(text[start:], " \t\n,;}")
-			if end == -1 {
-				return strings.TrimSpace(text[start:])
-			}
-			return strings.TrimSpace(text[start : start+end])
-		}
-	}
-	return ""
 }
 
 // enqueue is the shared logic for Inspect and InspectByWebhook.
