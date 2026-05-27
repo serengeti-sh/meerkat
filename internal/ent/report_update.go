@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
-	"github.com/serengeti-sh/meerkat/ent/predicate"
-	"github.com/serengeti-sh/meerkat/ent/report"
+	"github.com/serengeti-sh/meerkat/internal/ent/predicate"
+	"github.com/serengeti-sh/meerkat/internal/ent/report"
 )
 
 // ReportUpdate is the builder for updating Report entities.

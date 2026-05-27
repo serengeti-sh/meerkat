@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/serengeti-sh/meerkat/ent"
+	"github.com/serengeti-sh/meerkat/internal/ent"
 )
 
 // The ReportFunc type is an adapter to allow the use of ordinary

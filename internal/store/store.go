@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/serengeti-sh/meerkat/ent"
-	"github.com/serengeti-sh/meerkat/ent/migrate"
+	"github.com/serengeti-sh/meerkat/internal/ent"
+	"github.com/serengeti-sh/meerkat/internal/ent/migrate"
 
 	_ "github.com/lib/pq"
 	"github.com/serengeti-sh/meerkat/internal/config"

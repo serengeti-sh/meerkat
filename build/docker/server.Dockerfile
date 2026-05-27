@@ -9,11 +9,11 @@ ARG GIT_COMMIT=unknown
 FROM golang:1.26.1-alpine3.23 AS builder
 
 RUN apk add --no-cache \
-      git=2.52.0-r0 \
-      gcc=15.2.0-r2 \
-      musl-dev=1.2.5-r23 \
-      nodejs=24.14.1-r0 \
-      npm=11.11.0-r0
+      git \
+      gcc \
+      musl-dev \
+      nodejs \
+      npm
 
 WORKDIR /build
 
@@ -51,9 +51,9 @@ LABEL org.opencontainers.image.title="Meerkat Server" \
       org.opencontainers.image.source="https://github.com/serengeti-sh/meerkat"
 
 RUN apk add --no-cache \
-      ca-certificates=20260413-r0 \
-      tzdata=2026b-r0 \
-      curl=8.17.0-r1 && \
+      ca-certificates \
+      tzdata \
+      curl && \
     adduser -D -u 1001 meerkat
 
 WORKDIR /app

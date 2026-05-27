@@ -2,6 +2,7 @@ package collector
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -12,6 +13,8 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
+const defaultFlushTimeout = 30 * time.Second
+
 // Batcher buffers log entries and flushes them to the vector store.
 type Batcher struct {
 	embedder      embedder.Embedder
@@ -21,6 +24,8 @@ type Batcher struct {
 	mu            sync.Mutex
 	buffer        []LogEntry
 	stopCh        chan struct{}
+	stopOnce      sync.Once
+	wg            sync.WaitGroup
 }
 
 // NewBatcher creates a Batcher with the given configuration.
@@ -36,12 +41,16 @@ func NewBatcher(cfg *config.Config, emb embedder.Embedder, vs vectorstore.Vector
 
 // Start begins the background flush loop.
 func (b *Batcher) Start() {
+	b.wg.Add(1)
 	go b.loop()
 }
 
 // Stop halts the background flush loop and flushes any remaining entries.
 func (b *Batcher) Stop(ctx context.Context) {
-	close(b.stopCh)
+	b.stopOnce.Do(func() {
+		close(b.stopCh)
+	})
+	b.wg.Wait()
 	b.mu.Lock()
 	entries := make([]LogEntry, len(b.buffer))
 	copy(entries, b.buffer)
@@ -67,6 +76,7 @@ func (b *Batcher) Add(entry LogEntry) {
 }
 
 func (b *Batcher) loop() {
+	defer b.wg.Done()
 	ticker := time.NewTicker(b.flushInterval)
 	defer ticker.Stop()
 
@@ -91,7 +101,7 @@ func (b *Batcher) triggerFlush() {
 	b.buffer = b.buffer[:0]
 	b.mu.Unlock()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultFlushTimeout)
 	defer cancel()
 
 	if err := b.flush(ctx, entries); err != nil {
@@ -107,7 +117,7 @@ func (b *Batcher) flush(ctx context.Context, entries []LogEntry) error {
 
 	vectors, err := b.embedder.Embed(ctx, texts)
 	if err != nil {
-		return err
+		return fmt.Errorf("embed texts: %w", err)
 	}
 
 	records := make([]vectorstore.Record, len(entries))

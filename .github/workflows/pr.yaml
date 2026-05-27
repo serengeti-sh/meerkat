@@ -66,6 +66,7 @@ jobs:
         uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: build/docker/server.Dockerfile
+          config: .hadolint.yaml
 
   docker-build:
     name: Docker Build
@@ -166,9 +167,42 @@ jobs:
           files: cover-e2e.out
           fail_ci_if_error: false
 
+  trivy-scan:
+    name: Trivy Security Scan
+    needs: [docker-build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.0.0
+
+      - name: Build Docker image for scan
+        uses: docker/build-push-action@v7.0.0
+        with:
+          context: .
+          file: build/docker/server.Dockerfile
+          push: false
+          load: true
+          tags: meerkat-server:scan
+          cache-from: type=gha
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: meerkat-server:scan
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
   deploy-test:
     name: Deploy Test
-    needs: [docker-build, helm-lint]
+    needs: [docker-build, helm-lint, trivy-scan]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

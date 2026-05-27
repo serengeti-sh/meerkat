@@ -6,8 +6,17 @@ import (
 	"time"
 
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
-	apperrors "github.com/serengeti-sh/meerkat/internal/errors"
+	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
 )
+
+// InspectorService orchestrates inspections.
+type InspectorService interface {
+	Inspect(ctx context.Context, req InspectRequest) (*Report, apperrors.Error)
+	InspectByWebhook(ctx context.Context, payload WebhookPayload) (*Report, apperrors.Error)
+	GetReport(ctx context.Context, id string) (*Report, apperrors.Error)
+	ListReports(ctx context.Context, limit int) ([]*Report, apperrors.Error)
+	Stop()
+}
 
 // Severity type for reports.
 type Severity = analyzer.Severity
@@ -106,12 +115,4 @@ type ReportRepository interface {
 	GetByID(ctx context.Context, id string) (*Report, error)
 	List(ctx context.Context, limit int) ([]*Report, error)
 	FindActiveByQuery(ctx context.Context, trigger string, query string, since time.Time) (*Report, error)
-}
-
-// InspectorService orchestrates inspections.
-type InspectorService interface {
-	Inspect(ctx context.Context, req InspectRequest) (*Report, apperrors.Error)
-	InspectByWebhook(ctx context.Context, payload WebhookPayload) (*Report, apperrors.Error)
-	GetReport(ctx context.Context, id string) (*Report, apperrors.Error)
-	ListReports(ctx context.Context, limit int) ([]*Report, apperrors.Error)
 }

@@ -2,10 +2,10 @@
 // github.com/vektra/mockery
 // template: testify
 
-package errorsMocks
+package apperrorsmocks
 
 import (
-	"github.com/serengeti-sh/meerkat/internal/errors"
+	"github.com/serengeti-sh/meerkat/internal/apperrors"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -81,18 +81,18 @@ func (_c *ErrorMock_Error_Call) RunAndReturn(run func() string) *ErrorMock_Error
 }
 
 // Type provides a mock function for the type ErrorMock
-func (_mock *ErrorMock) Type() errors.ErrorType {
+func (_mock *ErrorMock) Type() apperrors.ErrorType {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for Type")
 	}
 
-	var r0 errors.ErrorType
-	if returnFunc, ok := ret.Get(0).(func() errors.ErrorType); ok {
+	var r0 apperrors.ErrorType
+	if returnFunc, ok := ret.Get(0).(func() apperrors.ErrorType); ok {
 		r0 = returnFunc()
 	} else {
-		r0 = ret.Get(0).(errors.ErrorType)
+		r0 = ret.Get(0).(apperrors.ErrorType)
 	}
 	return r0
 }
@@ -114,12 +114,12 @@ func (_c *ErrorMock_Type_Call) Run(run func()) *ErrorMock_Type_Call {
 	return _c
 }
 
-func (_c *ErrorMock_Type_Call) Return(errorType errors.ErrorType) *ErrorMock_Type_Call {
+func (_c *ErrorMock_Type_Call) Return(errorType apperrors.ErrorType) *ErrorMock_Type_Call {
 	_c.Call.Return(errorType)
 	return _c
 }
 
-func (_c *ErrorMock_Type_Call) RunAndReturn(run func() errors.ErrorType) *ErrorMock_Type_Call {
+func (_c *ErrorMock_Type_Call) RunAndReturn(run func() apperrors.ErrorType) *ErrorMock_Type_Call {
 	_c.Call.Return(run)
 	return _c
 }

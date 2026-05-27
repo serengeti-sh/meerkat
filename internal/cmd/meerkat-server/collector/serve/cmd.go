@@ -8,9 +8,8 @@ func NewCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "serve",
 		Short: "Start the meerkat collector server",
-		Run: func(cmd *cobra.Command, args []string) {
-			app := NewFXApp(cfgFile)
-			app.Run()
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return Run(cfgFile)
 		},
 	}
 

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -53,8 +54,9 @@ func (t *LokiTool) Parameters() json.RawMessage { return t.params }
 
 func (t *LokiTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
 	now := time.Now()
+	const defaultLogLimit = 50
 	q, err := argsToQueryParams(t.schema, args, url.Values{
-		"limit": {"50"},
+		"limit": {strconv.Itoa(defaultLogLimit)},
 		"start": {fmt.Sprintf("%d", now.Add(-time.Hour).UnixNano())},
 		"end":   {fmt.Sprintf("%d", now.UnixNano())},
 	})

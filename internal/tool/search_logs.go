@@ -68,11 +68,15 @@ func (t *searchLogsTool) Execute(ctx context.Context, args json.RawMessage) (str
 	if params.Query == "" {
 		return "", fmt.Errorf("query is required")
 	}
+	const (
+		defaultSearchLimit = 10
+		maxSearchLimit     = 100
+	)
 	if params.Limit <= 0 {
-		params.Limit = 10
+		params.Limit = defaultSearchLimit
 	}
-	if params.Limit > 100 {
-		params.Limit = 100
+	if params.Limit > maxSearchLimit {
+		params.Limit = maxSearchLimit
 	}
 
 	timeRange, err := time.ParseDuration(params.TimeRange)

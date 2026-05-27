@@ -3,6 +3,7 @@
 !.github
 !.mockery.yaml
 !.goreleaser.yaml
+!.hadolint.yaml
 cover*.out
 
 /bin

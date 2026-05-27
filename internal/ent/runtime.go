@@ -5,8 +5,8 @@ package ent
 import (
 	"time"
 
-	"github.com/serengeti-sh/meerkat/ent/report"
-	"github.com/serengeti-sh/meerkat/ent/schema"
+	"github.com/serengeti-sh/meerkat/internal/ent/report"
+	"github.com/serengeti-sh/meerkat/internal/ent/schema"
 )
 
 // The init function reads all schema descriptors with runtime code

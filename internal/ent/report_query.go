@@ -11,8 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/serengeti-sh/meerkat/ent/predicate"
-	"github.com/serengeti-sh/meerkat/ent/report"
+	"github.com/serengeti-sh/meerkat/internal/ent/predicate"
+	"github.com/serengeti-sh/meerkat/internal/ent/report"
 )
 
 // ReportQuery is the builder for querying Report entities.

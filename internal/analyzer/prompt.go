@@ -37,16 +37,6 @@ func LoadSystemPrompt(customPath string) (string, error) {
 	return trimmed, nil
 }
 
-// MustLoadSystemPrompt loads the system prompt and panics on error.
-// Use this during initialization to fail fast if the prompt is not configured.
-func MustLoadSystemPrompt(customPath string) string {
-	prompt, err := LoadSystemPrompt(customPath)
-	if err != nil {
-		panic(fmt.Sprintf("failed to load system prompt: %v", err))
-	}
-	return prompt
-}
-
 // LoadSkills loads skills from a YAML file.
 // Returns nil if the path is empty or the file doesn't exist.
 func LoadSkills(skillsPath string) ([]Skill, error) {
@@ -68,15 +58,6 @@ func LoadSkills(skillsPath string) ([]Skill, error) {
 	}
 
 	return skills, nil
-}
-
-// MustLoadSkills loads skills and panics on error.
-func MustLoadSkills(skillsPath string) []Skill {
-	skills, err := LoadSkills(skillsPath)
-	if err != nil {
-		panic(fmt.Sprintf("failed to load skills: %v", err))
-	}
-	return skills
 }
 
 // MergeSkillsIntoPrompt appends skills to the system prompt.
