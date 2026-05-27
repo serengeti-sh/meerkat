@@ -75,7 +75,7 @@ func TestRAGEndToEnd(t *testing.T) {
 	assert.NotEmpty(t, contextResults, "expected context results")
 }
 
-// mockEmbedder implements embedder.Embedder for E2E testing.
+// mockEmbedder implements embedder.Interface for E2E testing.
 type mockEmbedder struct {
 	vectors [][]float32
 	idx     int

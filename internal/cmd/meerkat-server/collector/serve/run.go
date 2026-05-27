@@ -30,18 +30,18 @@ func Run(cfgFile string) error {
 	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
 
 	// 3. Vector store (required as fallback even when using RAG)
-	vs, err := vectorstore.New(cfg)
+	vstore, err := vectorstore.New(cfg)
 	if err != nil {
 		return fmt.Errorf("create vector store: %w", err)
 	}
 	defer func() {
-		if err := vs.Close(); err != nil {
+		if err := vstore.Close(); err != nil {
 			log.Printf("failed to close vector store: %v", err)
 		}
 	}()
 
 	// 4. Batcher
-	batcher := collector.NewBatcher(cfg, emb, vs)
+	batcher := collector.NewBatcher(cfg, emb, vstore)
 
 	// 5. Optional RAG client for deduplicated ingestion
 	if cfg.RAG.Enabled && cfg.RAG.Address != "" {

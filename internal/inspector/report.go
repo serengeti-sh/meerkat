@@ -1,22 +1,10 @@
 package inspector
 
 import (
-	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
-	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
 )
-
-// Service orchestrates inspections.
-type Service interface {
-	Inspect(ctx context.Context, req InspectRequest) (*Report, apperrors.Error)
-	InspectByWebhook(ctx context.Context, payload WebhookPayload) (*Report, apperrors.Error)
-	GetReport(ctx context.Context, id string) (*Report, apperrors.Error)
-	ListReports(ctx context.Context, limit int) ([]*Report, apperrors.Error)
-	Stop()
-}
 
 // Severity type for reports.
 type Severity = analyzer.Severity
@@ -101,27 +89,3 @@ func (r *Report) Query() string         { return r.query }
 func (r *Report) Datasources() []string { return r.datasources }
 func (r *Report) Iterations() int       { return r.iterations }
 func (r *Report) CreatedAt() time.Time  { return r.createdAt }
-
-// InspectRequest is the input for a manual inspection.
-type InspectRequest struct {
-	MetricQuery string `json:"metric_query,omitempty"`
-	LogQuery    string `json:"log_query,omitempty"`
-	Query       string `json:"query,omitempty"` // natural language query
-}
-
-// WebhookPayload is the input for a webhook-triggered inspection.
-type WebhookPayload struct {
-	Source  string          `json:"source"` // grafana, custom
-	Alert   string          `json:"alert"`
-	Message string          `json:"message"`
-	Data    json.RawMessage `json:"data"`
-}
-
-// ReportRepository stores and retrieves reports.
-type ReportRepository interface {
-	Create(ctx context.Context, report *Report) error
-	Update(ctx context.Context, report *Report) error
-	GetByID(ctx context.Context, id string) (*Report, error)
-	List(ctx context.Context, limit int) ([]*Report, error)
-	FindActiveByQuery(ctx context.Context, trigger string, query string, since time.Time) (*Report, error)
-}

@@ -79,7 +79,7 @@ func TestOpenAIEmbedder_Embed_ServerError(t *testing.T) {
 }
 
 func TestOpenAIEmbedder_DefaultModel(t *testing.T) {
-	var e Embedder = newOpenAIEmbedder("key", "", "")
+	var e Interface = newOpenAIEmbedder("key", "", "")
 	oe := e.(*openAIEmbedder)
 	assert.Equal(t, "text-embedding-3-small", oe.model)
 }

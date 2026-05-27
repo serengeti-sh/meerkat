@@ -11,15 +11,15 @@ import (
 	resourcev1 "go.opentelemetry.io/proto/otlp/resource/v1"
 )
 
-// LogAdder accepts log entries for batching.
-type LogAdder interface {
+// LogSink accepts log entries for batching.
+type LogSink interface {
 	Add(entry LogEntry)
 }
 
 // otlpHandler implements the OTLP LogsServiceServer.
 type otlpHandler struct {
 	logsv1.UnimplementedLogsServiceServer
-	batcher LogAdder
+	batcher LogSink
 }
 
 func (h *otlpHandler) Export(ctx context.Context, req *logsv1.ExportLogsServiceRequest) (*logsv1.ExportLogsServiceResponse, error) {

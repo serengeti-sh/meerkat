@@ -1,4 +1,4 @@
-package stream_test
+package logstream_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/serengeti-sh/meerkat/internal/rag"
-	"github.com/serengeti-sh/meerkat/internal/stream"
+	"github.com/serengeti-sh/meerkat/internal/logstream"
 )
 
 // mockRAGService implements rag.Service for testing.
@@ -34,7 +34,7 @@ func (m *mockRAGService) GetContext(ctx context.Context, service string, start, 
 }
 
 func TestProcessor_SlidingWindow(t *testing.T) {
-	window := stream.NewSlidingWindow(5 * time.Second)
+	window := logstream.NewSlidingWindow(5 * time.Second)
 
 	now := time.Now()
 	window.Add(now)
@@ -52,7 +52,7 @@ func TestProcessor_SlidingWindow(t *testing.T) {
 func TestProcessor_ThresholdBreach(t *testing.T) {
 	// We can't easily test the full subscription without a real VM Logs instance,
 	// but we can verify the window logic directly.
-	window := stream.NewSlidingWindow(5 * time.Second)
+	window := logstream.NewSlidingWindow(5 * time.Second)
 
 	window.Add(time.Now())
 	window.Add(time.Now())
@@ -76,7 +76,7 @@ func TestProcessor_ContextCancellation(t *testing.T) {
 }
 
 func TestSlidingWindow_Eviction(t *testing.T) {
-	window := stream.NewSlidingWindow(2 * time.Second)
+	window := logstream.NewSlidingWindow(2 * time.Second)
 
 	now := time.Now()
 	window.Add(now.Add(-3 * time.Second))

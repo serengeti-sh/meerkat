@@ -24,7 +24,7 @@ type VictoriaLogsTool struct {
 }
 
 // NewVictoriaLogsTool creates a tool backed by one Victoria Logs endpoint.
-func NewVictoriaLogsTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
+func NewVictoriaLogsTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Interface, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 15 * time.Second}
 	}
@@ -175,4 +175,4 @@ func splitLines(s string) []string {
 	return lines
 }
 
-var _ Tool = (*VictoriaLogsTool)(nil)
+var _ Interface = (*VictoriaLogsTool)(nil)

@@ -14,11 +14,11 @@ import (
 type GRPCServer struct {
 	srv     *grpc.Server
 	addr    string
-	batcher LogAdder
+	batcher LogSink
 }
 
 // NewGRPCServer creates a GRPCServer with the given configuration.
-func NewGRPCServer(cfg *config.Config, batcher LogAdder) *GRPCServer {
+func NewGRPCServer(cfg *config.Config, batcher LogSink) *GRPCServer {
 	return &GRPCServer{
 		addr:    cfg.Collector.OTLPBindAddr,
 		batcher: batcher,

@@ -22,7 +22,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/ent"
-	"github.com/serengeti-sh/meerkat/internal/handler"
+	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
@@ -207,7 +207,7 @@ Respond with JSON only:
 	sched := scheduler.NewCronScheduler(inspectorSvc, cfg)
 
 	// HTTP handler
-	h := handler.NewHandler(inspectorSvc)
+	h := httphandler.New(inspectorSvc)
 
 	// Start HTTP server on random port
 	mux := http.NewServeMux()

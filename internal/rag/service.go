@@ -63,7 +63,7 @@ type SearchOptions struct {
 }
 
 type service struct {
-	embedder    embedder.Embedder
+	embedder    embedder.Interface
 	vectorStore vectorstore.Store
 	extractor   *Extractor
 	batchSize   int
@@ -72,17 +72,17 @@ type service struct {
 var _ Service = (*service)(nil)
 
 // NewService creates a Service with the given dependencies.
-func NewService(emb embedder.Embedder, vs vectorstore.Store) Service {
+func NewService(emb embedder.Interface, vstore vectorstore.Store) Service {
 	if emb == nil {
 		panic("rag: embedder is required")
 	}
-	if vs == nil {
+	if vstore == nil {
 		panic("rag: vectorStore is required")
 	}
 
 	return &service{
 		embedder:    emb,
-		vectorStore: vs,
+		vectorStore: vstore,
 		extractor:   NewExtractor(),
 		batchSize:   defaultIngestBatchSize,
 	}

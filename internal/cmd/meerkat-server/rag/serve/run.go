@@ -30,17 +30,17 @@ func Run(cfgFile string, port int) error {
 
 	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
 
-	vs, err := vectorstore.New(cfg)
+	vstore, err := vectorstore.New(cfg)
 	if err != nil {
 		return fmt.Errorf("create vector store: %w", err)
 	}
 	defer func() {
-		if err := vs.Close(); err != nil {
+		if err := vstore.Close(); err != nil {
 			log.Printf("failed to close vector store: %v", err)
 		}
 	}()
 
-	ragSvc := rag.NewService(emb, vs)
+	ragSvc := rag.NewService(emb, vstore)
 	ragServer := rag.NewGRPCServer(ragSvc)
 
 	grpcServer := grpc.NewServer()

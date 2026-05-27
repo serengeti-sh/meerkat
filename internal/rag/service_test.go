@@ -12,7 +12,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
-// mockEmbedder implements embedder.Embedder for testing.
+// mockEmbedder implements embedder.Interface for testing.
 type mockEmbedder struct {
 	vectors [][]float32
 	err     error

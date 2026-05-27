@@ -12,8 +12,8 @@ import (
 )
 
 // buildToolRegistry constructs the tool registry from configuration.
-func buildToolRegistry(cfg *config.Config, emb embedder.Embedder, vs vectorstore.Store) (*tool.Registry, error) {
-	var tools []tool.Tool
+func buildToolRegistry(cfg *config.Config, emb embedder.Interface, vstore vectorstore.Store) (*tool.Registry, error) {
+	var tools []tool.Interface
 
 	for _, pc := range cfg.Tools.Prometheus {
 		httpClient, err := tool.NewHTTPClient(pc.CAFile)
@@ -87,12 +87,12 @@ func buildToolRegistry(cfg *config.Config, emb embedder.Embedder, vs vectorstore
 		tools = append(tools, t)
 	}
 
-	if vs != nil {
-		tools = append(tools, tool.NewSearchLogsTool(emb, vs))
+	if vstore != nil {
+		tools = append(tools, tool.NewSearchLogsTool(emb, vstore))
 	}
 
-	if cfg.RAG.Enabled && vs != nil {
-		ragSvc := rag.NewService(emb, vs)
+	if cfg.RAG.Enabled && vstore != nil {
+		ragSvc := rag.NewService(emb, vstore)
 		tools = append(tools, tool.NewSearchRAGTool(ragSvc))
 	}
 

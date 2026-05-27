@@ -2,4 +2,4 @@
 //
 // It maps incoming requests to inspector.Service methods and translates domain
 // errors (apperrors.Error) to appropriate HTTP status codes.
-package handler
+package httphandler

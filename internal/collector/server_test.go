@@ -48,4 +48,4 @@ type mockBatcher struct{}
 
 func (b *mockBatcher) Add(entry collector.LogEntry) {}
 
-var _ collector.LogAdder = (*mockBatcher)(nil)
+var _ collector.LogSink = (*mockBatcher)(nil)

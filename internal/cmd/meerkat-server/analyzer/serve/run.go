@@ -15,7 +15,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
-	"github.com/serengeti-sh/meerkat/internal/handler"
+	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
@@ -61,21 +61,21 @@ func Run(cfgFile string, port int) error {
 	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
 
 	// 5. Vector store
-	var vs vectorstore.Store
+	var vstore vectorstore.Store
 	if cfg.VectorStore.Milvus.Address != "" {
-		vs, err = vectorstore.NewMilvusClient(cfg)
+		vstore, err = vectorstore.NewMilvusClient(cfg)
 		if err != nil {
 			return fmt.Errorf("create vector store: %w", err)
 		}
 		defer func() {
-			if err := vs.Close(); err != nil {
+			if err := vstore.Close(); err != nil {
 				log.Printf("failed to close vector store: %v", err)
 			}
 		}()
 	}
 
 	// 6. Tool registry
-	toolRegistry, err := buildToolRegistry(cfg, emb, vs)
+	toolRegistry, err := buildToolRegistry(cfg, emb, vstore)
 	if err != nil {
 		return fmt.Errorf("build tool registry: %w", err)
 	}
@@ -138,7 +138,7 @@ func Run(cfgFile string, port int) error {
 	sched := scheduler.NewCronScheduler(inspectorSvc, cfg)
 
 	// 14. HTTP handler
-	h := handler.NewHandler(inspectorSvc)
+	h := httphandler.New(inspectorSvc)
 
 	// 15. HTTP server
 	mux := http.NewServeMux()

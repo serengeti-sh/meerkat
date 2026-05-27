@@ -1,4 +1,4 @@
-package stream
+package logstream
 
 import (
 	"bufio"

@@ -1,6 +1,7 @@
-package handler
+package httphandler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -9,12 +10,21 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
 
-type Handler struct {
-	inspectorSvc inspector.Service
+// Inspector is the subset of inspector.Service that Handler requires.
+// Defined locally so Handler depends only on what it uses.
+type Inspector interface {
+	Inspect(ctx context.Context, req inspector.InspectRequest) (*inspector.Report, apperrors.Error)
+	InspectByWebhook(ctx context.Context, payload inspector.WebhookPayload) (*inspector.Report, apperrors.Error)
+	GetReport(ctx context.Context, id string) (*inspector.Report, apperrors.Error)
+	ListReports(ctx context.Context, limit int) ([]*inspector.Report, apperrors.Error)
 }
 
-func NewHandler(
-	inspectorSvc inspector.Service,
+type Handler struct {
+	inspectorSvc Inspector
+}
+
+func New(
+	inspectorSvc Inspector,
 ) *Handler {
 	if inspectorSvc == nil {
 		panic("handler: inspectorSvc is required")

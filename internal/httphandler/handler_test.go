@@ -1,4 +1,4 @@
-package handler_test
+package httphandler_test
 
 import (
 	"bytes"
@@ -12,14 +12,14 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/serengeti-sh/meerkat/internal/handler"
+	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	inspectorMocks "github.com/serengeti-sh/meerkat/internal/inspector/mocks"
 )
 
 func TestHandler_Health(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	h := handler.NewHandler(mockSvc)
+	h := httphandler.New(mockSvc)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -46,7 +46,7 @@ func TestHandler_Inspect(t *testing.T) {
 		nil,
 	)
 
-	h := handler.NewHandler(mockSvc)
+	h := httphandler.New(mockSvc)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -66,7 +66,7 @@ func TestHandler_Inspect(t *testing.T) {
 
 func TestHandler_Inspect_InvalidBody(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	h := handler.NewHandler(mockSvc)
+	h := httphandler.New(mockSvc)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -90,7 +90,7 @@ func TestHandler_Webhook(t *testing.T) {
 		nil,
 	)
 
-	h := handler.NewHandler(mockSvc)
+	h := httphandler.New(mockSvc)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -110,7 +110,7 @@ func TestHandler_Webhook(t *testing.T) {
 
 func TestHandler_Webhook_InvalidBody(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	h := handler.NewHandler(mockSvc)
+	h := httphandler.New(mockSvc)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -131,7 +131,7 @@ func TestHandler_ListReports(t *testing.T) {
 		nil,
 	)
 
-	h := handler.NewHandler(mockSvc)
+	h := httphandler.New(mockSvc)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -154,7 +154,7 @@ func TestHandler_ListReports_WithLimit(t *testing.T) {
 		nil,
 	)
 
-	h := handler.NewHandler(mockSvc)
+	h := httphandler.New(mockSvc)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -172,7 +172,7 @@ func TestHandler_GetReport(t *testing.T) {
 		nil,
 	)
 
-	h := handler.NewHandler(mockSvc)
+	h := httphandler.New(mockSvc)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
