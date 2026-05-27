@@ -6,7 +6,6 @@ package vectorstoremocks
 
 import (
 	"context"
-	"time"
 
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 	mock "github.com/stretchr/testify/mock"
@@ -83,6 +82,63 @@ func (_c *VectorStoreMock_Close_Call) RunAndReturn(run func() error) *VectorStor
 	return _c
 }
 
+// Delete provides a mock function for the type VectorStoreMock
+func (_mock *VectorStoreMock) Delete(ctx context.Context, ids []string) error {
+	ret := _mock.Called(ctx, ids)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Delete")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []string) error); ok {
+		r0 = returnFunc(ctx, ids)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// VectorStoreMock_Delete_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Delete'
+type VectorStoreMock_Delete_Call struct {
+	*mock.Call
+}
+
+// Delete is a helper method to define mock.On call
+//   - ctx context.Context
+//   - ids []string
+func (_e *VectorStoreMock_Expecter) Delete(ctx interface{}, ids interface{}) *VectorStoreMock_Delete_Call {
+	return &VectorStoreMock_Delete_Call{Call: _e.mock.On("Delete", ctx, ids)}
+}
+
+func (_c *VectorStoreMock_Delete_Call) Run(run func(ctx context.Context, ids []string)) *VectorStoreMock_Delete_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 []string
+		if args[1] != nil {
+			arg1 = args[1].([]string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *VectorStoreMock_Delete_Call) Return(err error) *VectorStoreMock_Delete_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *VectorStoreMock_Delete_Call) RunAndReturn(run func(ctx context.Context, ids []string) error) *VectorStoreMock_Delete_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Insert provides a mock function for the type VectorStoreMock
 func (_mock *VectorStoreMock) Insert(ctx context.Context, records []vectorstore.Record) error {
 	ret := _mock.Called(ctx, records)
@@ -141,8 +197,8 @@ func (_c *VectorStoreMock_Insert_Call) RunAndReturn(run func(ctx context.Context
 }
 
 // Search provides a mock function for the type VectorStoreMock
-func (_mock *VectorStoreMock) Search(ctx context.Context, vector []float32, limit int, timeRange time.Duration) ([]vectorstore.SearchResult, error) {
-	ret := _mock.Called(ctx, vector, limit, timeRange)
+func (_mock *VectorStoreMock) Search(ctx context.Context, vector []float32, opts vectorstore.SearchOptions) ([]vectorstore.SearchResult, error) {
+	ret := _mock.Called(ctx, vector, opts)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Search")
@@ -150,18 +206,18 @@ func (_mock *VectorStoreMock) Search(ctx context.Context, vector []float32, limi
 
 	var r0 []vectorstore.SearchResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []float32, int, time.Duration) ([]vectorstore.SearchResult, error)); ok {
-		return returnFunc(ctx, vector, limit, timeRange)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []float32, vectorstore.SearchOptions) ([]vectorstore.SearchResult, error)); ok {
+		return returnFunc(ctx, vector, opts)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []float32, int, time.Duration) []vectorstore.SearchResult); ok {
-		r0 = returnFunc(ctx, vector, limit, timeRange)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []float32, vectorstore.SearchOptions) []vectorstore.SearchResult); ok {
+		r0 = returnFunc(ctx, vector, opts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]vectorstore.SearchResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, []float32, int, time.Duration) error); ok {
-		r1 = returnFunc(ctx, vector, limit, timeRange)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []float32, vectorstore.SearchOptions) error); ok {
+		r1 = returnFunc(ctx, vector, opts)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -176,13 +232,12 @@ type VectorStoreMock_Search_Call struct {
 // Search is a helper method to define mock.On call
 //   - ctx context.Context
 //   - vector []float32
-//   - limit int
-//   - timeRange time.Duration
-func (_e *VectorStoreMock_Expecter) Search(ctx interface{}, vector interface{}, limit interface{}, timeRange interface{}) *VectorStoreMock_Search_Call {
-	return &VectorStoreMock_Search_Call{Call: _e.mock.On("Search", ctx, vector, limit, timeRange)}
+//   - opts vectorstore.SearchOptions
+func (_e *VectorStoreMock_Expecter) Search(ctx interface{}, vector interface{}, opts interface{}) *VectorStoreMock_Search_Call {
+	return &VectorStoreMock_Search_Call{Call: _e.mock.On("Search", ctx, vector, opts)}
 }
 
-func (_c *VectorStoreMock_Search_Call) Run(run func(ctx context.Context, vector []float32, limit int, timeRange time.Duration)) *VectorStoreMock_Search_Call {
+func (_c *VectorStoreMock_Search_Call) Run(run func(ctx context.Context, vector []float32, opts vectorstore.SearchOptions)) *VectorStoreMock_Search_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -192,19 +247,14 @@ func (_c *VectorStoreMock_Search_Call) Run(run func(ctx context.Context, vector 
 		if args[1] != nil {
 			arg1 = args[1].([]float32)
 		}
-		var arg2 int
+		var arg2 vectorstore.SearchOptions
 		if args[2] != nil {
-			arg2 = args[2].(int)
-		}
-		var arg3 time.Duration
-		if args[3] != nil {
-			arg3 = args[3].(time.Duration)
+			arg2 = args[2].(vectorstore.SearchOptions)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
 		)
 	})
 	return _c
@@ -215,7 +265,7 @@ func (_c *VectorStoreMock_Search_Call) Return(searchResults []vectorstore.Search
 	return _c
 }
 
-func (_c *VectorStoreMock_Search_Call) RunAndReturn(run func(ctx context.Context, vector []float32, limit int, timeRange time.Duration) ([]vectorstore.SearchResult, error)) *VectorStoreMock_Search_Call {
+func (_c *VectorStoreMock_Search_Call) RunAndReturn(run func(ctx context.Context, vector []float32, opts vectorstore.SearchOptions) ([]vectorstore.SearchResult, error)) *VectorStoreMock_Search_Call {
 	_c.Call.Return(run)
 	return _c
 }

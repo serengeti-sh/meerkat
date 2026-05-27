@@ -11,3 +11,6 @@ packages:
     config:
       all: true
       recursive: true
+  github.com/serengeti-sh/meerkat/pkg/ragclient:
+    config:
+      all: true
