@@ -175,6 +175,38 @@ reporter:
 	return nil
 }
 
+// StartWithRAG initializes the e2e suite with a RAG server configured.
+func (s *Suite) StartWithRAG(ctx context.Context, ragPort int) error {
+	if err := s.Start(ctx); err != nil {
+		return err
+	}
+	// Restart the server with RAG_ADDRESS env var
+	if s.serverCmd != nil && s.serverCmd.Process != nil {
+		_ = s.serverCmd.Process.Kill()
+		_ = s.serverCmd.Wait()
+	}
+
+	binaryPath := filepath.Join(s.tmpDir, "meerkat-server")
+	configPath := filepath.Join(s.tmpDir, "config.yaml")
+
+	s.serverCmd = exec.CommandContext(ctx, binaryPath, "analyzer", "serve", "--config", configPath)
+	s.serverCmd.Dir = s.tmpDir
+	s.serverCmd.Stdout = os.Stdout
+	s.serverCmd.Stderr = os.Stderr
+	s.serverCmd.Env = append(s.serverCmd.Environ(), fmt.Sprintf("RAG_ADDRESS=127.0.0.1:%d", ragPort))
+
+	if err := s.serverCmd.Start(); err != nil {
+		return fmt.Errorf("start meerkat-server with RAG: %w", err)
+	}
+
+	s.BaseURL = s.waitForServer(ctx, 30*time.Second)
+	if s.BaseURL == "" {
+		return fmt.Errorf("server failed to start within timeout")
+	}
+
+	return nil
+}
+
 func (s *Suite) waitForServer(ctx context.Context, timeout time.Duration) string {
 	url := "http://127.0.0.1:18080/v1/health"
 	deadline := time.Now().Add(timeout)
@@ -283,6 +315,8 @@ func writeSystemPrompt(t *testing.T, tmpDir string) string {
 When calling tools, use the EXACT tool name as provided. Do NOT invent tool names.
 If a tool call fails, do NOT guess. Report the failure honestly.
 If ALL datasources fail, set severity to "info" for resolved alerts or "warning" for firing alerts.
+
+When the context includes "=== Recent Log Context ===", use those log entries as supplementary evidence for root cause analysis.
 
 Respond with JSON only:
 {"severity": "info|warning|critical", "summary": "...", "detail": "..."}`

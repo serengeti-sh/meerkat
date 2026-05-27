@@ -1,0 +1,119 @@
+{{- if .Values.rag.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "meerkat.fullname" . }}-rag
+  labels:
+    {{- include "meerkat.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rag
+spec:
+  replicas: {{ .Values.rag.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "meerkat.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rag
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "meerkat.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: rag
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "meerkat.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: rag
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: {{ include "meerkat.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - rag
+            - serve
+            - --config
+            - /app/config/config.yaml
+          env:
+            {{- if or .Values.secrets.embedder.apiKey .Values.secrets.embedder.existingSecret }}
+            - name: EMBEDDER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.embedder.existingSecret | default (include "meerkat.fullname" .) }}
+                  key: {{ .Values.secrets.embedder.existingSecretKey | default "embedder-api-key" }}
+            {{- end }}
+            {{- if and .Values.secrets.milvus.existingSecret .Values.config.vector_store.milvus.auth.enabled }}
+            {{- if .Values.config.vector_store.milvus.auth.token }}
+            - name: MILVUS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.milvus.existingSecret }}
+                  key: {{ .Values.secrets.milvus.existingSecretKeyToken | default "milvus-token" }}
+            {{- else }}
+            - name: MILVUS_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.milvus.existingSecret }}
+                  key: {{ .Values.secrets.milvus.existingSecretKeyUser | default "milvus-user" }}
+            - name: MILVUS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.milvus.existingSecret }}
+                  key: {{ .Values.secrets.milvus.existingSecretKeyPassword | default "milvus-password" }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          ports:
+            - name: grpc
+              containerPort: {{ .Values.rag.service.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.rag.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "meerkat.fullname" . }}
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

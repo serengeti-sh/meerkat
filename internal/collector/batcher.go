@@ -11,14 +11,16 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
+	"github.com/serengeti-sh/meerkat/pkg/ragclient"
 )
 
 const defaultFlushTimeout = 30 * time.Second
 
-// Batcher buffers log entries and flushes them to the vector store.
+// Batcher buffers log entries and flushes them to the vector store or RAG server.
 type Batcher struct {
 	embedder      embedder.Embedder
 	vectorstore   vectorstore.VectorStore
+	ragClient     ragclient.Client
 	batchSize     int
 	flushInterval time.Duration
 	mu            sync.Mutex
@@ -39,6 +41,14 @@ func NewBatcher(cfg *config.Config, emb embedder.Embedder, vs vectorstore.Vector
 		flushInterval: cfg.Collector.FlushInterval,
 		stopCh:        make(chan struct{}),
 	}
+}
+
+// WithRAGClient configures the batcher to send logs to a RAG server instead of
+// directly to the vector store. The RAG server handles deduplication via its
+// Extractor (Drain algorithm) before embedding and storage.
+func (b *Batcher) WithRAGClient(client ragclient.Client) *Batcher {
+	b.ragClient = client
+	return b
 }
 
 // Start begins the background flush loop.
@@ -112,6 +122,36 @@ func (b *Batcher) triggerFlush() {
 }
 
 func (b *Batcher) flush(ctx context.Context, entries []LogEntry) error {
+	if b.ragClient != nil {
+		return b.flushToRAG(ctx, entries)
+	}
+	return b.flushToVectorStore(ctx, entries)
+}
+
+func (b *Batcher) flushToRAG(ctx context.Context, entries []LogEntry) error {
+	ragEntries := make([]ragclient.LogEntry, len(entries))
+	for i, e := range entries {
+		if e.ID == "" {
+			e.ID = uuid.New().String()
+		}
+		ragEntries[i] = ragclient.LogEntry{
+			ID:         e.ID,
+			Timestamp:  e.Timestamp,
+			Service:    e.Service,
+			Severity:   e.Severity,
+			Body:       e.Body,
+			Attributes: e.Attributes,
+		}
+	}
+
+	_, err := b.ragClient.Ingest(ctx, ragEntries)
+	if err != nil {
+		return fmt.Errorf("ingest to rag: %w", err)
+	}
+	return nil
+}
+
+func (b *Batcher) flushToVectorStore(ctx context.Context, entries []LogEntry) error {
 	texts := make([]string, len(entries))
 	for i, e := range entries {
 		texts[i] = e.Body

@@ -45,6 +45,10 @@ spec:
             - --config
             - /app/config/config.yaml
           env:
+            {{- if .Values.rag.enabled }}
+            - name: RAG_ADDRESS
+              value: {{ include "meerkat.fullname" . }}-rag:{{ .Values.rag.service.port }}
+            {{- end }}
             {{- if or .Values.secrets.database.password .Values.secrets.database.existingSecret }}
             - name: DATABASE_PASSWORD
               valueFrom:

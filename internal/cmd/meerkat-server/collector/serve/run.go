@@ -13,6 +13,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
+	"github.com/serengeti-sh/meerkat/pkg/ragclient"
 )
 
 const shutdownTimeout = 30 * time.Second
@@ -28,8 +29,8 @@ func Run(cfgFile string) error {
 	// 2. Embedder
 	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
 
-	// 3. Vector store
-	vs, err := vectorstore.NewMilvusClient(cfg)
+	// 3. Vector store (required as fallback even when using RAG)
+	vs, err := vectorstore.New(cfg)
 	if err != nil {
 		return fmt.Errorf("create vector store: %w", err)
 	}
@@ -42,7 +43,22 @@ func Run(cfgFile string) error {
 	// 4. Batcher
 	batcher := collector.NewBatcher(cfg, emb, vs)
 
-	// 5. gRPC server
+	// 5. Optional RAG client for deduplicated ingestion
+	if cfg.RAG.Enabled && cfg.RAG.Address != "" {
+		ragCli, err := ragclient.New(cfg.RAG.Address)
+		if err != nil {
+			return fmt.Errorf("create rag client: %w", err)
+		}
+		defer func() {
+			if err := ragCli.Close(); err != nil {
+				log.Printf("failed to close rag client: %v", err)
+			}
+		}()
+		batcher.WithRAGClient(ragCli)
+		log.Printf("[collector] connected to RAG server at %s", cfg.RAG.Address)
+	}
+
+	// 6. gRPC server
 	srv := collector.NewGRPCServer(cfg, batcher)
 
 	if err := srv.Start(); err != nil {

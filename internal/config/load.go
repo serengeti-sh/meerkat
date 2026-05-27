@@ -175,4 +175,5 @@ func bindEnvVars(v *viper.Viper) {
 	_ = v.BindEnv("vector_store.milvus.auth.user", "MILVUS_USER")
 	_ = v.BindEnv("vector_store.milvus.auth.password", "MILVUS_PASSWORD")
 	_ = v.BindEnv("vector_store.milvus.auth.token", "MILVUS_TOKEN")
+	_ = v.BindEnv("rag.address", "RAG_ADDRESS")
 }
