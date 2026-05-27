@@ -80,7 +80,7 @@ func (s *Suite) Start(ctx context.Context) error {
 		return fmt.Errorf("get postgres port: %w", err)
 	}
 	s.pgHost = pgHost
-	s.pgPort = pgPortNat.Int()
+	s.pgPort = int(pgPortNat.Num())
 
 	// 3. Start mock services
 	s.mockOpenAI = newMockOpenAIServer()

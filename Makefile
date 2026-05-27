@@ -60,8 +60,19 @@ mock: ## Generate mocks
 	@find ./internal -type d -name "mocks" -exec rm -rf {} + 2>/dev/null || true
 	mockery
 
+.PHONY: proto
+proto: ## Generate Go code from protobuf definitions
+	@mkdir -p internal/rag/ragpb
+	protoc \
+		--go_out=. \
+		--go_opt=paths=source_relative \
+		--go-grpc_out=. \
+		--go-grpc_opt=paths=source_relative \
+		api/proto/rag/v1/rag.proto
+	@mv api/proto/rag/v1/*.pb.go internal/rag/ragpb/
+
 .PHONY: gen
-gen: ent-gen ogen mock ## Generate all code (ent, ogen, mocks)
+gen: ent-gen proto ogen mock ## Generate all code (ent, proto, ogen, mocks)
 
 # Testing
 .PHONY: test
