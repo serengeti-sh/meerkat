@@ -11,11 +11,11 @@ import (
 
 // searchRAGTool searches the RAG pipeline for semantically similar log entries.
 type searchRAGTool struct {
-	ragSvc rag.RAGService
+	ragSvc rag.Service
 }
 
 // NewSearchRAGTool creates a tool that searches the RAG index.
-func NewSearchRAGTool(ragSvc rag.RAGService) Tool {
+func NewSearchRAGTool(ragSvc rag.Service) Tool {
 	return &searchRAGTool{ragSvc: ragSvc}
 }
 

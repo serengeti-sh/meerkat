@@ -29,7 +29,7 @@ var (
 	}
 )
 
-// template represents a log template extracted by Drain.
+// template represents a log template extracted by Extractor.
 type template struct {
 	tokens     []string
 	count      int
@@ -37,18 +37,18 @@ type template struct {
 	parameters []string
 }
 
-// Drain extracts log templates using a simplified Drain algorithm.
+// Extractor extracts log templates using a simplified Drain algorithm.
 // It groups similar log messages into templates, replacing parameters
 // with wildcards.
-type Drain struct {
+type Extractor struct {
 	mu         sync.RWMutex
 	templates  []template
 	threshold  float64
 }
 
-// NewDrain creates a new Drain instance with default settings.
-func NewDrain() *Drain {
-	return &Drain{
+// NewExtractor creates a new Extractor instance with default settings.
+func NewExtractor() *Extractor {
+	return &Extractor{
 		templates: make([]template, 0),
 		threshold: defaultSimilarityThreshold,
 	}
@@ -56,7 +56,7 @@ func NewDrain() *Drain {
 
 // Extract processes a log message and returns its template.
 // If a matching template exists, it is updated; otherwise a new one is created.
-func (d *Drain) Extract(message string) (tmpl string, isNew bool) {
+func (d *Extractor) Extract(message string) (tmpl string, isNew bool) {
 	tokens := tokenize(message)
 	if len(tokens) == 0 {
 		return message, true
@@ -98,7 +98,7 @@ func (d *Drain) Extract(message string) (tmpl string, isNew bool) {
 }
 
 // Templates returns all extracted templates.
-func (d *Drain) Templates() []string {
+func (d *Extractor) Templates() []string {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
@@ -110,7 +110,7 @@ func (d *Drain) Templates() []string {
 }
 
 // Reset clears all extracted templates.
-func (d *Drain) Reset() {
+func (d *Extractor) Reset() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.templates = d.templates[:0]

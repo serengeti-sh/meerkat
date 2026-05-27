@@ -183,10 +183,11 @@ type QdrantConfig struct {
 }
 
 type RAGConfig struct {
-	Enabled           bool          `mapstructure:"enabled"`
-	IngestBatchSize   int           `mapstructure:"ingest_batch_size"`
-	SimilarityThreshold float64     `mapstructure:"similarity_threshold"`
-	MaxContextLogs    int           `mapstructure:"max_context_logs"`
+	Enabled             bool          `mapstructure:"enabled"`
+	Port                int           `mapstructure:"port"`
+	IngestBatchSize     int           `mapstructure:"ingest_batch_size"`
+	SimilarityThreshold float64       `mapstructure:"similarity_threshold"`
+	MaxContextLogs      int           `mapstructure:"max_context_logs"`
 }
 
 type MilvusConfig struct {

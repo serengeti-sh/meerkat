@@ -7,26 +7,38 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/rag/ragpb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// GRPCServer implements the ragpb.RAGServiceServer interface.
-type GRPCServer struct {
+// Server implements the ragpb.RAGServiceServer interface.
+type Server struct {
 	ragpb.UnimplementedRAGServiceServer
-	svc RAGService
+	svc Service
 }
 
-var _ ragpb.RAGServiceServer = (*GRPCServer)(nil)
+var _ ragpb.RAGServiceServer = (*Server)(nil)
 
-// NewGRPCServer creates a gRPC server for the RAG service.
-func NewGRPCServer(svc RAGService) *GRPCServer {
+// NewServer creates a gRPC server for the RAG service.
+func NewServer(svc Service) *Server {
 	if svc == nil {
 		panic("rag: svc is required")
 	}
-	return &GRPCServer{svc: svc}
+	return &Server{svc: svc}
+}
+
+func toProto(r SearchResult) *ragpb.SearchResult {
+	return &ragpb.SearchResult{
+		Id:        r.ID,
+		Score:     r.Score,
+		Body:      r.Body,
+		Service:   r.Service,
+		Severity:  r.Severity,
+		Timestamp: timestamppb.New(r.Timestamp),
+	}
 }
 
 // Ingest adds log entries to the vector store.
-func (s *GRPCServer) Ingest(ctx context.Context, req *ragpb.IngestRequest) (*ragpb.IngestResponse, error) {
+func (s *Server) Ingest(ctx context.Context, req *ragpb.IngestRequest) (*ragpb.IngestResponse, error) {
 	entries := make([]LogEntry, len(req.Entries))
 	for i, e := range req.Entries {
 		entries[i] = LogEntry{
@@ -51,7 +63,7 @@ func (s *GRPCServer) Ingest(ctx context.Context, req *ragpb.IngestRequest) (*rag
 }
 
 // Search finds semantically similar log entries.
-func (s *GRPCServer) Search(ctx context.Context, req *ragpb.SearchRequest) (*ragpb.SearchResponse, error) {
+func (s *Server) Search(ctx context.Context, req *ragpb.SearchRequest) (*ragpb.SearchResponse, error) {
 	opts := SearchOptions{
 		Limit:     int(req.Limit),
 		TimeRange: time.Duration(req.TimeRangeSeconds) * time.Second,
@@ -72,14 +84,14 @@ func (s *GRPCServer) Search(ctx context.Context, req *ragpb.SearchRequest) (*rag
 
 	protoResults := make([]*ragpb.SearchResult, len(results))
 	for i, r := range results {
-		protoResults[i] = r.ToProto()
+		protoResults[i] = toProto(r)
 	}
 
 	return &ragpb.SearchResponse{Results: protoResults}, nil
 }
 
 // GetContext retrieves relevant log context for a given service and time range.
-func (s *GRPCServer) GetContext(ctx context.Context, req *ragpb.GetContextRequest) (*ragpb.GetContextResponse, error) {
+func (s *Server) GetContext(ctx context.Context, req *ragpb.GetContextRequest) (*ragpb.GetContextResponse, error) {
 	results, err := s.svc.GetContext(
 		ctx,
 		req.Service,
@@ -96,7 +108,7 @@ func (s *GRPCServer) GetContext(ctx context.Context, req *ragpb.GetContextReques
 
 	protoResults := make([]*ragpb.SearchResult, len(results))
 	for i, r := range results {
-		protoResults[i] = r.ToProto()
+		protoResults[i] = toProto(r)
 	}
 
 	return &ragpb.GetContextResponse{Results: protoResults}, nil

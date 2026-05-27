@@ -11,7 +11,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/stream"
 )
 
-// mockRAGService implements rag.RAGService for testing.
+// mockRAGService implements rag.Service for testing.
 type mockRAGService struct {
 	ingested []rag.LogEntry
 	err      error
@@ -37,15 +37,15 @@ func TestProcessor_SlidingWindow(t *testing.T) {
 	window := stream.NewSlidingWindow(5 * time.Second)
 
 	now := time.Now()
-	window.Add(stream.Entry{Timestamp: now.UnixMilli()})
-	window.Add(stream.Entry{Timestamp: now.UnixMilli()})
-	window.Add(stream.Entry{Timestamp: now.UnixMilli()})
+	window.Add(now)
+	window.Add(now)
+	window.Add(now)
 
 	assert.Equal(t, 3, window.Count())
 
 	// Wait for window to expire
 	time.Sleep(6 * time.Second)
-	window.Add(stream.Entry{Timestamp: time.Now().UnixMilli()})
+	window.Add(time.Now())
 	assert.Equal(t, 1, window.Count())
 }
 
@@ -54,11 +54,11 @@ func TestProcessor_ThresholdBreach(t *testing.T) {
 	// but we can verify the window logic directly.
 	window := stream.NewSlidingWindow(5 * time.Second)
 
-	window.Add(stream.Entry{Timestamp: time.Now().UnixMilli()})
-	window.Add(stream.Entry{Timestamp: time.Now().UnixMilli()})
+	window.Add(time.Now())
+	window.Add(time.Now())
 	assert.False(t, window.Count() >= 3)
 
-	window.Add(stream.Entry{Timestamp: time.Now().UnixMilli()})
+	window.Add(time.Now())
 	assert.True(t, window.Count() >= 3)
 }
 
@@ -79,9 +79,9 @@ func TestSlidingWindow_Eviction(t *testing.T) {
 	window := stream.NewSlidingWindow(2 * time.Second)
 
 	now := time.Now()
-	window.Add(stream.Entry{Timestamp: now.Add(-3 * time.Second).UnixMilli()})
-	window.Add(stream.Entry{Timestamp: now.Add(-2 * time.Second).UnixMilli()})
-	window.Add(stream.Entry{Timestamp: now.UnixMilli()})
+	window.Add(now.Add(-3 * time.Second))
+	window.Add(now.Add(-2 * time.Second))
+	window.Add(now)
 
 	// The eviction uses the latest entry's timestamp as reference.
 	// Entries older than (latest - duration) are evicted.

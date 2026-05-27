@@ -12,13 +12,13 @@ import (
 // and optionally triggers analysis when thresholds are breached.
 type Processor struct {
 	connector   *Connector
-	ragSvc     rag.RAGService
+	ragSvc     rag.Service
 	windowSize time.Duration
 	threshold  int
 }
 
 // NewProcessor creates a stream processor.
-func NewProcessor(conn *Connector, ragSvc rag.RAGService, windowSize time.Duration, threshold int) *Processor {
+func NewProcessor(conn *Connector, ragSvc rag.Service, windowSize time.Duration, threshold int) *Processor {
 	return &Processor{
 		connector:   conn,
 		ragSvc:     ragSvc,
@@ -32,7 +32,7 @@ func (p *Processor) Run(ctx context.Context, query string) error {
 	window := NewSlidingWindow(p.windowSize)
 
 	return p.connector.Subscribe(ctx, query, func(entry Entry) {
-		window.Add(entry)
+		window.Add(time.UnixMilli(entry.Timestamp))
 
 		// Index into RAG asynchronously.
 		go p.indexEntry(ctx, entry)
@@ -72,10 +72,9 @@ func NewSlidingWindow(duration time.Duration) *slidingWindow {
 	return &slidingWindow{duration: duration}
 }
 
-func (w *slidingWindow) Add(entry Entry) {
-	now := time.UnixMilli(entry.Timestamp)
-	w.entries = append(w.entries, now)
-	w.evict(now)
+func (w *slidingWindow) Add(t time.Time) {
+	w.entries = append(w.entries, t)
+	w.evict(t)
 }
 
 func (w *slidingWindow) Count() int {

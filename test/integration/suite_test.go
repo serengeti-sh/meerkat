@@ -109,7 +109,7 @@ Respond with JSON only:
 	if err != nil {
 		return fmt.Errorf("get postgres port: %w", err)
 	}
-	pgPort := pgPortNat.Int()
+	pgPort := pgPortNat.Num()
 
 	// 2. Start mock Prometheus
 	s.MockPrometheus = mock.NewMockPrometheus()
@@ -130,7 +130,7 @@ Respond with JSON only:
 		Store: config.StoreConfig{
 			Driver:   "postgres",
 			Host:     pgHost,
-			Port:     pgPort,
+			Port:     int(pgPort),
 			Name:     "meerkat_test",
 			User:     "meerkat",
 			Password: "meerkat",

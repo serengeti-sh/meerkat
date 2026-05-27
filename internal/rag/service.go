@@ -7,9 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
-	"github.com/serengeti-sh/meerkat/internal/rag/ragpb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const (
@@ -18,8 +16,8 @@ const (
 	maxSearchLimit         = 100
 )
 
-// RAGService provides log ingestion and semantic search for AI analysis.
-type RAGService interface {
+// Service provides log ingestion and semantic search for AI analysis.
+type Service interface {
 	// Ingest adds log entries to the vector store after template extraction.
 	Ingest(ctx context.Context, entries []LogEntry) (*IngestResult, error)
 
@@ -67,14 +65,14 @@ type SearchOptions struct {
 type service struct {
 	embedder     embedder.Embedder
 	vectorStore  vectorstore.VectorStore
-	drain        *Drain
+	extractor    *Extractor
 	batchSize    int
 }
 
-var _ RAGService = (*service)(nil)
+var _ Service = (*service)(nil)
 
-// NewService creates a RAGService with the given dependencies.
-func NewService(emb embedder.Embedder, vs vectorstore.VectorStore) RAGService {
+// NewService creates a Service with the given dependencies.
+func NewService(emb embedder.Embedder, vs vectorstore.VectorStore) Service {
 	if emb == nil {
 		panic("rag: embedder is required")
 	}
@@ -85,7 +83,7 @@ func NewService(emb embedder.Embedder, vs vectorstore.VectorStore) RAGService {
 	return &service{
 		embedder:    emb,
 		vectorStore: vs,
-		drain:       NewDrain(),
+		extractor:   NewExtractor(),
 		batchSize:   defaultIngestBatchSize,
 	}
 }
@@ -102,7 +100,7 @@ func (s *service) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult
 	)
 
 	for _, entry := range entries {
-		template, isNew := s.drain.Extract(entry.Body)
+		template, isNew := s.extractor.Extract(entry.Body)
 		if !isNew {
 			deduplicated++
 			continue
@@ -257,14 +255,4 @@ func (s *service) GetContext(ctx context.Context, service string, start, end tim
 	return out, nil
 }
 
-// ToProto converts a SearchResult to its protobuf representation.
-func (r SearchResult) ToProto() *ragpb.SearchResult {
-	return &ragpb.SearchResult{
-		Id:        r.ID,
-		Score:     r.Score,
-		Body:      r.Body,
-		Service:   r.Service,
-		Severity:  r.Severity,
-		Timestamp: timestamppb.New(r.Timestamp),
-	}
-}
+

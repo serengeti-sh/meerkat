@@ -18,6 +18,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/handler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
+	"github.com/serengeti-sh/meerkat/internal/rag"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
 	"github.com/serengeti-sh/meerkat/internal/store"
@@ -290,6 +291,11 @@ func buildToolRegistry(cfg *config.Config, emb embedder.Embedder, vs vectorstore
 
 	if vs != nil {
 		tools = append(tools, tool.NewSearchLogsTool(emb, vs))
+	}
+
+	if cfg.RAG.Enabled && vs != nil {
+		ragSvc := rag.NewService(emb, vs)
+		tools = append(tools, tool.NewSearchRAGTool(ragSvc))
 	}
 
 	return analyzer.NewToolRegistry(tools...), nil

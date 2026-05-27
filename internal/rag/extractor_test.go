@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDrain_Extract(t *testing.T) {
-	d := NewDrain()
+func TestExtractor_Extract(t *testing.T) {
+	d := NewExtractor()
 
 	// First message creates a new template
 	tmpl1, isNew1 := d.Extract("connection refused to database")
@@ -35,8 +35,8 @@ func TestDrain_Extract(t *testing.T) {
 	assert.Equal(t, "user <*> logged in from <*>", tmpl5)
 }
 
-func TestDrain_Templates(t *testing.T) {
-	d := NewDrain()
+func TestExtractor_Templates(t *testing.T) {
+	d := NewExtractor()
 
 	d.Extract("error: connection failed")
 	d.Extract("error: timeout occurred")
@@ -49,8 +49,8 @@ func TestDrain_Templates(t *testing.T) {
 	assert.Contains(t, templates, "warning low memory")
 }
 
-func TestDrain_Reset(t *testing.T) {
-	d := NewDrain()
+func TestExtractor_Reset(t *testing.T) {
+	d := NewExtractor()
 
 	d.Extract("error: something failed")
 	assert.Len(t, d.Templates(), 1)
@@ -59,8 +59,8 @@ func TestDrain_Reset(t *testing.T) {
 	assert.Len(t, d.Templates(), 0)
 }
 
-func TestDrain_EmptyMessage(t *testing.T) {
-	d := NewDrain()
+func TestExtractor_EmptyMessage(t *testing.T) {
+	d := NewExtractor()
 
 	tmpl, isNew := d.Extract("")
 	assert.True(t, isNew)

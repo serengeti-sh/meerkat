@@ -58,7 +58,7 @@ func (m *mockVectorStore) Search(ctx context.Context, vector []float32, opts vec
 func (m *mockVectorStore) Delete(ctx context.Context, ids []string) error { return nil }
 func (m *mockVectorStore) Close() error                                    { return nil }
 
-func TestRAGService_Ingest(t *testing.T) {
+func TestService_Ingest(t *testing.T) {
 	tests := []struct {
 		name     string
 		entries  []rag.LogEntry
@@ -118,7 +118,7 @@ func TestRAGService_Ingest(t *testing.T) {
 	}
 }
 
-func TestRAGService_Search(t *testing.T) {
+func TestService_Search(t *testing.T) {
 	emb := &mockEmbedder{vectors: [][]float32{{0.1}}}
 	vs := &mockVectorStore{
 		results: []vectorstore.SearchResult{
@@ -147,7 +147,7 @@ func TestRAGService_Search(t *testing.T) {
 	})
 }
 
-func TestRAGService_GetContext(t *testing.T) {
+func TestService_GetContext(t *testing.T) {
 	emb := &mockEmbedder{vectors: [][]float32{{0.1}}}
 	vs := &mockVectorStore{
 		results: []vectorstore.SearchResult{
@@ -171,7 +171,7 @@ func TestRAGService_GetContext(t *testing.T) {
 	})
 }
 
-func TestRAGService_Ingest_ErrorCases(t *testing.T) {
+func TestService_Ingest_ErrorCases(t *testing.T) {
 	t.Run("embedder error", func(t *testing.T) {
 		emb := &mockEmbedder{err: assert.AnError}
 		vs := &mockVectorStore{}
