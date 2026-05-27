@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/serengeti-sh/meerkat/internal/tool"
 )
 
 const (
@@ -30,7 +32,7 @@ type ServiceConfig struct {
 
 type service struct {
 	provider       LLMProvider
-	toolRegistry   *ToolRegistry
+	toolRegistry   *tool.Registry
 	maxIterations  int
 	systemPrompt   string
 	maxToolResult  int
@@ -40,7 +42,7 @@ type service struct {
 
 var _ Service = (*service)(nil)
 
-func NewService(provider LLMProvider, toolRegistry *ToolRegistry, cfg ServiceConfig) Service {
+func NewService(provider LLMProvider, toolRegistry *tool.Registry, cfg ServiceConfig) Service {
 	if provider == nil {
 		panic("analyzer: provider is required")
 	}

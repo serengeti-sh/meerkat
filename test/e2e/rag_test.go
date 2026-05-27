@@ -117,4 +117,4 @@ func (m *inMemoryVectorStore) Search(ctx context.Context, vector []float32, opts
 }
 
 func (m *inMemoryVectorStore) Delete(ctx context.Context, ids []string) error { return nil }
-func (m *inMemoryVectorStore) Close() error                                    { return nil }
+func (m *inMemoryVectorStore) Close() error                                   { return nil }

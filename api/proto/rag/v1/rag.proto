@@ -6,8 +6,8 @@ option go_package = "github.com/serengeti-sh/meerkat/pkg/ragpb";
 
 import "google/protobuf/timestamp.proto";
 
-// RAGService provides log ingestion and semantic search for AI analysis.
-service RAGService {
+// Service provides log ingestion and semantic search for AI analysis.
+service Service {
   // Ingest adds log entries to the vector store after template extraction.
   rpc Ingest(IngestRequest) returns (IngestResponse);
 

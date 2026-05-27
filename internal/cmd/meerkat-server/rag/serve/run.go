@@ -13,8 +13,8 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
 	"github.com/serengeti-sh/meerkat/internal/rag"
-	"github.com/serengeti-sh/meerkat/pkg/ragpb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
+	"github.com/serengeti-sh/meerkat/pkg/ragpb"
 )
 
 // Run starts the RAG gRPC server.
@@ -41,10 +41,10 @@ func Run(cfgFile string, port int) error {
 	}()
 
 	ragSvc := rag.NewService(emb, vs)
-	ragServer := rag.NewServer(ragSvc)
+	ragServer := rag.NewGRPCServer(ragSvc)
 
 	grpcServer := grpc.NewServer()
-	ragpb.RegisterRAGServiceServer(grpcServer, ragServer)
+	ragpb.RegisterServiceServer(grpcServer, ragServer)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.RAG.Port))
 	if err != nil {

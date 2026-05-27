@@ -15,7 +15,7 @@ type searchRAGTool struct {
 }
 
 // NewSearchRAGTool creates a tool that searches the RAG index.
-func NewSearchRAGTool(ragSvc rag.Service) Interface {
+func NewSearchRAGTool(ragSvc rag.Service) Tool {
 	return &searchRAGTool{ragSvc: ragSvc}
 }
 
@@ -110,4 +110,4 @@ func (t *searchRAGTool) Execute(ctx context.Context, args json.RawMessage) (stri
 	return string(out), nil
 }
 
-var _ Interface = (*searchRAGTool)(nil)
+var _ Tool = (*searchRAGTool)(nil)

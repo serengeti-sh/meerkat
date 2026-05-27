@@ -40,8 +40,8 @@ type LogEntry struct {
 
 // IngestResult contains the outcome of an ingestion operation.
 type IngestResult struct {
-	IngestedCount      int
-	DeduplicatedCount  int
+	IngestedCount     int
+	DeduplicatedCount int
 }
 
 // SearchResult represents a single matching log entry.
@@ -63,10 +63,10 @@ type SearchOptions struct {
 }
 
 type service struct {
-	embedder     embedder.Embedder
-	vectorStore  vectorstore.Store
-	extractor    *Extractor
-	batchSize    int
+	embedder    embedder.Embedder
+	vectorStore vectorstore.Store
+	extractor   *Extractor
+	batchSize   int
 }
 
 var _ Service = (*service)(nil)
@@ -252,5 +252,3 @@ func (s *service) GetContext(ctx context.Context, service string, start, end tim
 
 	return out, nil
 }
-
-

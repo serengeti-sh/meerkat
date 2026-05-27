@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/serengeti-sh/meerkat/internal/tool"
 )
 
 const (
@@ -40,8 +42,8 @@ type ToolCall struct {
 
 // CompletionRequest is sent to the LLM provider.
 type CompletionRequest struct {
-	Messages []Message `json:"messages"`
-	Tools    []ToolDef `json:"tools,omitempty"`
+	Messages []Message  `json:"messages"`
+	Tools    []tool.Def `json:"tools,omitempty"`
 }
 
 // CompletionResponse is returned from the LLM provider.

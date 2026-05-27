@@ -18,7 +18,7 @@ const (
 // and optionally triggers analysis when thresholds are breached.
 type Processor struct {
 	connector  *Connector
-	ragSvc    rag.Service
+	ragSvc     rag.Service
 	windowSize time.Duration
 	threshold  int
 	workers    int
@@ -29,7 +29,7 @@ type Processor struct {
 func NewProcessor(conn *Connector, ragSvc rag.Service, windowSize time.Duration, threshold int) *Processor {
 	return &Processor{
 		connector:  conn,
-		ragSvc:    ragSvc,
+		ragSvc:     ragSvc,
 		windowSize: windowSize,
 		threshold:  threshold,
 		workers:    defaultIngestWorkers,

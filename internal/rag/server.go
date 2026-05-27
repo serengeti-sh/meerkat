@@ -10,20 +10,20 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// Server implements the ragpb.RAGServiceServer interface.
-type Server struct {
-	ragpb.UnimplementedRAGServiceServer
+// GRPCServer implements the ragpb.ServiceServer interface.
+type GRPCServer struct {
+	ragpb.UnimplementedServiceServer
 	svc Service
 }
 
-var _ ragpb.RAGServiceServer = (*Server)(nil)
+var _ ragpb.ServiceServer = (*GRPCServer)(nil)
 
-// NewServer creates a gRPC server for the RAG service.
-func NewServer(svc Service) *Server {
+// NewGRPCServer creates a gRPC server for the RAG service.
+func NewGRPCServer(svc Service) *GRPCServer {
 	if svc == nil {
 		panic("rag: svc is required")
 	}
-	return &Server{svc: svc}
+	return &GRPCServer{svc: svc}
 }
 
 func toProto(r SearchResult) *ragpb.SearchResult {
@@ -38,7 +38,7 @@ func toProto(r SearchResult) *ragpb.SearchResult {
 }
 
 // Ingest adds log entries to the vector store.
-func (s *Server) Ingest(ctx context.Context, req *ragpb.IngestRequest) (*ragpb.IngestResponse, error) {
+func (s *GRPCServer) Ingest(ctx context.Context, req *ragpb.IngestRequest) (*ragpb.IngestResponse, error) {
 	entries := make([]LogEntry, len(req.Entries))
 	for i, e := range req.Entries {
 		entries[i] = LogEntry{
@@ -63,7 +63,7 @@ func (s *Server) Ingest(ctx context.Context, req *ragpb.IngestRequest) (*ragpb.I
 }
 
 // Search finds semantically similar log entries.
-func (s *Server) Search(ctx context.Context, req *ragpb.SearchRequest) (*ragpb.SearchResponse, error) {
+func (s *GRPCServer) Search(ctx context.Context, req *ragpb.SearchRequest) (*ragpb.SearchResponse, error) {
 	opts := SearchOptions{
 		Limit:     int(req.Limit),
 		TimeRange: time.Duration(req.TimeRangeSeconds) * time.Second,
@@ -91,7 +91,7 @@ func (s *Server) Search(ctx context.Context, req *ragpb.SearchRequest) (*ragpb.S
 }
 
 // GetContext retrieves relevant log context for a given service and time range.
-func (s *Server) GetContext(ctx context.Context, req *ragpb.GetContextRequest) (*ragpb.GetContextResponse, error) {
+func (s *GRPCServer) GetContext(ctx context.Context, req *ragpb.GetContextRequest) (*ragpb.GetContextResponse, error) {
 	results, err := s.svc.GetContext(
 		ctx,
 		req.Service,

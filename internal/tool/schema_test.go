@@ -9,9 +9,9 @@ import (
 
 func TestSchemaFiles_ValidJSON(t *testing.T) {
 	files := []string{
-		"../../resources/schemas/prometheus.json",
-		"../../resources/schemas/loki.json",
-		"../../resources/schemas/victorialogs.json",
+		"schemas/prometheus.json",
+		"schemas/loki.json",
+		"schemas/victorialogs.json",
 	}
 
 	for _, path := range files {
@@ -26,7 +26,7 @@ func TestSchemaFiles_ValidJSON(t *testing.T) {
 }
 
 func TestValidateArgs_Valid(t *testing.T) {
-	schema, _, err := compileSchema("../../resources/schemas/prometheus.json")
+	schema, _, err := compileSchema("schemas/prometheus.json")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -56,7 +56,7 @@ func TestValidateArgs_Valid(t *testing.T) {
 }
 
 func TestValidateArgs_Invalid(t *testing.T) {
-	schema, _, err := compileSchema("../../resources/schemas/prometheus.json")
+	schema, _, err := compileSchema("schemas/prometheus.json")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -86,7 +86,7 @@ func TestValidateArgs_Invalid(t *testing.T) {
 }
 
 func TestValidateArgs_LokiSchema(t *testing.T) {
-	schema, _, err := compileSchema("../../resources/schemas/loki.json")
+	schema, _, err := compileSchema("schemas/loki.json")
 	require.NoError(t, err)
 
 	err = validateArgs(schema, []byte(`{"query":"{app=\"nginx\"} |= \"error\"","limit":100}`))
@@ -94,7 +94,7 @@ func TestValidateArgs_LokiSchema(t *testing.T) {
 }
 
 func TestValidateArgs_VictoriaLogsSchema(t *testing.T) {
-	schema, _, err := compileSchema("../../resources/schemas/victorialogs.json")
+	schema, _, err := compileSchema("schemas/victorialogs.json")
 	require.NoError(t, err)
 
 	err = validateArgs(schema, []byte(`{"query":"_time:5m _stream:{k8s.namespace.name=\"default\"} error","limit":50}`))

@@ -17,15 +17,15 @@ var (
 
 	// paramPatterns matches common parameter patterns in logs.
 	paramPatterns = []*regexp.Regexp{
-		regexp.MustCompile(`^\d+$`),                              // integers
-		regexp.MustCompile(`^\d+\.\d+$`),                        // floats
-		regexp.MustCompile(`^[0-9a-fA-F]{8,}$`),                  // hex IDs
-		regexp.MustCompile(`^\d{4}-\d{2}-\d{2}`),                // dates
-		regexp.MustCompile(`^\d{2}:\d{2}:\d{2}`),                // times
-		regexp.MustCompile(`^(true|false|TRUE|FALSE)$`),          // booleans
-		regexp.MustCompile(`^/[^\s]*$`),                         // file paths
+		regexp.MustCompile(`^\d+$`),                                            // integers
+		regexp.MustCompile(`^\d+\.\d+$`),                                       // floats
+		regexp.MustCompile(`^[0-9a-fA-F]{8,}$`),                                // hex IDs
+		regexp.MustCompile(`^\d{4}-\d{2}-\d{2}`),                               // dates
+		regexp.MustCompile(`^\d{2}:\d{2}:\d{2}`),                               // times
+		regexp.MustCompile(`^(true|false|TRUE|FALSE)$`),                        // booleans
+		regexp.MustCompile(`^/[^\s]*$`),                                        // file paths
 		regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`), // emails
-		regexp.MustCompile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?$`), // IP addresses
+		regexp.MustCompile(`^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?$`),    // IP addresses
 	}
 )
 
@@ -41,9 +41,9 @@ type template struct {
 // It groups similar log messages into templates, replacing parameters
 // with wildcards.
 type Extractor struct {
-	mu         sync.RWMutex
-	templates  []template
-	threshold  float64
+	mu        sync.RWMutex
+	templates []template
+	threshold float64
 }
 
 // NewExtractor creates a new Extractor instance with default settings.
@@ -139,19 +139,13 @@ func similarity(a, b []string) float64 {
 		return 0.0
 	}
 
-	maxLen := len(a)
-	if len(b) > maxLen {
-		maxLen = len(b)
-	}
+	maxLen := max(len(b), len(a))
 	if maxLen == 0 {
 		return 0.0
 	}
 
 	matches := 0
-	minLen := len(a)
-	if len(b) < minLen {
-		minLen = len(b)
-	}
+	minLen := min(len(b), len(a))
 
 	for i := 0; i < minLen; i++ {
 		if a[i] == b[i] || isWildcard(a[i]) || isWildcard(b[i]) {
@@ -164,10 +158,7 @@ func similarity(a, b []string) float64 {
 
 // mergeTokens combines two token sequences, creating wildcards where they differ.
 func mergeTokens(existing, incoming []string) []string {
-	maxLen := len(existing)
-	if len(incoming) > maxLen {
-		maxLen = len(incoming)
-	}
+	maxLen := max(len(incoming), len(existing))
 
 	result := make([]string, maxLen)
 	for i := 0; i < maxLen; i++ {

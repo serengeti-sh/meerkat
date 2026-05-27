@@ -22,7 +22,7 @@ type Client interface {
 
 type client struct {
 	conn *grpc.ClientConn
-	cli  ragpb.RAGServiceClient
+	cli  ragpb.ServiceClient
 }
 
 var _ Client = (*client)(nil)
@@ -45,7 +45,7 @@ func New(addr string, opts ...Option) (Client, error) {
 
 	return &client{
 		conn: conn,
-		cli:  ragpb.NewRAGServiceClient(conn),
+		cli:  ragpb.NewServiceClient(conn),
 	}, nil
 }
 

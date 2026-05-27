@@ -10,7 +10,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
 
-type Scheduler interface {
+type Service interface {
 	Start(ctx context.Context) error
 	Stop()
 }
@@ -29,9 +29,9 @@ type cronScheduler struct {
 	wg           sync.WaitGroup
 }
 
-var _ Scheduler = (*cronScheduler)(nil)
+var _ Service = (*cronScheduler)(nil)
 
-func NewCronScheduler(inspectorSvc inspector.Service, cfg *config.Config) Scheduler {
+func NewCronScheduler(inspectorSvc inspector.Service, cfg *config.Config) Service {
 	var jobs []Job
 	for _, j := range cfg.Scheduler.Jobs {
 		d, err := time.ParseDuration(j.Interval)

@@ -1,14 +1,14 @@
-package store
+package inspector
 
 import (
 	"context"
 	"fmt"
 
+	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/ent"
 	"github.com/serengeti-sh/meerkat/internal/ent/migrate"
 
 	_ "github.com/lib/pq"
-	"github.com/serengeti-sh/meerkat/internal/config"
 )
 
 // NewEntClient creates an ent client with PostgreSQL driver.

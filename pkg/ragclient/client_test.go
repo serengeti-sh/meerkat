@@ -13,9 +13,9 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/serengeti-sh/meerkat/internal/rag"
-	"github.com/serengeti-sh/meerkat/pkg/ragpb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 	"github.com/serengeti-sh/meerkat/pkg/ragclient"
+	"github.com/serengeti-sh/meerkat/pkg/ragpb"
 )
 
 func TestClient_Ingest(t *testing.T) {
@@ -106,7 +106,7 @@ func (m *inMemoryVectorStore) Search(ctx context.Context, vector []float32, opts
 }
 
 func (m *inMemoryVectorStore) Delete(ctx context.Context, ids []string) error { return nil }
-func (m *inMemoryVectorStore) Close() error                                    { return nil }
+func (m *inMemoryVectorStore) Close() error                                   { return nil }
 
 func setupTestClient(t *testing.T) (ragclient.Client, func()) {
 	t.Helper()
@@ -114,10 +114,10 @@ func setupTestClient(t *testing.T) (ragclient.Client, func()) {
 	emb := &mockEmbedder{}
 	vs := &inMemoryVectorStore{}
 	ragSvc := rag.NewService(emb, vs)
-	ragServer := rag.NewServer(ragSvc)
+	ragServer := rag.NewGRPCServer(ragSvc)
 
 	grpcServer := grpc.NewServer()
-	ragpb.RegisterRAGServiceServer(grpcServer, ragServer)
+	ragpb.RegisterServiceServer(grpcServer, ragServer)
 
 	listener := bufconn.Listen(1024 * 1024)
 	go func() {

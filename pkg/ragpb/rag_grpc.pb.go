@@ -19,17 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RAGService_Ingest_FullMethodName     = "/rag.v1.RAGService/Ingest"
-	RAGService_Search_FullMethodName     = "/rag.v1.RAGService/Search"
-	RAGService_GetContext_FullMethodName = "/rag.v1.RAGService/GetContext"
+	Service_Ingest_FullMethodName     = "/rag.v1.Service/Ingest"
+	Service_Search_FullMethodName     = "/rag.v1.Service/Search"
+	Service_GetContext_FullMethodName = "/rag.v1.Service/GetContext"
 )
 
-// RAGServiceClient is the client API for RAGService service.
+// ServiceClient is the client API for Service service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// RAGService provides log ingestion and semantic search for AI analysis.
-type RAGServiceClient interface {
+// Service provides log ingestion and semantic search for AI analysis.
+type ServiceClient interface {
 	// Ingest adds log entries to the vector store after template extraction.
 	Ingest(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*IngestResponse, error)
 	// Search finds semantically similar log entries.
@@ -38,168 +38,168 @@ type RAGServiceClient interface {
 	GetContext(ctx context.Context, in *GetContextRequest, opts ...grpc.CallOption) (*GetContextResponse, error)
 }
 
-type rAGServiceClient struct {
+type serviceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewRAGServiceClient(cc grpc.ClientConnInterface) RAGServiceClient {
-	return &rAGServiceClient{cc}
+func NewServiceClient(cc grpc.ClientConnInterface) ServiceClient {
+	return &serviceClient{cc}
 }
 
-func (c *rAGServiceClient) Ingest(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*IngestResponse, error) {
+func (c *serviceClient) Ingest(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*IngestResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(IngestResponse)
-	err := c.cc.Invoke(ctx, RAGService_Ingest_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Service_Ingest_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *rAGServiceClient) Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error) {
+func (c *serviceClient) Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SearchResponse)
-	err := c.cc.Invoke(ctx, RAGService_Search_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Service_Search_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *rAGServiceClient) GetContext(ctx context.Context, in *GetContextRequest, opts ...grpc.CallOption) (*GetContextResponse, error) {
+func (c *serviceClient) GetContext(ctx context.Context, in *GetContextRequest, opts ...grpc.CallOption) (*GetContextResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetContextResponse)
-	err := c.cc.Invoke(ctx, RAGService_GetContext_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Service_GetContext_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// RAGServiceServer is the server API for RAGService service.
-// All implementations must embed UnimplementedRAGServiceServer
+// ServiceServer is the server API for Service service.
+// All implementations must embed UnimplementedServiceServer
 // for forward compatibility.
 //
-// RAGService provides log ingestion and semantic search for AI analysis.
-type RAGServiceServer interface {
+// Service provides log ingestion and semantic search for AI analysis.
+type ServiceServer interface {
 	// Ingest adds log entries to the vector store after template extraction.
 	Ingest(context.Context, *IngestRequest) (*IngestResponse, error)
 	// Search finds semantically similar log entries.
 	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	// GetContext retrieves relevant log context for a given service and time range.
 	GetContext(context.Context, *GetContextRequest) (*GetContextResponse, error)
-	mustEmbedUnimplementedRAGServiceServer()
+	mustEmbedUnimplementedServiceServer()
 }
 
-// UnimplementedRAGServiceServer must be embedded to have
+// UnimplementedServiceServer must be embedded to have
 // forward compatible implementations.
 //
 // NOTE: this should be embedded by value instead of pointer to avoid a nil
 // pointer dereference when methods are called.
-type UnimplementedRAGServiceServer struct{}
+type UnimplementedServiceServer struct{}
 
-func (UnimplementedRAGServiceServer) Ingest(context.Context, *IngestRequest) (*IngestResponse, error) {
+func (UnimplementedServiceServer) Ingest(context.Context, *IngestRequest) (*IngestResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Ingest not implemented")
 }
-func (UnimplementedRAGServiceServer) Search(context.Context, *SearchRequest) (*SearchResponse, error) {
+func (UnimplementedServiceServer) Search(context.Context, *SearchRequest) (*SearchResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Search not implemented")
 }
-func (UnimplementedRAGServiceServer) GetContext(context.Context, *GetContextRequest) (*GetContextResponse, error) {
+func (UnimplementedServiceServer) GetContext(context.Context, *GetContextRequest) (*GetContextResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetContext not implemented")
 }
-func (UnimplementedRAGServiceServer) mustEmbedUnimplementedRAGServiceServer() {}
-func (UnimplementedRAGServiceServer) testEmbeddedByValue()                    {}
+func (UnimplementedServiceServer) mustEmbedUnimplementedServiceServer() {}
+func (UnimplementedServiceServer) testEmbeddedByValue()                 {}
 
-// UnsafeRAGServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to RAGServiceServer will
+// UnsafeServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ServiceServer will
 // result in compilation errors.
-type UnsafeRAGServiceServer interface {
-	mustEmbedUnimplementedRAGServiceServer()
+type UnsafeServiceServer interface {
+	mustEmbedUnimplementedServiceServer()
 }
 
-func RegisterRAGServiceServer(s grpc.ServiceRegistrar, srv RAGServiceServer) {
-	// If the following call panics, it indicates UnimplementedRAGServiceServer was
+func RegisterServiceServer(s grpc.ServiceRegistrar, srv ServiceServer) {
+	// If the following call panics, it indicates UnimplementedServiceServer was
 	// embedded by pointer and is nil.  This will cause panics if an
 	// unimplemented method is ever invoked, so we test this at initialization
 	// time to prevent it from happening at runtime later due to I/O.
 	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
 		t.testEmbeddedByValue()
 	}
-	s.RegisterService(&RAGService_ServiceDesc, srv)
+	s.RegisterService(&Service_ServiceDesc, srv)
 }
 
-func _RAGService_Ingest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_Ingest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(IngestRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RAGServiceServer).Ingest(ctx, in)
+		return srv.(ServiceServer).Ingest(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RAGService_Ingest_FullMethodName,
+		FullMethod: Service_Ingest_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RAGServiceServer).Ingest(ctx, req.(*IngestRequest))
+		return srv.(ServiceServer).Ingest(ctx, req.(*IngestRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RAGService_Search_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_Search_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SearchRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RAGServiceServer).Search(ctx, in)
+		return srv.(ServiceServer).Search(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RAGService_Search_FullMethodName,
+		FullMethod: Service_Search_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RAGServiceServer).Search(ctx, req.(*SearchRequest))
+		return srv.(ServiceServer).Search(ctx, req.(*SearchRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RAGService_GetContext_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_GetContext_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetContextRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RAGServiceServer).GetContext(ctx, in)
+		return srv.(ServiceServer).GetContext(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: RAGService_GetContext_FullMethodName,
+		FullMethod: Service_GetContext_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RAGServiceServer).GetContext(ctx, req.(*GetContextRequest))
+		return srv.(ServiceServer).GetContext(ctx, req.(*GetContextRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// RAGService_ServiceDesc is the grpc.ServiceDesc for RAGService service.
+// Service_ServiceDesc is the grpc.ServiceDesc for Service service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var RAGService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "rag.v1.RAGService",
-	HandlerType: (*RAGServiceServer)(nil),
+var Service_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "rag.v1.Service",
+	HandlerType: (*ServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "Ingest",
-			Handler:    _RAGService_Ingest_Handler,
+			Handler:    _Service_Ingest_Handler,
 		},
 		{
 			MethodName: "Search",
-			Handler:    _RAGService_Search_Handler,
+			Handler:    _Service_Search_Handler,
 		},
 		{
 			MethodName: "GetContext",
-			Handler:    _RAGService_GetContext_Handler,
+			Handler:    _Service_GetContext_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

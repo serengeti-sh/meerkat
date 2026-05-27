@@ -170,9 +170,9 @@ type EmbedderConfig struct {
 }
 
 type VectorStoreConfig struct {
-	Driver string         `mapstructure:"driver"` // milvus (default), qdrant
-	Milvus MilvusConfig   `mapstructure:"milvus"`
-	Qdrant QdrantConfig   `mapstructure:"qdrant"`
+	Driver string       `mapstructure:"driver"` // milvus (default), qdrant
+	Milvus MilvusConfig `mapstructure:"milvus"`
+	Qdrant QdrantConfig `mapstructure:"qdrant"`
 }
 
 type QdrantConfig struct {
@@ -183,12 +183,12 @@ type QdrantConfig struct {
 }
 
 type RAGConfig struct {
-	Enabled             bool          `mapstructure:"enabled"`
-	Address             string        `mapstructure:"address"`
-	Port                int           `mapstructure:"port"`
-	IngestBatchSize     int           `mapstructure:"ingest_batch_size"`
-	SimilarityThreshold float64       `mapstructure:"similarity_threshold"`
-	MaxContextLogs      int           `mapstructure:"max_context_logs"`
+	Enabled             bool    `mapstructure:"enabled"`
+	Address             string  `mapstructure:"address"`
+	Port                int     `mapstructure:"port"`
+	IngestBatchSize     int     `mapstructure:"ingest_batch_size"`
+	SimilarityThreshold float64 `mapstructure:"similarity_threshold"`
+	MaxContextLogs      int     `mapstructure:"max_context_logs"`
 }
 
 type MilvusConfig struct {

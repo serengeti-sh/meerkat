@@ -13,12 +13,13 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	analyzerMocks "github.com/serengeti-sh/meerkat/internal/analyzer/mocks"
+	"github.com/serengeti-sh/meerkat/internal/tool"
 	toolMocks "github.com/serengeti-sh/meerkat/internal/tool/mocks"
 )
 
 func TestService_Analyze_SingleResponse(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	registry := analyzer.NewToolRegistry()
+	registry := tool.NewRegistry()
 	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations: 5,
 		SystemPrompt:  "",
@@ -45,14 +46,14 @@ func TestService_Analyze_SingleResponse(t *testing.T) {
 
 func TestService_Analyze_ToolCalls(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	tool := toolMocks.NewInterfaceMock(t)
+	mockTool := toolMocks.NewToolMock(t)
 
 	// Registration + Defs
-	tool.EXPECT().Name().Return("query_metrics").Twice()
-	tool.EXPECT().Description().Return("query metrics")
-	tool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
+	mockTool.EXPECT().Name().Return("query_metrics").Twice()
+	mockTool.EXPECT().Description().Return("query metrics")
+	mockTool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
 
-	registry := analyzer.NewToolRegistry(tool)
+	registry := tool.NewRegistry(mockTool)
 	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:       10,
 		MaxToolResultChars:  30000,
@@ -61,7 +62,7 @@ func TestService_Analyze_ToolCalls(t *testing.T) {
 
 	// Use RunAndReturn for Execute to handle multiple calls
 	execCount := 0
-	tool.EXPECT().Execute(mock.Anything, mock.Anything).RunAndReturn(
+	mockTool.EXPECT().Execute(mock.Anything, mock.Anything).RunAndReturn(
 		func(ctx context.Context, args json.RawMessage) (string, error) {
 			execCount++
 			if execCount == 1 {
@@ -124,19 +125,19 @@ func TestService_Analyze_ToolCalls(t *testing.T) {
 
 func TestService_Analyze_MaxIterations(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	tool := toolMocks.NewInterfaceMock(t)
+	mockTool := toolMocks.NewToolMock(t)
 
 	// Registration + Defs
-	tool.EXPECT().Name().Return("query_metrics").Twice()
-	tool.EXPECT().Description().Return("query metrics")
-	tool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
+	mockTool.EXPECT().Name().Return("query_metrics").Twice()
+	mockTool.EXPECT().Description().Return("query metrics")
+	mockTool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
 
-	registry := analyzer.NewToolRegistry(tool)
+	registry := tool.NewRegistry(mockTool)
 	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations: 2,
 	})
 
-	tool.EXPECT().Execute(mock.Anything, mock.Anything).Return("ok", nil).Twice()
+	mockTool.EXPECT().Execute(mock.Anything, mock.Anything).Return("ok", nil).Twice()
 
 	completeCount := 0
 	provider.EXPECT().Complete(mock.Anything, mock.Anything).RunAndReturn(
@@ -166,13 +167,13 @@ func TestService_Analyze_MaxIterations(t *testing.T) {
 
 func TestService_Analyze_ToolResultTruncation(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	tool := toolMocks.NewInterfaceMock(t)
+	mockTool := toolMocks.NewToolMock(t)
 
-	tool.EXPECT().Name().Return("query_metrics").Twice()
-	tool.EXPECT().Description().Return("query metrics")
-	tool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
+	mockTool.EXPECT().Name().Return("query_metrics").Twice()
+	mockTool.EXPECT().Description().Return("query metrics")
+	mockTool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
 
-	registry := analyzer.NewToolRegistry(tool)
+	registry := tool.NewRegistry(mockTool)
 	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:      5,
 		MaxToolResultChars: 100, // small limit for testing
@@ -180,7 +181,7 @@ func TestService_Analyze_ToolResultTruncation(t *testing.T) {
 
 	// Tool returns a very long result
 	longResult := strings.Repeat("x", 500)
-	tool.EXPECT().Execute(mock.Anything, mock.Anything).Return(longResult, nil)
+	mockTool.EXPECT().Execute(mock.Anything, mock.Anything).Return(longResult, nil)
 
 	completeCount := 0
 	provider.EXPECT().Complete(mock.Anything, mock.Anything).RunAndReturn(
@@ -222,20 +223,20 @@ func TestService_Analyze_ToolResultTruncation(t *testing.T) {
 
 func TestService_Analyze_ContextOverflowRecovery(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	tool := toolMocks.NewInterfaceMock(t)
+	mockTool := toolMocks.NewToolMock(t)
 
-	tool.EXPECT().Name().Return("query_metrics").Twice()
-	tool.EXPECT().Description().Return("query metrics")
-	tool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
+	mockTool.EXPECT().Name().Return("query_metrics").Twice()
+	mockTool.EXPECT().Description().Return("query metrics")
+	mockTool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
 
-	registry := analyzer.NewToolRegistry(tool)
+	registry := tool.NewRegistry(mockTool)
 	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:       10,
 		SummarizeOnOverflow: true,
 	})
 
 	// Need 3+ tool calls to have enough exchanges for summarization to trim
-	tool.EXPECT().Execute(mock.Anything, mock.Anything).Return("ok", nil).Times(3)
+	mockTool.EXPECT().Execute(mock.Anything, mock.Anything).Return("ok", nil).Times(3)
 
 	completeCount := 0
 	provider.EXPECT().Complete(mock.Anything, mock.Anything).RunAndReturn(
@@ -277,7 +278,7 @@ func TestService_Analyze_ContextOverflowRecovery(t *testing.T) {
 
 func TestService_Analyze_ContextOverflowUnrecoverable(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	registry := analyzer.NewToolRegistry()
+	registry := tool.NewRegistry()
 	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:       5,
 		SummarizeOnOverflow: true,
@@ -297,26 +298,26 @@ func TestService_Analyze_ContextOverflowUnrecoverable(t *testing.T) {
 
 func TestToolRegistry(t *testing.T) {
 	t.Run("get existing tool", func(t *testing.T) {
-		tool := toolMocks.NewInterfaceMock(t)
-		tool.EXPECT().Name().Return("test-tool")
-		reg := analyzer.NewToolRegistry(tool)
+		mockTool := toolMocks.NewToolMock(t)
+		mockTool.EXPECT().Name().Return("test-tool")
+		reg := tool.NewRegistry(mockTool)
 		found, ok := reg.Get("test-tool")
 		assert.True(t, ok)
 		assert.NotNil(t, found)
 	})
 
 	t.Run("get missing tool", func(t *testing.T) {
-		reg := analyzer.NewToolRegistry()
+		reg := tool.NewRegistry()
 		_, ok := reg.Get("nonexistent")
 		assert.False(t, ok)
 	})
 
 	t.Run("defs returns tool definitions", func(t *testing.T) {
-		tool := toolMocks.NewInterfaceMock(t)
-		tool.EXPECT().Name().Return("test-tool").Twice()
-		tool.EXPECT().Description().Return("a test tool")
-		tool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
-		reg := analyzer.NewToolRegistry(tool)
+		mockTool := toolMocks.NewToolMock(t)
+		mockTool.EXPECT().Name().Return("test-tool").Twice()
+		mockTool.EXPECT().Description().Return("a test tool")
+		mockTool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
+		reg := tool.NewRegistry(mockTool)
 		defs := reg.Defs()
 		assert.Len(t, defs, 1)
 		assert.Equal(t, "test-tool", defs[0].Name)

@@ -23,7 +23,7 @@ type PrometheusTool struct {
 }
 
 // NewPrometheusTool creates a tool backed by one Prometheus-compatible endpoint.
-func NewPrometheusTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Interface, error) {
+func NewPrometheusTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 15 * time.Second}
 	}
@@ -185,4 +185,4 @@ func convertPromResult(value model.Value) ([]timeSeries, error) {
 	}
 }
 
-var _ Interface = (*PrometheusTool)(nil)
+var _ Tool = (*PrometheusTool)(nil)

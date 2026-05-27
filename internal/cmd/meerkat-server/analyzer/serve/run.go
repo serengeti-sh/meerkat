@@ -17,14 +17,10 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/embedder"
 	"github.com/serengeti-sh/meerkat/internal/handler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
-	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
-	"github.com/serengeti-sh/meerkat/internal/rag"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
-	"github.com/serengeti-sh/meerkat/pkg/ragclient"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
-	"github.com/serengeti-sh/meerkat/internal/store"
-	"github.com/serengeti-sh/meerkat/internal/tool"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
+	"github.com/serengeti-sh/meerkat/pkg/ragclient"
 )
 
 const (
@@ -44,7 +40,7 @@ func Run(cfgFile string, port int) error {
 	}
 
 	// 2. Database
-	client, err := store.NewEntClient(cfg)
+	client, err := inspector.NewEntClient(cfg)
 	if err != nil {
 		return fmt.Errorf("create db client: %w", err)
 	}
@@ -54,12 +50,12 @@ func Run(cfgFile string, port int) error {
 		}
 	}()
 
-	if err := store.Migrate(context.Background(), client); err != nil {
+	if err := inspector.Migrate(context.Background(), client); err != nil {
 		return fmt.Errorf("migrate db: %w", err)
 	}
 
 	// 3. Repository
-	reportRepo := insprepo.NewRepository(client)
+	reportRepo := inspector.NewEntReportRepository(client)
 
 	// 4. Embedder
 	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
@@ -229,129 +225,4 @@ func loadConfig(cfgFile string, port int) (*config.Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func buildToolRegistry(cfg *config.Config, emb embedder.Embedder, vs vectorstore.Store) (*analyzer.ToolRegistry, error) {
-	var tools []tool.Interface
-
-	for _, pc := range cfg.Tools.Prometheus {
-		httpClient, err := tool.NewHTTPClient(pc.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
-		}
-		description := cfg.Tools.PrometheusDescription
-		if description == "" {
-			description = "Query metrics using PromQL. Returns time series data."
-		}
-		schemaFile := cfg.Tools.PrometheusParamSchemaFile
-		if schemaFile == "" {
-			schemaFile = "resources/schemas/prometheus.json"
-		}
-		t, err := tool.NewPrometheusTool(pc.Name, description, schemaFile, pc.URL, httpClient)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
-		}
-		tools = append(tools, t)
-	}
-
-	for _, lc := range cfg.Tools.Loki {
-		httpClient, err := tool.NewHTTPClient(lc.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
-		}
-		description := cfg.Tools.LokiDescription
-		if description == "" {
-			description = "Query logs using LogQL. Returns log entries with timestamps and labels."
-		}
-		schemaFile := cfg.Tools.LokiParamSchemaFile
-		if schemaFile == "" {
-			schemaFile = "resources/schemas/loki.json"
-		}
-		t, err := tool.NewLokiTool(lc.Name, description, schemaFile, lc.URL, httpClient)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
-		}
-		tools = append(tools, t)
-	}
-
-	for _, vc := range cfg.Tools.VictoriaLogs {
-		httpClient, err := tool.NewHTTPClient(vc.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", vc.Name, err)
-		}
-		description := cfg.Tools.VictoriaLogsDescription
-		if description == "" {
-			description = "Query logs using LogsQL. Returns log entries."
-		}
-		schemaFile := cfg.Tools.VictoriaLogsParamSchemaFile
-		if schemaFile == "" {
-			schemaFile = "resources/schemas/victorialogs.json"
-		}
-		t, err := tool.NewVictoriaLogsTool(vc.Name, description, schemaFile, vc.URL, httpClient)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", vc.Name, err)
-		}
-		tools = append(tools, t)
-	}
-
-	for _, cc := range cfg.Tools.Custom {
-		httpClient, err := tool.NewHTTPClient(cc.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", cc.Name, err)
-		}
-		t, err := tool.NewCustomTool(cc.Name, cc.Description, cc.Method, cc.URL, cc.ParamSchemaFile, httpClient)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", cc.Name, err)
-		}
-		tools = append(tools, t)
-	}
-
-	if vs != nil {
-		tools = append(tools, tool.NewSearchLogsTool(emb, vs))
-	}
-
-	if cfg.RAG.Enabled && vs != nil {
-		ragSvc := rag.NewService(emb, vs)
-		tools = append(tools, tool.NewSearchRAGTool(ragSvc))
-	}
-
-	return analyzer.NewToolRegistry(tools...), nil
-}
-
-func buildAnalyzerService(provider analyzer.LLMProvider, registry *analyzer.ToolRegistry, cfg *config.Config) (analyzer.Service, error) {
-	systemPrompt, err := analyzer.LoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
-	if err != nil {
-		return nil, fmt.Errorf("load system prompt: %w", err)
-	}
-	skills, err := analyzer.LoadSkills(cfg.Analyzer.SkillsFile)
-	if err != nil {
-		return nil, fmt.Errorf("load skills: %w", err)
-	}
-	prompt := analyzer.MergeSkillsIntoPrompt(systemPrompt, skills)
-	return analyzer.NewService(provider, registry, analyzer.ServiceConfig{
-		MaxIterations:       cfg.Analyzer.MaxIterations,
-		SystemPrompt:        prompt,
-		MaxToolResultChars:  cfg.Analyzer.MaxToolResultChars,
-		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
-		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
-	}), nil
-}
-
-func buildDatasourceRefs(cfg *config.Config) inspector.DatasourceRefs {
-	return func() []analyzer.DatasourceRef {
-		var refs []analyzer.DatasourceRef
-		for _, pc := range cfg.Tools.Prometheus {
-			refs = append(refs, analyzer.DatasourceRef{Name: pc.Name, Type: "prometheus"})
-		}
-		for _, lc := range cfg.Tools.Loki {
-			refs = append(refs, analyzer.DatasourceRef{Name: lc.Name, Type: "loki"})
-		}
-		for _, vc := range cfg.Tools.VictoriaLogs {
-			refs = append(refs, analyzer.DatasourceRef{Name: vc.Name, Type: "victoria-logs"})
-		}
-		for _, cc := range cfg.Tools.Custom {
-			refs = append(refs, analyzer.DatasourceRef{Name: cc.Name, Type: "custom"})
-		}
-		return refs
-	}
 }

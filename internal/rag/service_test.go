@@ -56,21 +56,21 @@ func (m *mockVectorStore) Search(ctx context.Context, vector []float32, opts vec
 }
 
 func (m *mockVectorStore) Delete(ctx context.Context, ids []string) error { return nil }
-func (m *mockVectorStore) Close() error                                    { return nil }
+func (m *mockVectorStore) Close() error                                   { return nil }
 
 func TestService_Ingest(t *testing.T) {
 	tests := []struct {
-		name     string
-		entries  []rag.LogEntry
-		wantErr  bool
+		name         string
+		entries      []rag.LogEntry
+		wantErr      bool
 		wantIngested int
-		wantDedup  int
+		wantDedup    int
 	}{
 		{
-			name: "empty entries",
-			entries: nil,
+			name:         "empty entries",
+			entries:      nil,
 			wantIngested: 0,
-			wantDedup: 0,
+			wantDedup:    0,
 		},
 		{
 			name: "single entry",
@@ -78,7 +78,7 @@ func TestService_Ingest(t *testing.T) {
 				{Body: "connection refused", Service: "api", Severity: "ERROR"},
 			},
 			wantIngested: 1,
-			wantDedup: 0,
+			wantDedup:    0,
 		},
 		{
 			name: "duplicate entries",
@@ -87,7 +87,7 @@ func TestService_Ingest(t *testing.T) {
 				{Body: "connection refused", Service: "api", Severity: "ERROR"},
 			},
 			wantIngested: 1,
-			wantDedup: 1,
+			wantDedup:    1,
 		},
 		{
 			name: "different entries",
@@ -96,7 +96,7 @@ func TestService_Ingest(t *testing.T) {
 				{Body: "timeout occurred", Service: "api", Severity: "ERROR"},
 			},
 			wantIngested: 2,
-			wantDedup: 0,
+			wantDedup:    0,
 		},
 	}
 

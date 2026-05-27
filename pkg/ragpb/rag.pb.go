@@ -570,9 +570,8 @@ const file_api_proto_rag_v1_rag_proto_rawDesc = "" +
 	"\bend_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\x12\x14\n" +
 	"\x05limit\x18\x04 \x01(\x05R\x05limit\"D\n" +
 	"\x12GetContextResponse\x12.\n" +
-	"\aresults\x18\x01 \x03(\v2\x14.rag.v1.SearchResultR\aresults2\xc3\x01\n" +
-	"\n" +
-	"RAGService\x127\n" +
+	"\aresults\x18\x01 \x03(\v2\x14.rag.v1.SearchResultR\aresults2\xc0\x01\n" +
+	"\aService\x127\n" +
 	"\x06Ingest\x12\x15.rag.v1.IngestRequest\x1a\x16.rag.v1.IngestResponse\x127\n" +
 	"\x06Search\x12\x15.rag.v1.SearchRequest\x1a\x16.rag.v1.SearchResponse\x12C\n" +
 	"\n" +
@@ -612,12 +611,12 @@ var file_api_proto_rag_v1_rag_proto_depIdxs = []int32{
 	9,  // 5: rag.v1.GetContextRequest.start_time:type_name -> google.protobuf.Timestamp
 	9,  // 6: rag.v1.GetContextRequest.end_time:type_name -> google.protobuf.Timestamp
 	4,  // 7: rag.v1.GetContextResponse.results:type_name -> rag.v1.SearchResult
-	1,  // 8: rag.v1.RAGService.Ingest:input_type -> rag.v1.IngestRequest
-	3,  // 9: rag.v1.RAGService.Search:input_type -> rag.v1.SearchRequest
-	6,  // 10: rag.v1.RAGService.GetContext:input_type -> rag.v1.GetContextRequest
-	2,  // 11: rag.v1.RAGService.Ingest:output_type -> rag.v1.IngestResponse
-	5,  // 12: rag.v1.RAGService.Search:output_type -> rag.v1.SearchResponse
-	7,  // 13: rag.v1.RAGService.GetContext:output_type -> rag.v1.GetContextResponse
+	1,  // 8: rag.v1.Service.Ingest:input_type -> rag.v1.IngestRequest
+	3,  // 9: rag.v1.Service.Search:input_type -> rag.v1.SearchRequest
+	6,  // 10: rag.v1.Service.GetContext:input_type -> rag.v1.GetContextRequest
+	2,  // 11: rag.v1.Service.Ingest:output_type -> rag.v1.IngestResponse
+	5,  // 12: rag.v1.Service.Search:output_type -> rag.v1.SearchResponse
+	7,  // 13: rag.v1.Service.GetContext:output_type -> rag.v1.GetContextResponse
 	11, // [11:14] is the sub-list for method output_type
 	8,  // [8:11] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name

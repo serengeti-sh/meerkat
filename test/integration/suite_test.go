@@ -1,4 +1,4 @@
-package e2e
+package integration
 
 import (
 	"bytes"
@@ -24,10 +24,8 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/ent"
 	"github.com/serengeti-sh/meerkat/internal/handler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
-	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
-	"github.com/serengeti-sh/meerkat/internal/store"
 	"github.com/serengeti-sh/meerkat/internal/tool"
 	"github.com/serengeti-sh/meerkat/test/integration/mock"
 
@@ -158,21 +156,21 @@ Respond with JSON only:
 	}
 
 	// 5. Wire up dependencies (same as server.go but without fx)
-	entClient, err := store.NewEntClient(cfg)
+	entClient, err := inspector.NewEntClient(cfg)
 	if err != nil {
 		return fmt.Errorf("connect to database: %w", err)
 	}
-	if err := store.Migrate(ctx, entClient); err != nil {
+	if err := inspector.Migrate(ctx, entClient); err != nil {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	s.Client = entClient
 
 	// Tool registry
-	promTool, err := tool.NewPrometheusTool("test-vm", "test prometheus", filepath.Join("..", "..", "resources", "schemas", "prometheus.json"), s.MockPrometheus.URL(), http.DefaultClient)
+	promTool, err := tool.NewPrometheusTool("test-vm", "test prometheus", filepath.Join("..", "..", "internal", "tool", "schemas", "prometheus.json"), s.MockPrometheus.URL(), http.DefaultClient)
 	if err != nil {
 		return fmt.Errorf("create prometheus tool: %w", err)
 	}
-	toolRegistry := analyzer.NewToolRegistry(promTool)
+	toolRegistry := tool.NewRegistry(promTool)
 
 	// Analyzer
 	llmProvider := analyzer.NewLLMProvider(analyzer.ProviderConfig{
@@ -199,7 +197,7 @@ Respond with JSON only:
 	reporterSvc := reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
 
 	// Inspector service
-	reportRepo := insprepo.NewRepository(entClient)
+	reportRepo := inspector.NewEntReportRepository(entClient)
 	dsRefs := func() []analyzer.DatasourceRef {
 		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
 	}

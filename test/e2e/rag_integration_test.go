@@ -16,7 +16,7 @@ import (
 
 // mockRAGServer implements a minimal RAG gRPC server for E2E testing.
 type mockRAGServer struct {
-	ragpb.UnimplementedRAGServiceServer
+	ragpb.UnimplementedServiceServer
 	entries []*ragpb.LogEntry
 }
 
@@ -67,7 +67,7 @@ func TestE2E_Webhook_WithRAGContext(t *testing.T) {
 
 	ragSvc := &mockRAGServer{}
 	ragGRPC := grpc.NewServer()
-	ragpb.RegisterRAGServiceServer(ragGRPC, ragSvc)
+	ragpb.RegisterServiceServer(ragGRPC, ragSvc)
 
 	go func() {
 		if err := ragGRPC.Serve(lis); err != nil {

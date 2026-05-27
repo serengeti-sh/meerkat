@@ -16,9 +16,9 @@ type searchLogsTool struct {
 	vectorstore vectorstore.Store
 }
 
-var _ Interface = (*searchLogsTool)(nil)
+var _ Tool = (*searchLogsTool)(nil)
 
-func NewSearchLogsTool(emb embedder.Embedder, vs vectorstore.Store) Interface {
+func NewSearchLogsTool(emb embedder.Embedder, vs vectorstore.Store) Tool {
 	return &searchLogsTool{
 		embedder:    emb,
 		vectorstore: vs,

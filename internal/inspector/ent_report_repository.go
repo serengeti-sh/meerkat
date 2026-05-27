@@ -1,4 +1,4 @@
-package repository
+package inspector
 
 import (
 	"context"
@@ -7,20 +7,19 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/ent"
 	entReport "github.com/serengeti-sh/meerkat/internal/ent/report"
-	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
 
 type entReportRepository struct {
 	client *ent.Client
 }
 
-var _ inspector.ReportRepository = (*entReportRepository)(nil)
+var _ ReportRepository = (*entReportRepository)(nil)
 
-func NewRepository(client *ent.Client) inspector.ReportRepository {
+func NewEntReportRepository(client *ent.Client) ReportRepository {
 	return &entReportRepository{client: client}
 }
 
-func (r *entReportRepository) Create(ctx context.Context, report *inspector.Report) error {
+func (r *entReportRepository) Create(ctx context.Context, report *Report) error {
 	_, err := r.client.Report.Create().
 		SetID(report.ID()).
 		SetTrigger(entReport.Trigger(report.Trigger())).
@@ -39,7 +38,7 @@ func (r *entReportRepository) Create(ctx context.Context, report *inspector.Repo
 	return nil
 }
 
-func (r *entReportRepository) Update(ctx context.Context, report *inspector.Report) error {
+func (r *entReportRepository) Update(ctx context.Context, report *Report) error {
 	if err := r.client.Report.UpdateOneID(report.ID()).
 		SetStatus(entReport.Status(string(report.Status()))).
 		SetSeverity(entReport.Severity(string(report.Severity()))).
@@ -54,7 +53,7 @@ func (r *entReportRepository) Update(ctx context.Context, report *inspector.Repo
 	return nil
 }
 
-func (r *entReportRepository) GetByID(ctx context.Context, id string) (*inspector.Report, error) {
+func (r *entReportRepository) GetByID(ctx context.Context, id string) (*Report, error) {
 	ds, err := r.client.Report.Get(ctx, id)
 	if err != nil {
 		if ent.IsNotFound(err) {
@@ -65,7 +64,7 @@ func (r *entReportRepository) GetByID(ctx context.Context, id string) (*inspecto
 	return entToReport(ds)
 }
 
-func (r *entReportRepository) List(ctx context.Context, limit int) ([]*inspector.Report, error) {
+func (r *entReportRepository) List(ctx context.Context, limit int) ([]*Report, error) {
 	const defaultListLimit = 50
 	if limit <= 0 {
 		limit = defaultListLimit
@@ -79,7 +78,7 @@ func (r *entReportRepository) List(ctx context.Context, limit int) ([]*inspector
 		return nil, fmt.Errorf("list reports: %w", err)
 	}
 
-	result := make([]*inspector.Report, 0, len(list))
+	result := make([]*Report, 0, len(list))
 	for _, r := range list {
 		report, err := entToReport(r)
 		if err != nil {
@@ -92,7 +91,7 @@ func (r *entReportRepository) List(ctx context.Context, limit int) ([]*inspector
 
 // FindActiveByQuery finds a pending or running report with the same trigger and query,
 // created within the given time window.
-func (r *entReportRepository) FindActiveByQuery(ctx context.Context, trigger string, query string, since time.Time) (*inspector.Report, error) {
+func (r *entReportRepository) FindActiveByQuery(ctx context.Context, trigger string, query string, since time.Time) (*Report, error) {
 	ds, err := r.client.Report.Query().
 		Where(
 			entReport.TriggerEQ(entReport.Trigger(trigger)),
@@ -111,13 +110,13 @@ func (r *entReportRepository) FindActiveByQuery(ctx context.Context, trigger str
 	return entToReport(ds)
 }
 
-func entToReport(r *ent.Report) (*inspector.Report, error) {
-	return inspector.NewReport(
+func entToReport(r *ent.Report) (*Report, error) {
+	return NewReport(
 		r.ID,
-		inspector.TriggerType(r.Trigger),
+		TriggerType(r.Trigger),
 		r.TriggerID,
-		inspector.Status(r.Status),
-		inspector.Severity(r.Severity),
+		Status(r.Status),
+		Severity(r.Severity),
 		r.Summary,
 		r.Detail,
 		r.Query,

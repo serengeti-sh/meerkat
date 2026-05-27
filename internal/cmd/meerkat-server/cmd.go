@@ -1,4 +1,4 @@
-package server
+package meerkatserver
 
 import (
 	"github.com/spf13/cobra"

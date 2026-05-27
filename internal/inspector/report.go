@@ -90,8 +90,8 @@ func NewReport(
 	}
 }
 
-func (r *Report) ID() string              { return r.id }
-func (r *Report) Trigger() TriggerType     { return r.trigger }
+func (r *Report) ID() string            { return r.id }
+func (r *Report) Trigger() TriggerType  { return r.trigger }
 func (r *Report) TriggerID() string     { return r.triggerID }
 func (r *Report) Status() Status        { return r.status }
 func (r *Report) Severity() Severity    { return r.severity }
