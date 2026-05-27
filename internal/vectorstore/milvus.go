@@ -33,6 +33,8 @@ type milvusStore struct {
 	dimension  int
 }
 
+var _ VectorStore = (*milvusStore)(nil)
+
 // NewMilvusClient creates a VectorStore backed by Milvus.
 // On first use it ensures the collection exists with the correct schema and index.
 func NewMilvusClient(cfg *config.Config) (VectorStore, error) {

@@ -14,6 +14,8 @@ type entReportRepository struct {
 	client *ent.Client
 }
 
+var _ inspector.ReportRepository = (*entReportRepository)(nil)
+
 func NewRepository(client *ent.Client) inspector.ReportRepository {
 	return &entReportRepository{client: client}
 }
@@ -112,7 +114,7 @@ func (r *entReportRepository) FindActiveByQuery(ctx context.Context, trigger str
 func entToReport(r *ent.Report) (*inspector.Report, error) {
 	return inspector.NewReport(
 		r.ID,
-		string(r.Trigger),
+		inspector.TriggerType(r.Trigger),
 		r.TriggerID,
 		inspector.Status(r.Status),
 		inspector.Severity(r.Severity),

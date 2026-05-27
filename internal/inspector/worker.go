@@ -68,7 +68,7 @@ func (s *service) runAnalysis(ctx context.Context, report *Report, input *analyz
 	if finalReport.Status() == StatusCompleted {
 		if err := s.reporterSvc.Report(ctx, &reporter.ReportData{
 			ID:          finalReport.ID(),
-			Trigger:     finalReport.Trigger(),
+			Trigger:     string(finalReport.Trigger()),
 			TriggerID:   finalReport.TriggerID(),
 			Severity:    string(finalReport.Severity()),
 			Summary:     finalReport.Summary(),

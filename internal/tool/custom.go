@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
@@ -24,6 +25,9 @@ type CustomTool struct {
 
 // NewCustomTool creates a tool backed by an arbitrary HTTP endpoint.
 func NewCustomTool(name, description, method, baseURL, paramSchemaFile string, client *http.Client) (Tool, error) {
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
+	}
 	if name == "" {
 		return nil, fmt.Errorf("custom tool: name is required")
 	}

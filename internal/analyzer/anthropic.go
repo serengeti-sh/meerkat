@@ -20,6 +20,8 @@ type anthropicProvider struct {
 	retryCfg    RetryConfig
 }
 
+var _ LLMProvider = (*anthropicProvider)(nil)
+
 func newAnthropicProvider(cfg ProviderConfig) LLMProvider {
 	opts := []option.RequestOption{}
 	if cfg.APIKey != "" {
@@ -47,13 +49,13 @@ func (p *anthropicProvider) Complete(ctx context.Context, req *CompletionRequest
 
 		for _, m := range req.Messages {
 			switch m.Role {
-			case "system":
+			case RoleSystem:
 				systemContent = m.Content
-			case "tool":
+			case RoleTool:
 				messages = append(messages, anthropic.NewUserMessage(
 					anthropic.NewToolResultBlock(m.ToolCallID, m.Content, false),
 				))
-			case "assistant":
+			case RoleAssistant:
 				blocks := make([]anthropic.ContentBlockParamUnion, 0, 1+len(m.ToolCalls))
 				if m.Content != "" {
 					blocks = append(blocks, anthropic.NewTextBlock(m.Content))

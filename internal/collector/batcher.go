@@ -28,6 +28,8 @@ type Batcher struct {
 	wg            sync.WaitGroup
 }
 
+var _ LogAdder = (*Batcher)(nil)
+
 // NewBatcher creates a Batcher with the given configuration.
 func NewBatcher(cfg *config.Config, emb embedder.Embedder, vs vectorstore.VectorStore) *Batcher {
 	return &Batcher{

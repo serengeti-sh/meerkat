@@ -15,6 +15,8 @@ type openAIEmbedder struct {
 	model  string
 }
 
+var _ Embedder = (*openAIEmbedder)(nil)
+
 func newOpenAIEmbedder(apiKey, baseURL, model string) *openAIEmbedder {
 	if model == "" {
 		model = "text-embedding-3-small"

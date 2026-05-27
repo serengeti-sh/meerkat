@@ -34,6 +34,10 @@ type service struct {
 	cancel      context.CancelFunc
 }
 
+var _ InspectorService = (*service)(nil)
+
+var _ InspectorService = (*service)(nil)
+
 type analysisJob struct {
 	report *Report
 	input  *analyzer.AnalysisInput
@@ -48,6 +52,15 @@ func NewService(
 	queueSize int,
 	workerCount int,
 ) InspectorService {
+	if analyzerSvc == nil {
+		panic("inspector: analyzerSvc is required")
+	}
+	if reportRepo == nil {
+		panic("inspector: reportRepo is required")
+	}
+	if dsRefs == nil {
+		panic("inspector: dsRefs is required")
+	}
 	if queueSize <= 0 {
 		queueSize = defaultQueueSize
 	}
@@ -87,7 +100,7 @@ func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, app
 		query += fmt.Sprintf("\nCheck logs: %s", req.LogQuery)
 	}
 
-	return s.enqueue(ctx, "manual", query, "")
+	return s.enqueue(ctx, TriggerManual, query, "")
 }
 
 // InspectByWebhook creates a queued report and submits it to the worker pool.
@@ -95,18 +108,18 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 	contextStr := fmt.Sprintf("Source: %s\nAlert: %s\nMessage: %s\nData: %s",
 		payload.Source, payload.Alert, payload.Message, string(payload.Data))
 
-	return s.enqueue(ctx, "webhook", payload.Alert, contextStr)
+	return s.enqueue(ctx, TriggerWebhook, payload.Alert, contextStr)
 }
 
 // enqueue is the shared logic for Inspect and InspectByWebhook.
-func (s *service) enqueue(ctx context.Context, trigger, query, contextStr string) (*Report, apperrors.Error) {
+func (s *service) enqueue(ctx context.Context, trigger TriggerType, query, contextStr string) (*Report, apperrors.Error) {
 	refs := s.dsRefs()
 	if len(refs) == 0 {
 		return nil, apperrors.New(apperrors.ErrInvalidInput, "no datasources configured")
 	}
 
 	// Dedup: check for an active report with the same query
-	existing, err := s.reportRepo.FindActiveByQuery(ctx, trigger, query, time.Now().Add(-s.dedupWindow))
+	existing, err := s.reportRepo.FindActiveByQuery(ctx, string(trigger), query, time.Now().Add(-s.dedupWindow))
 	if err != nil {
 		log.Printf("[meerkat] dedup check failed: %v", err)
 	}
@@ -135,7 +148,7 @@ func (s *service) enqueue(ctx context.Context, trigger, query, contextStr string
 	}
 
 	input := &analyzer.AnalysisInput{
-		Trigger:     trigger,
+		Trigger:     string(trigger),
 		TriggerID:   triggerID,
 		Query:       query,
 		Context:     contextStr,

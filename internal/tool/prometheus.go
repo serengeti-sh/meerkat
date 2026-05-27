@@ -24,6 +24,9 @@ type PrometheusTool struct {
 
 // NewPrometheusTool creates a tool backed by one Prometheus-compatible endpoint.
 func NewPrometheusTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
+	}
 	if name == "" {
 		return nil, fmt.Errorf("prometheus tool: name is required")
 	}

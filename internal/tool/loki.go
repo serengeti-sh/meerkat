@@ -25,6 +25,9 @@ type LokiTool struct {
 
 // NewLokiTool creates a tool backed by one Loki endpoint.
 func NewLokiTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
+	}
 	if name == "" {
 		return nil, fmt.Errorf("loki tool: name is required")
 	}

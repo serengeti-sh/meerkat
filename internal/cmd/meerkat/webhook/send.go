@@ -32,20 +32,23 @@ func NewCmd() *cobra.Command {
 				return fmt.Errorf("failed to read file: %w", err)
 			}
 
-			var payload map[string]any
+			var payload struct {
+				Source  string `json:"source"`
+				Alert   string `json:"alert"`
+				Message string `json:"message"`
+			}
 			if err := json.Unmarshal(data, &payload); err != nil {
 				return fmt.Errorf("invalid JSON: %w", err)
 			}
 
-			source, _ := payload["source"].(string)
-			if source == "" {
+			if payload.Source == "" {
 				return fmt.Errorf("payload must contain a \"source\" field")
 			}
 
 			resp, err := c.ReceiveWebhook(cmd.Context(), &api.ReceiveWebhookReq{
-				Source:  optString(source),
-				Alert:   optStringField(payload, "alert"),
-				Message: optStringField(payload, "message"),
+				Source:  optString(payload.Source),
+				Alert:   optString(payload.Alert),
+				Message: optString(payload.Message),
 			})
 			if err != nil {
 				return err
@@ -64,11 +67,4 @@ func optString(s string) api.OptString {
 		return api.OptString{}
 	}
 	return api.NewOptString(s)
-}
-
-func optStringField(m map[string]any, key string) api.OptString {
-	if v, ok := m[key].(string); ok && v != "" {
-		return api.NewOptString(v)
-	}
-	return api.OptString{}
 }

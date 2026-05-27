@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 )
@@ -24,6 +25,9 @@ type VictoriaLogsTool struct {
 
 // NewVictoriaLogsTool creates a tool backed by one Victoria Logs endpoint.
 func NewVictoriaLogsTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
+	}
 	if name == "" {
 		return nil, fmt.Errorf("victorialogs tool: name is required")
 	}
@@ -131,23 +135,21 @@ func parseVictoriaLogsResponse(body []byte) ([]vlLogEntry, error) {
 	// Fallback to JSONL
 	var entries []vlLogEntry
 	for _, line := range splitLines(string(body)) {
-		var raw map[string]any
+		var raw struct {
+			Time    string `json:"_time"`
+			Message string `json:"_msg"`
+			Level   string `json:"level"`
+			Stream  string `json:"_stream"`
+		}
 		if json.Unmarshal([]byte(line), &raw) != nil {
 			continue
 		}
 
-		entry := vlLogEntry{Labels: make(map[string]string)}
-		if v, ok := raw["_time"].(string); ok {
-			entry.Timestamp = v
-		}
-		if v, ok := raw["_msg"].(string); ok {
-			entry.Message = v
-		}
-		if v, ok := raw["level"].(string); ok {
-			entry.Level = v
-		}
-		if v, ok := raw["_stream"].(string); ok {
-			entry.Labels["_stream"] = v
+		entry := vlLogEntry{
+			Timestamp: raw.Time,
+			Message:   raw.Message,
+			Level:     raw.Level,
+			Labels:    map[string]string{"_stream": raw.Stream},
 		}
 		entries = append(entries, entry)
 	}

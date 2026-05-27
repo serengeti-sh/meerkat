@@ -16,6 +16,9 @@ type Handler struct {
 func NewHandler(
 	inspectorSvc inspector.InspectorService,
 ) *Handler {
+	if inspectorSvc == nil {
+		panic("handler: inspectorSvc is required")
+	}
 	return &Handler{
 		inspectorSvc: inspectorSvc,
 	}
@@ -35,8 +38,12 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
+type errorResponse struct {
+	Error string `json:"error"`
+}
+
 func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, map[string]string{"error": msg})
+	writeJSON(w, status, errorResponse{Error: msg})
 }
 
 func mapError(appErr apperrors.Error) int {

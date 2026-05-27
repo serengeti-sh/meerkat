@@ -49,7 +49,7 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, inspector.StatusQueued, report.Status())
-	assert.Equal(t, "manual", report.Trigger())
+	assert.Equal(t, inspector.TriggerManual, report.Trigger())
 	assert.NotEmpty(t, report.ID())
 
 	// Wait for goroutine to finish
@@ -84,7 +84,7 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 
 	require.NoError(t, err)
 	assert.Equal(t, inspector.StatusQueued, report.Status())
-	assert.Equal(t, "webhook", report.Trigger())
+	assert.Equal(t, inspector.TriggerWebhook, report.Trigger())
 
 	time.Sleep(100 * time.Millisecond)
 }
@@ -109,7 +109,7 @@ func TestService_GetReport(t *testing.T) {
 
 	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 
-	expected := inspector.NewReport("rpt-1", "manual", "t-1", inspector.StatusCompleted, inspector.SeverityWarning, "test", "detail", "test query", nil, 3, time.Now())
+	expected := inspector.NewReport("rpt-1", inspector.TriggerManual, "t-1", inspector.StatusCompleted, inspector.SeverityWarning, "test", "detail", "test query", nil, 3, time.Now())
 	reportRepo.EXPECT().GetByID(mock.Anything, "rpt-1").Return(expected, nil)
 
 	report, err := svc.GetReport(context.Background(), "rpt-1")
@@ -126,8 +126,8 @@ func TestService_ListReports(t *testing.T) {
 
 	svc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 
-	r1 := inspector.NewReport("rpt-1", "manual", "t-1", inspector.StatusCompleted, inspector.SeverityInfo, "ok", "", "", nil, 1, time.Now())
-	r2 := inspector.NewReport("rpt-2", "webhook", "t-2", inspector.StatusCompleted, inspector.SeverityCritical, "bad", "", "HighErrorRate", nil, 5, time.Now())
+	r1 := inspector.NewReport("rpt-1", inspector.TriggerManual, "t-1", inspector.StatusCompleted, inspector.SeverityInfo, "ok", "", "", nil, 1, time.Now())
+	r2 := inspector.NewReport("rpt-2", inspector.TriggerWebhook, "t-2", inspector.StatusCompleted, inspector.SeverityCritical, "bad", "", "HighErrorRate", nil, 5, time.Now())
 	reportRepo.EXPECT().List(mock.Anything, 10).Return([]*inspector.Report{r1, r2}, nil)
 
 	reports, err := svc.ListReports(context.Background(), 10)

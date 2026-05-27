@@ -42,7 +42,7 @@ func TestHandler_Inspect(t *testing.T) {
 		LogQuery:    "",
 		Query:       "check status",
 	}).Return(
-		inspector.NewReport("r-1", "manual", "", inspector.StatusPending, inspector.SeverityInfo, "all ok", "", "check status", []string{"vm"}, 1, time.Now()),
+		inspector.NewReport("r-1", inspector.TriggerManual, "", inspector.StatusPending, inspector.SeverityInfo, "all ok", "", "check status", []string{"vm"}, 1, time.Now()),
 		nil,
 	)
 
@@ -86,7 +86,7 @@ func TestHandler_Webhook(t *testing.T) {
 		Message: "CPU > 80%",
 		Data:    json.RawMessage(`{"value": 85}`),
 	}).Return(
-		inspector.NewReport("r-2", "webhook", "", inspector.StatusCompleted, inspector.SeverityWarning, "high cpu", "", "", []string{"vm"}, 1, time.Now()),
+		inspector.NewReport("r-2", inspector.TriggerWebhook, "", inspector.StatusCompleted, inspector.SeverityWarning, "high cpu", "", "", []string{"vm"}, 1, time.Now()),
 		nil,
 	)
 
@@ -126,7 +126,7 @@ func TestHandler_ListReports(t *testing.T) {
 	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
 	mockSvc.On("ListReports", mock.Anything, 50).Return(
 		[]*inspector.Report{
-			inspector.NewReport("r-1", "manual", "", inspector.StatusCompleted, inspector.SeverityInfo, "ok", "", "", []string{}, 1, time.Now()),
+			inspector.NewReport("r-1", inspector.TriggerManual, "", inspector.StatusCompleted, inspector.SeverityInfo, "ok", "", "", []string{}, 1, time.Now()),
 		},
 		nil,
 	)
@@ -168,7 +168,7 @@ func TestHandler_ListReports_WithLimit(t *testing.T) {
 func TestHandler_GetReport(t *testing.T) {
 	mockSvc := inspectorMocks.NewInspectorServiceMock(t)
 	mockSvc.On("GetReport", mock.Anything, "r-1").Return(
-		inspector.NewReport("r-1", "manual", "", inspector.StatusCompleted, inspector.SeverityCritical, "critical issue", "details", "", []string{"vm"}, 3, time.Now()),
+		inspector.NewReport("r-1", inspector.TriggerManual, "", inspector.StatusCompleted, inspector.SeverityCritical, "critical issue", "details", "", []string{"vm"}, 3, time.Now()),
 		nil,
 	)
 

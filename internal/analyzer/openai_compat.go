@@ -22,6 +22,8 @@ type openaiCompatProvider struct {
 	retryCfg    RetryConfig
 }
 
+var _ LLMProvider = (*openaiCompatProvider)(nil)
+
 func newOpenAICompatProvider(cfg ProviderConfig) LLMProvider {
 	opts := []option.RequestOption{}
 	if cfg.APIKey != "" {
@@ -117,13 +119,13 @@ func classifyOpenAIError(err error) error {
 
 func toOpenAIMessage(m Message) openai.ChatCompletionMessageParamUnion {
 	switch m.Role {
-	case "system":
+	case RoleSystem:
 		return openai.SystemMessage(m.Content)
-	case "user":
+	case RoleUser:
 		return openai.UserMessage(m.Content)
-	case "tool":
+	case RoleTool:
 		return openai.ToolMessage(m.Content, m.ToolCallID)
-	case "assistant":
+	case RoleAssistant:
 		if len(m.ToolCalls) > 0 {
 			toolCalls := make([]openai.ChatCompletionMessageToolCallUnionParam, 0, len(m.ToolCalls))
 			for _, tc := range m.ToolCalls {

@@ -21,7 +21,7 @@ func (h *Handler) ListReports(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := make([]map[string]any, 0, len(reports))
+	result := make([]reportResponse, 0, len(reports))
 	for _, r := range reports {
 		result = append(result, mapReport(r))
 	}

@@ -16,6 +16,8 @@ type searchLogsTool struct {
 	vectorstore vectorstore.VectorStore
 }
 
+var _ Tool = (*searchLogsTool)(nil)
+
 // NewSearchLogsTool creates a tool that searches logs by vector similarity.
 func NewSearchLogsTool(emb embedder.Embedder, vs vectorstore.VectorStore) Tool {
 	return &searchLogsTool{

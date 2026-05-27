@@ -196,7 +196,7 @@ func TestService_Analyze_ToolResultTruncation(t *testing.T) {
 			// Verify the tool result in messages is truncated
 			var lastMsg analyzer.Message
 			for i := len(req.Messages) - 1; i >= 0; i-- {
-				if req.Messages[i].Role == "tool" {
+				if req.Messages[i].Role == analyzer.RoleTool {
 					lastMsg = req.Messages[i]
 					break
 				}

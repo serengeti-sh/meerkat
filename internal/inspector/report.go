@@ -38,10 +38,19 @@ const (
 	StatusFailed    Status = "failed"
 )
 
+// TriggerType represents the source of an inspection trigger.
+type TriggerType string
+
+const (
+	TriggerManual    TriggerType = "manual"
+	TriggerWebhook   TriggerType = "webhook"
+	TriggerScheduled TriggerType = "scheduled"
+)
+
 // Report represents the result of an inspection.
 type Report struct {
 	id          string
-	trigger     string // manual, webhook, scheduled
+	trigger     TriggerType
 	triggerID   string
 	status      Status
 	severity    Severity
@@ -55,7 +64,7 @@ type Report struct {
 
 func NewReport(
 	id string,
-	trigger string,
+	trigger TriggerType,
 	triggerID string,
 	status Status,
 	severity Severity,
@@ -81,8 +90,8 @@ func NewReport(
 	}
 }
 
-func (r *Report) ID() string            { return r.id }
-func (r *Report) Trigger() string       { return r.trigger }
+func (r *Report) ID() string              { return r.id }
+func (r *Report) Trigger() TriggerType     { return r.trigger }
 func (r *Report) TriggerID() string     { return r.triggerID }
 func (r *Report) Status() Status        { return r.status }
 func (r *Report) Severity() Severity    { return r.severity }

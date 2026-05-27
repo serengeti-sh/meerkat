@@ -29,6 +29,8 @@ type cronScheduler struct {
 	wg           sync.WaitGroup
 }
 
+var _ Scheduler = (*cronScheduler)(nil)
+
 func NewCronScheduler(inspectorSvc inspector.InspectorService, cfg *config.Config) Scheduler {
 	var jobs []Job
 	for _, j := range cfg.Scheduler.Jobs {

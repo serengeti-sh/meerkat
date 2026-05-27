@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/serengeti-sh/meerkat/internal/apperrors"
 )
 
-const defaultHTTPTimeout = 30 * time.Second
-
-// ReportData is a decoupled report representation for the reporter package.
+// ReportData is the normalized report delivered to reporters.
 type ReportData struct {
 	ID          string    `json:"id"`
 	Trigger     string    `json:"trigger"`
@@ -43,6 +43,8 @@ type service struct {
 	httpClient  *http.Client
 }
 
+var _ ReporterService = (*service)(nil)
+
 // NewService creates a ReporterService that sends reports to the configured webhook URL.
 func NewService(webhookURL, minSeverity string, httpClient *http.Client) ReporterService {
 	if httpClient == nil {
@@ -55,98 +57,124 @@ func NewService(webhookURL, minSeverity string, httpClient *http.Client) Reporte
 	}
 }
 
+const defaultHTTPTimeout = 30 * time.Second
+
 func (s *service) Report(ctx context.Context, report *ReportData) error {
 	if s.webhookURL == "" {
-		return nil
+		return nil // no webhook configured
 	}
 
 	minRank := severityRank[s.minSeverity]
 	if severityRank[report.Severity] < minRank {
-		return nil
+		return nil // severity below threshold
 	}
 
-	payload, err := json.Marshal(buildSlackPayload(report))
+	payload := buildSlackPayload(report)
+	body, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("marshal report: %w", err)
+		return apperrors.Wrap(apperrors.ErrInternal, "marshal slack payload", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.webhookURL, bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.webhookURL, bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("create request: %w", err)
+		return apperrors.Wrap(apperrors.ErrInternal, "create webhook request", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("send webhook: %w", err)
+		return apperrors.Wrap(apperrors.ErrInternal, "send webhook request", err)
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 {
-		return fmt.Errorf("webhook returned status %d", resp.StatusCode)
+	if resp.StatusCode >= 300 {
+		return apperrors.New(apperrors.ErrInternal,
+			fmt.Sprintf("webhook returned status %d", resp.StatusCode))
 	}
 
 	log.Printf("[reporter] sent report %s (severity=%s) to %s", report.ID, report.Severity, s.webhookURL)
 	return nil
 }
 
-func buildSlackPayload(report *ReportData) map[string]any {
+// slackBlock represents a Slack Block Kit block.
+type slackBlock struct {
+	Type   string      `json:"type"`
+	Text   *slackText  `json:"text,omitempty"`
+	Fields []slackText `json:"fields,omitempty"`
+}
+
+// slackText represents a Slack text object.
+type slackText struct {
+	Type string `json:"type"`
+	Text string `json:"text"`
+}
+
+// slackPayload represents a Slack message payload.
+type slackPayload struct {
+	Text   string       `json:"text"`
+	Blocks []slackBlock `json:"blocks"`
+}
+
+func buildSlackPayload(report *ReportData) slackPayload {
 	emoji := severityEmoji(report.Severity)
 	text := fmt.Sprintf("%s [%s] %s", emoji, report.Severity, report.Summary)
 
-	blocks := []map[string]any{
+	blocks := []slackBlock{
 		{
-			"type": "header",
-			"text": map[string]any{
-				"type": "plain_text",
-				"text": fmt.Sprintf("%s Meerkat Alert — %s", emoji, report.Severity),
+			Type: "header",
+			Text: &slackText{
+				Type: "plain_text",
+				Text: fmt.Sprintf("%s Meerkat Alert — %s", emoji, report.Severity),
 			},
 		},
 		{
-			"type": "section",
-			"text": map[string]any{
-				"type": "mrkdwn",
-				"text": fmt.Sprintf("*Summary*\n%s", report.Summary),
+			Type: "section",
+			Text: &slackText{
+				Type: "mrkdwn",
+				Text: fmt.Sprintf("*Summary*\n%s", report.Summary),
 			},
 		},
 	}
 
 	if report.Detail != "" {
-		blocks = append(blocks, map[string]any{
-			"type": "section",
-			"text": map[string]any{
-				"type": "mrkdwn",
-				"text": fmt.Sprintf("*Detail*\n%s", report.Detail),
+		blocks = append(blocks, slackBlock{
+			Type: "section",
+			Text: &slackText{
+				Type: "mrkdwn",
+				Text: fmt.Sprintf("*Detail*\n%s", report.Detail),
 			},
 		})
 	}
 
-	fields := []map[string]any{}
+	var fields []slackText
 	if report.Trigger != "" {
-		fields = append(fields,
-			map[string]any{"type": "mrkdwn", "text": fmt.Sprintf("*Trigger*\n%s", report.Trigger)},
-		)
+		fields = append(fields, slackText{
+			Type: "mrkdwn",
+			Text: fmt.Sprintf("*Trigger*\n%s", report.Trigger),
+		})
 	}
 	if len(report.Datasources) > 0 {
-		fields = append(fields,
-			map[string]any{"type": "mrkdwn", "text": fmt.Sprintf("*Datasources*\n%s", strings.Join(report.Datasources, ", "))},
-		)
+		fields = append(fields, slackText{
+			Type: "mrkdwn",
+			Text: fmt.Sprintf("*Datasources*\n%s", strings.Join(report.Datasources, ", ")),
+		})
 	}
 	if !report.CreatedAt.IsZero() {
-		fields = append(fields,
-			map[string]any{"type": "mrkdwn", "text": fmt.Sprintf("*Time*\n<!date^%d^{date_short} {time_secs}|%s>", report.CreatedAt.Unix(), report.CreatedAt.Format(time.RFC3339))},
-		)
+		fields = append(fields, slackText{
+			Type: "mrkdwn",
+			Text: fmt.Sprintf("*Time*\n<!date^%d^{date_short} {time_secs}|%s>", report.CreatedAt.Unix(), report.CreatedAt.Format(time.RFC3339)),
+		})
 	}
 	if len(fields) > 0 {
-		blocks = append(blocks, map[string]any{
-			"type":   "section",
-			"fields": fields,
+		blocks = append(blocks, slackBlock{
+			Type:   "section",
+			Fields: fields,
 		})
 	}
 
-	return map[string]any{
-		"text":   text,
-		"blocks": blocks,
+	return slackPayload{
+		Text:   text,
+		Blocks: blocks,
 	}
 }
 
@@ -156,7 +184,9 @@ func severityEmoji(severity string) string {
 		return ":rotating_light:"
 	case "warning":
 		return ":warning:"
-	default:
+	case "info":
 		return ":information_source:"
+	default:
+		return ":question:"
 	}
 }

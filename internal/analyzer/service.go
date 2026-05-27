@@ -38,7 +38,15 @@ type service struct {
 	maxContextMsgs int
 }
 
+var _ AnalyzerService = (*service)(nil)
+
 func NewService(provider LLMProvider, toolRegistry *ToolRegistry, cfg ServiceConfig) *service {
+	if provider == nil {
+		panic("analyzer: provider is required")
+	}
+	if toolRegistry == nil {
+		panic("analyzer: toolRegistry is required")
+	}
 	if cfg.MaxToolResultChars == 0 {
 		cfg.MaxToolResultChars = defaultMaxToolResultChars
 	}
@@ -96,7 +104,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 
 		// Add assistant response with tool calls to conversation
 		messages = append(messages, Message{
-			Role:      "assistant",
+			Role:      RoleAssistant,
 			Content:   resp.Content,
 			ToolCalls: resp.ToolCalls,
 		})
@@ -106,7 +114,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 			tool, ok := s.toolRegistry.Get(tc.Name)
 			if !ok {
 				messages = append(messages, Message{
-					Role:       "tool",
+					Role:       RoleTool,
 					Content:    fmt.Sprintf("Error: unknown tool %q", tc.Name),
 					ToolCallID: tc.ID,
 					ToolName:   tc.Name,
@@ -126,7 +134,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 			result = s.truncateToolResult(result)
 
 			messages = append(messages, Message{
-				Role:       "tool",
+				Role:       RoleTool,
 				Content:    result,
 				ToolCallID: tc.ID,
 				ToolName:   tc.Name,
