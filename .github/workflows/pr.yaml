@@ -66,6 +66,7 @@ jobs:
         uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: build/docker/server.Dockerfile
+          config: .hadolint.yaml
 
   docker-build:
     name: Docker Build
@@ -187,7 +188,7 @@ jobs:
           cache-from: type=gha
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: meerkat-server:scan
           format: sarif
