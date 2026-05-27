@@ -42,6 +42,7 @@ jobs:
 
   goreleaser:
     name: Release CLI and Server Binaries
+    needs: [docker-build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
