@@ -3,6 +3,7 @@ package vectorstore
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/qdrant/go-client/qdrant"
@@ -22,40 +23,38 @@ type qdrantStore struct {
 	client     qdrant.PointsClient
 	collection string
 	dimension  int
+	initOnce   sync.Once
+	initErr    error
 }
 
 var _ Store = (*qdrantStore)(nil)
 
 // NewQdrantClient creates a Store backed by Qdrant.
+// The connection is established immediately but collection setup is deferred
+// to the first operation via lazy initialization.
 func NewQdrantClient(cfg *config.Config) (*qdrantStore, error) {
 	qc := cfg.VectorStore.Qdrant
 
-	connectCtx, cancel := context.WithTimeout(context.Background(), qdrantDefaultTimeout)
-	defer cancel()
-
-	conn, err := grpc.DialContext(connectCtx, qc.Address,
+	conn, err := grpc.NewClient(qc.Address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("connect to qdrant: %w", err)
+		return nil, fmt.Errorf("create qdrant client: %w", err)
 	}
 
-	store := &qdrantStore{
+	return &qdrantStore{
 		conn:       conn,
 		client:     qdrant.NewPointsClient(conn),
 		collection: qc.Collection,
 		dimension:  qc.Dimension,
-	}
+	}, nil
+}
 
-	ensureCtx, cancel := context.WithTimeout(context.Background(), qdrantDefaultTimeout)
-	defer cancel()
-	if err := store.ensureCollection(ensureCtx); err != nil {
-		_ = conn.Close()
-		return nil, fmt.Errorf("ensure collection: %w", err)
-	}
-
-	return store, nil
+func (s *qdrantStore) lazyInit(ctx context.Context) error {
+	s.initOnce.Do(func() {
+		s.initErr = s.ensureCollection(ctx)
+	})
+	return s.initErr
 }
 
 func (s *qdrantStore) ensureCollection(ctx context.Context) error {
@@ -91,6 +90,9 @@ func (s *qdrantStore) ensureCollection(ctx context.Context) error {
 }
 
 func (s *qdrantStore) Insert(ctx context.Context, records []Record) error {
+	if err := s.lazyInit(ctx); err != nil {
+		return err
+	}
 	if len(records) == 0 {
 		return nil
 	}
@@ -121,6 +123,9 @@ func (s *qdrantStore) Insert(ctx context.Context, records []Record) error {
 }
 
 func (s *qdrantStore) Search(ctx context.Context, vector []float32, opts SearchOptions) ([]SearchResult, error) {
+	if err := s.lazyInit(ctx); err != nil {
+		return nil, err
+	}
 	searchReq := &qdrant.SearchPoints{
 		CollectionName: s.collection,
 		Vector:         vector,
@@ -216,6 +221,9 @@ func (s *qdrantStore) parseSearchResults(results []*qdrant.ScoredPoint) []Search
 }
 
 func (s *qdrantStore) Delete(ctx context.Context, ids []string) error {
+	if err := s.lazyInit(ctx); err != nil {
+		return err
+	}
 	if len(ids) == 0 {
 		return nil
 	}

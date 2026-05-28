@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/milvus-io/milvus-sdk-go/v2/client"
@@ -32,66 +33,67 @@ type milvusStore struct {
 	client     client.Client
 	collection string
 	dimension  int
+	retention  time.Duration
+	initOnce   sync.Once
+	initErr    error
 }
 
 var _ Store = (*milvusStore)(nil)
 
 // NewMilvusClient creates a Store backed by Milvus.
-// On first use it ensures the collection exists with the correct schema and index.
+// The connection is established immediately but collection setup is deferred
+// to the first operation via lazy initialization.
 func NewMilvusClient(cfg *config.Config) (*milvusStore, error) {
 	mc := cfg.VectorStore.Milvus
 
-	connectCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	config := client.Config{
+	clientCfg := client.Config{
 		Address: mc.Address,
 		DBName:  mc.Database,
 	}
 
 	if mc.Auth.Enabled {
 		if mc.Auth.Token != "" {
-			config.APIKey = mc.Auth.Token
+			clientCfg.APIKey = mc.Auth.Token
 		} else {
-			config.Username = mc.Auth.User
-			config.Password = mc.Auth.Password
+			clientCfg.Username = mc.Auth.User
+			clientCfg.Password = mc.Auth.Password
 		}
 	}
 
 	if mc.TLS.Enabled {
-		config.EnableTLSAuth = true
+		clientCfg.EnableTLSAuth = true
 		if mc.TLS.CAFile != "" {
 			cred, err := credentials.NewClientTLSFromFile(mc.TLS.CAFile, "")
 			if err != nil {
 				return nil, fmt.Errorf("load tls ca file: %w", err)
 			}
-			config.DialOptions = append(config.DialOptions, grpc.WithTransportCredentials(cred))
+			clientCfg.DialOptions = append(clientCfg.DialOptions, grpc.WithTransportCredentials(cred))
 		} else if mc.TLS.SkipVerify {
-			config.DialOptions = append(config.DialOptions, grpc.WithTransportCredentials(
+			clientCfg.DialOptions = append(clientCfg.DialOptions, grpc.WithTransportCredentials(
 				credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})),
 			)
 		}
 	}
 
-	c, err := client.NewClient(connectCtx, config)
+	// client.NewClient does not actually dial; connection is lazy.
+	c, err := client.NewClient(context.Background(), clientCfg)
 	if err != nil {
 		return nil, fmt.Errorf("connect to milvus: %w", err)
 	}
 
-	store := &milvusStore{
+	return &milvusStore{
 		client:     c,
 		collection: mc.Collection,
 		dimension:  mc.Dimension,
-	}
+		retention:  mc.Retention,
+	}, nil
+}
 
-	ensureCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := store.ensureCollection(ensureCtx, mc.Retention); err != nil {
-		_ = c.Close()
-		return nil, fmt.Errorf("ensure collection: %w", err)
-	}
-
-	return store, nil
+func (s *milvusStore) lazyInit(ctx context.Context) error {
+	s.initOnce.Do(func() {
+		s.initErr = s.ensureCollection(ctx, s.retention)
+	})
+	return s.initErr
 }
 
 func (s *milvusStore) ensureCollection(ctx context.Context, retention time.Duration) error {
@@ -171,6 +173,9 @@ func (s *milvusStore) ensureCollection(ctx context.Context, retention time.Durat
 }
 
 func (s *milvusStore) Insert(ctx context.Context, records []Record) error {
+	if err := s.lazyInit(ctx); err != nil {
+		return err
+	}
 	if len(records) == 0 {
 		return nil
 	}
@@ -211,6 +216,9 @@ func (s *milvusStore) Insert(ctx context.Context, records []Record) error {
 }
 
 func (s *milvusStore) Search(ctx context.Context, vector []float32, opts SearchOptions) ([]SearchResult, error) {
+	if err := s.lazyInit(ctx); err != nil {
+		return nil, err
+	}
 	var exprs []string
 	if opts.TimeRange > 0 {
 		cutoff := time.Now().Add(-opts.TimeRange).UnixMilli()
@@ -293,6 +301,9 @@ func parseSearchResults(result client.SearchResult) ([]SearchResult, error) {
 }
 
 func (s *milvusStore) Delete(ctx context.Context, ids []string) error {
+	if err := s.lazyInit(ctx); err != nil {
+		return err
+	}
 	if len(ids) == 0 {
 		return nil
 	}
