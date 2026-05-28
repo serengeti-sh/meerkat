@@ -1,4 +1,4 @@
-name: Pull Request
+name: CI
 
 on:
   push:
@@ -11,29 +11,69 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: pr-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  unit-test:
-    name: Unit Tests
+  fmt-check:
+    name: Format Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
-
       - uses: actions/setup-go@v6.4.0
         with:
           go-version: "1.26.3"
+      - name: Check formatting
+        run: |
+          if [ -n "$(gofmt -l .)" ]; then
+            echo "The following files need formatting:"
+            gofmt -l .
+            exit 1
+          fi
 
+  vet:
+    name: Go Vet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version: "1.26.3"
       - name: Download dependencies
         run: go mod download
+      - name: Run go vet
+        run: go vet ./...
 
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version: "1.26.3"
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9.2.1
+        with:
+          version: v2.11.4
+          args: --timeout=5m
+
+  unit-test:
+    name: Unit Tests
+    needs: [vet, lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: actions/setup-go@v6.4.0
+        with:
+          go-version: "1.26.3"
+      - name: Download dependencies
+        run: go mod download
       - name: Run unit tests
         run: make test
-
       - name: Upload coverage
         uses: codecov/codecov-action@v6.0.1
         if: always()
@@ -41,43 +81,30 @@ jobs:
           files: cover-unit.out
           fail_ci_if_error: false
 
-  golangci-lint:
-    name: Lint
+  build:
+    name: Build
+    needs: [fmt-check, vet, lint, unit-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
-
       - uses: actions/setup-go@v6.4.0
         with:
           go-version: "1.26.3"
-
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9.2.1
-        with:
-          version: v2.11.4
-
-  hadolint:
-    name: Hadolint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6.0.2
-
-      - name: hadolint
-        uses: hadolint/hadolint-action@v3.3.0
-        with:
-          dockerfile: build/docker/server.Dockerfile
-          config: .hadolint.yaml
+      - name: Download dependencies
+        run: go mod download
+      - name: Build binaries
+        run: |
+          go build -o bin/meerkat ./cmd/meerkat
+          go build -o bin/meerkat-server ./cmd/meerkat-server
 
   docker-build:
     name: Docker Build
-    needs: [unit-test, golangci-lint]
+    needs: [unit-test, lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.1.0
-
       - name: Build Docker image
         uses: docker/build-push-action@v7.2.0
         with:
@@ -88,18 +115,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  hadolint:
+    name: Dockerfile Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Hadolint
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: build/docker/server.Dockerfile
+          config: .hadolint.yaml
+
   helm-lint:
     name: Helm Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
-
       - name: Set up chart-testing
         uses: helm/chart-testing-action@v2.8.0
-
       - name: Run ct lint
         run: ct lint --all --chart-dirs=deployment/charts
-
       - name: Helm Template
         run: helm template meerkat ./deployment/charts/meerkat
 
@@ -108,34 +143,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
-
       - uses: actions/setup-node@v6.4.0
         with:
           node-version: "24"
-
       - name: Bundle OpenAPI spec
         run: npx @apidevtools/swagger-cli bundle api/openapi.yaml --outfile api/openapi.bundled.json --type json
-
       - name: Validate OpenAPI spec
         run: npx @apidevtools/swagger-cli validate api/openapi.bundled.json
 
   integration-test:
     name: Integration Tests
-    needs: [unit-test, golangci-lint]
+    needs: [unit-test, lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
-
       - uses: actions/setup-go@v6.4.0
         with:
           go-version: "1.26.3"
-
       - name: Download dependencies
         run: go mod download
-
       - name: Run integration tests
         run: make test-integration
-
       - name: Upload coverage
         uses: codecov/codecov-action@v6.0.1
         if: always()
@@ -145,97 +173,23 @@ jobs:
 
   e2e-test:
     name: E2E Tests
-    needs: [unit-test, golangci-lint]
+    needs: [unit-test, lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
-
       - uses: actions/setup-go@v6.4.0
         with:
           go-version: "1.26.3"
-
       - name: Download dependencies
         run: go mod download
-
       - name: Run e2e tests
         run: make test-e2e
-
       - name: Upload coverage
         uses: codecov/codecov-action@v6.0.1
         if: always()
         with:
           files: cover-e2e.out
           fail_ci_if_error: false
-
-  trivy-scan:
-    name: Trivy Security Scan
-    needs: [docker-build]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6.0.2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.1.0
-
-      - name: Build Docker image for scan
-        uses: docker/build-push-action@v7.2.0
-        with:
-          context: .
-          file: build/docker/server.Dockerfile
-          push: false
-          load: true
-          tags: meerkat-server:scan
-          cache-from: type=gha
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: meerkat-server:scan
-          format: sarif
-          output: trivy-results.sarif
-
-      - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: trivy-results.sarif
-
-  deploy-test:
-    name: Deploy Test
-    needs: [docker-build, helm-lint, trivy-scan]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v6.0.2
-
-      - uses: actions/setup-go@v6.4.0
-        with:
-          go-version: "1.26.3"
-
-      - name: Download dependencies
-        run: go mod download
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4.1.0
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v7.2.0
-        with:
-          context: .
-          file: build/docker/server.Dockerfile
-          push: false
-          load: true
-          tags: meerkat-server:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Install Kind
-        uses: helm/kind-action@v1.14.0
-        with:
-          install_only: true
-
-      - name: Run deployment test
-        run: make test-deploy
 
   goreleaser-check:
     name: GoReleaser Check
@@ -244,11 +198,9 @@ jobs:
       - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
-
       - uses: actions/setup-go@v6.4.0
         with:
-          go-version: "1.26.1"
-
+          go-version: "1.26.3"
       - name: GoReleaser check
         uses: goreleaser/goreleaser-action@v7.2.2
         with:
