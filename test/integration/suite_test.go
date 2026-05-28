@@ -48,6 +48,7 @@ type Suite struct {
 	// Internal
 	server           *http.Server
 	systemPromptFile string
+	inspectorSvc     inspector.Service
 }
 
 // NewSuite creates a new e2e test suite.
@@ -211,6 +212,10 @@ Respond with JSON only:
 	if err != nil {
 		return fmt.Errorf("create inspector service: %w", err)
 	}
+	if err := inspectorSvc.Start(); err != nil {
+		return fmt.Errorf("start inspector service: %w", err)
+	}
+	s.inspectorSvc = inspectorSvc
 
 	// Scheduler (disabled)
 	sched := scheduler.NewService(inspectorSvc, cfg)
@@ -274,6 +279,9 @@ func (s *Suite) Stop() {
 	}
 	if s.systemPromptFile != "" {
 		_ = os.Remove(s.systemPromptFile)
+	}
+	if s.inspectorSvc != nil {
+		s.inspectorSvc.Stop()
 	}
 }
 
