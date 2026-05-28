@@ -1,4 +1,4 @@
-package rag_test
+package meerkatlogs_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/serengeti-sh/meerkat/internal/rag"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogs"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
@@ -61,7 +61,7 @@ func (m *mockVectorStore) Close() error                                   { retu
 func TestService_Ingest(t *testing.T) {
 	tests := []struct {
 		name         string
-		entries      []rag.LogEntry
+		entries      []meerkatlogs.LogEntry
 		wantErr      bool
 		wantIngested int
 		wantDedup    int
@@ -74,7 +74,7 @@ func TestService_Ingest(t *testing.T) {
 		},
 		{
 			name: "single entry",
-			entries: []rag.LogEntry{
+			entries: []meerkatlogs.LogEntry{
 				{Body: "connection refused", Service: "api", Severity: "ERROR"},
 			},
 			wantIngested: 1,
@@ -82,7 +82,7 @@ func TestService_Ingest(t *testing.T) {
 		},
 		{
 			name: "duplicate entries",
-			entries: []rag.LogEntry{
+			entries: []meerkatlogs.LogEntry{
 				{Body: "connection refused", Service: "api", Severity: "ERROR"},
 				{Body: "connection refused", Service: "api", Severity: "ERROR"},
 			},
@@ -91,7 +91,7 @@ func TestService_Ingest(t *testing.T) {
 		},
 		{
 			name: "different entries",
-			entries: []rag.LogEntry{
+			entries: []meerkatlogs.LogEntry{
 				{Body: "connection refused", Service: "api", Severity: "ERROR"},
 				{Body: "timeout occurred", Service: "api", Severity: "ERROR"},
 			},
@@ -104,7 +104,7 @@ func TestService_Ingest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			emb := &mockEmbedder{vectors: [][]float32{{0.1}, {0.2}}}
 			vs := &mockVectorStore{}
-			svc, err := rag.NewService(emb, vs)
+			svc, err := meerkatlogs.NewService(emb, vs)
 			require.NoError(t, err)
 
 			result, err := svc.Ingest(context.Background(), tt.entries)
@@ -126,27 +126,27 @@ func TestService_Search(t *testing.T) {
 			{ID: "1", Body: "error: connection failed", Score: 0.95},
 		},
 	}
-	svc, err := rag.NewService(emb, vs)
+	svc, err := meerkatlogs.NewService(emb, vs)
 	require.NoError(t, err)
 
 	t.Run("successful search", func(t *testing.T) {
-		results, err := svc.Search(context.Background(), "connection error", rag.SearchOptions{Limit: 5})
+		results, err := svc.Search(context.Background(), "connection error", meerkatlogs.SearchOptions{Limit: 5})
 		require.NoError(t, err)
 		require.Len(t, results, 1)
 		assert.Equal(t, "error: connection failed", results[0].Body)
 	})
 
 	t.Run("empty query", func(t *testing.T) {
-		_, err := svc.Search(context.Background(), "", rag.SearchOptions{})
-		require.ErrorIs(t, err, rag.ErrEmptyQuery)
+		_, err := svc.Search(context.Background(), "", meerkatlogs.SearchOptions{})
+		require.ErrorIs(t, err, meerkatlogs.ErrEmptyQuery)
 	})
 
 	t.Run("no results", func(t *testing.T) {
 		emptyVS := &mockVectorStore{results: nil}
-		emptySvc, err := rag.NewService(emb, emptyVS)
+		emptySvc, err := meerkatlogs.NewService(emb, emptyVS)
 		require.NoError(t, err)
-		_, err = emptySvc.Search(context.Background(), "query", rag.SearchOptions{})
-		require.ErrorIs(t, err, rag.ErrNoResults)
+		_, err = emptySvc.Search(context.Background(), "query", meerkatlogs.SearchOptions{})
+		require.ErrorIs(t, err, meerkatlogs.ErrNoResults)
 	})
 }
 
@@ -157,7 +157,7 @@ func TestService_GetContext(t *testing.T) {
 			{ID: "1", Body: "error: connection failed", Service: "api", Timestamp: time.Now()},
 		},
 	}
-	svc, err := rag.NewService(emb, vs)
+	svc, err := meerkatlogs.NewService(emb, vs)
 	require.NoError(t, err)
 
 	t.Run("successful context retrieval", func(t *testing.T) {
@@ -171,7 +171,7 @@ func TestService_GetContext(t *testing.T) {
 	t.Run("invalid time range", func(t *testing.T) {
 		now := time.Now()
 		_, err := svc.GetContext(context.Background(), "api", now, now.Add(-time.Hour), 10)
-		require.ErrorIs(t, err, rag.ErrInvalidTimeRange)
+		require.ErrorIs(t, err, meerkatlogs.ErrInvalidTimeRange)
 	})
 }
 
@@ -179,10 +179,10 @@ func TestService_Ingest_ErrorCases(t *testing.T) {
 	t.Run("embedder error", func(t *testing.T) {
 		emb := &mockEmbedder{err: assert.AnError}
 		vs := &mockVectorStore{}
-		svc, err := rag.NewService(emb, vs)
+		svc, err := meerkatlogs.NewService(emb, vs)
 		require.NoError(t, err)
 
-		entries := []rag.LogEntry{
+		entries := []meerkatlogs.LogEntry{
 			{Body: "error message", Service: "api", Severity: "ERROR"},
 		}
 		_, err = svc.Ingest(context.Background(), entries)
@@ -193,10 +193,10 @@ func TestService_Ingest_ErrorCases(t *testing.T) {
 	t.Run("vector store error", func(t *testing.T) {
 		emb := &mockEmbedder{vectors: [][]float32{{0.1}}}
 		vs := &mockVectorStore{err: assert.AnError}
-		svc, err := rag.NewService(emb, vs)
+		svc, err := meerkatlogs.NewService(emb, vs)
 		require.NoError(t, err)
 
-		entries := []rag.LogEntry{
+		entries := []meerkatlogs.LogEntry{
 			{Body: "error message", Service: "api", Severity: "ERROR"},
 		}
 		_, err = svc.Ingest(context.Background(), entries)

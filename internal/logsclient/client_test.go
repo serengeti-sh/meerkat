@@ -1,4 +1,4 @@
-package ragclient_test
+package logsclient_test
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
-	"github.com/serengeti-sh/meerkat/internal/rag"
-	"github.com/serengeti-sh/meerkat/internal/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/logsclient"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogs"
 	"github.com/serengeti-sh/meerkat/internal/ragpb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
@@ -24,7 +24,7 @@ func TestClient_Ingest(t *testing.T) {
 	client, cleanup := setupTestClient(t)
 	defer cleanup()
 
-	entries := []ragclient.LogEntry{
+	entries := []logsclient.LogEntry{
 		{ID: "1", Body: "error: connection failed", Service: "api", Severity: "ERROR"},
 		{ID: "2", Body: "error: timeout", Service: "api", Severity: "ERROR"},
 	}
@@ -40,12 +40,12 @@ func TestClient_Search(t *testing.T) {
 	defer cleanup()
 
 	// First ingest some data
-	_, err := client.Ingest(ctx, []ragclient.LogEntry{
+	_, err := client.Ingest(ctx, []logsclient.LogEntry{
 		{ID: "1", Body: "database connection error", Service: "db", Severity: "ERROR"},
 	})
 	require.NoError(t, err)
 
-	results, err := client.Search(ctx, "database error", ragclient.SearchOptions{
+	results, err := client.Search(ctx, "database error", logsclient.SearchOptions{
 		Limit:     10,
 		TimeRange: time.Hour,
 	})
@@ -109,14 +109,14 @@ func (m *inMemoryVectorStore) Search(ctx context.Context, vector []float32, opts
 func (m *inMemoryVectorStore) Delete(ctx context.Context, ids []string) error { return nil }
 func (m *inMemoryVectorStore) Close() error                                   { return nil }
 
-func setupTestClient(t *testing.T) (ragclient.Client, func()) {
+func setupTestClient(t *testing.T) (logsclient.Client, func()) {
 	t.Helper()
 
 	emb := &mockEmbedder{}
 	vs := &inMemoryVectorStore{}
-	ragSvc, err := rag.NewService(emb, vs)
+	ragSvc, err := meerkatlogs.NewService(emb, vs)
 	require.NoError(t, err)
-	ragServer, err := rag.NewGRPCServer(ragSvc)
+	ragServer, err := meerkatlogs.NewGRPCServer(ragSvc)
 	require.NoError(t, err)
 
 	grpcServer := grpc.NewServer()
@@ -129,8 +129,8 @@ func setupTestClient(t *testing.T) (ragclient.Client, func()) {
 		}
 	}()
 
-	client, err := ragclient.New("passthrough:///bufnet",
-		ragclient.WithGRPCDialOpts(
+	client, err := logsclient.New("passthrough:///bufnet",
+		logsclient.WithGRPCDialOpts(
 			grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 				return listener.Dial()
 			}),

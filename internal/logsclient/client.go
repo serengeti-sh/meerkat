@@ -1,4 +1,4 @@
-package ragclient
+package logsclient
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/ragpb"
 )
 
-// Client is a gRPC client for the RAG service.
+// Client is a gRPC client for the MeerkatLogs service.
 type Client interface {
 	Ingest(ctx context.Context, entries []LogEntry) (*IngestResult, error)
 	Search(ctx context.Context, query string, opts SearchOptions) ([]SearchResult, error)
@@ -40,7 +40,7 @@ func New(addr string, opts ...Option) (*client, error) {
 
 	conn, err := grpc.NewClient(addr, cfg.dialOpts...)
 	if err != nil {
-		return nil, fmt.Errorf("connect to rag server: %w", err)
+		return nil, fmt.Errorf("connect to MeerkatLogs server: %w", err)
 	}
 
 	return &client{

@@ -1,4 +1,4 @@
-package rag
+package meerkatlogs
 
 import (
 	"context"
@@ -21,7 +21,7 @@ type GRPCServer struct {
 
 var _ ragpb.ServiceServer = (*GRPCServer)(nil)
 
-// NewGRPCServer creates a gRPC server for the RAG service.
+// NewGRPCServer creates a gRPC server for the MeerkatLogs service.
 func NewGRPCServer(svc Service) (*GRPCServer, error) {
 	if svc == nil {
 		return nil, fmt.Errorf("rag: svc is required")

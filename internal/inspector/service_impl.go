@@ -13,7 +13,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
 	"github.com/serengeti-sh/meerkat/internal/ent"
-	"github.com/serengeti-sh/meerkat/internal/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/logsclient"
 	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 )
@@ -21,17 +21,17 @@ import (
 const (
 	defaultQueueSize   = 1000
 	defaultWorkerCount = 10
-	ragContextWindow   = 15 * time.Minute
-	ragContextLimit    = 20
+	logsContextWindow  = 15 * time.Minute
+	logsContextLimit   = 20
 )
 
 // ServiceOption configures the inspector service.
 type ServiceOption func(*service)
 
-// WithRAGClient sets the RAG client for online log retrieval.
-func WithRAGClient(client ragclient.Client) ServiceOption {
+// WithLogsClient sets the MeerkatLogs client for online log retrieval.
+func WithLogsClient(client logsclient.Client) ServiceOption {
 	return func(s *service) {
-		s.ragClient = client
+		s.logsClient = client
 	}
 }
 
@@ -42,7 +42,7 @@ type service struct {
 	analyzerSvc analyzer.Service
 	reportRepo  report.Repository
 	reporterSvc reporter.Service
-	ragClient   ragclient.Client
+	logsClient  logsclient.Client
 	dsRefs      DatasourceRefs
 	dedupWindow time.Duration
 	queueSize   int
@@ -142,8 +142,8 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 		payload.Source, payload.Alert, payload.Message, string(payload.Data))
 
 	// Online Retrieval: fetch recent log context from RAG
-	if s.ragClient != nil {
-		ragCtx := s.fetchRAGContext(ctx, payload)
+	if s.logsClient != nil {
+		ragCtx := s.fetchLogsContext(ctx, payload)
 		if ragCtx != "" {
 			contextStr += "\n\n=== Recent Log Context ===\n" + ragCtx
 		}
@@ -152,16 +152,16 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 	return s.enqueue(ctx, report.TriggerWebhook, payload.Alert, contextStr)
 }
 
-// fetchRAGContext extracts a service name from the webhook payload and queries
+// fetchLogsContext extracts a service name from the webhook payload and queries
 // the RAG index for recent log entries. Returns empty string on error.
-func (s *service) fetchRAGContext(ctx context.Context, payload WebhookPayload) string {
+func (s *service) fetchLogsContext(ctx context.Context, payload WebhookPayload) string {
 	service := extractServiceFromAlert(payload.Alert, payload.Message, payload.Data)
 	if service == "" {
 		return ""
 	}
 
 	now := time.Now()
-	results, err := s.ragClient.GetContext(ctx, service, now.Add(-ragContextWindow), now, ragContextLimit)
+	results, err := s.logsClient.GetContext(ctx, service, now.Add(-logsContextWindow), now, logsContextLimit)
 	if err != nil {
 		log.Printf("[inspector] failed to fetch RAG context for service %q: %v", service, err)
 		return ""

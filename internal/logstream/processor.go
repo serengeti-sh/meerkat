@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/internal/rag"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogs"
 )
 
 const (
@@ -18,22 +18,22 @@ const (
 // and optionally triggers analysis when thresholds are breached.
 type Processor struct {
 	connector  *Connector
-	ragSvc     rag.Service
+	ragSvc     meerkatlogs.Service
 	windowSize time.Duration
 	threshold  int
 	workers    int
-	ingestCh   chan rag.LogEntry
+	ingestCh   chan meerkatlogs.LogEntry
 }
 
 // NewProcessor creates a stream processor.
-func NewProcessor(conn *Connector, ragSvc rag.Service, windowSize time.Duration, threshold int) *Processor {
+func NewProcessor(conn *Connector, ragSvc meerkatlogs.Service, windowSize time.Duration, threshold int) *Processor {
 	return &Processor{
 		connector:  conn,
 		ragSvc:     ragSvc,
 		windowSize: windowSize,
 		threshold:  threshold,
 		workers:    defaultIngestWorkers,
-		ingestCh:   make(chan rag.LogEntry, defaultIngestWorkers*ingestQueueFactor),
+		ingestCh:   make(chan meerkatlogs.LogEntry, defaultIngestWorkers*ingestQueueFactor),
 	}
 }
 
@@ -51,7 +51,7 @@ func (p *Processor) Run(ctx context.Context, query string) error {
 		wg.Wait()
 	}()
 
-	return p.connector.Subscribe(ctx, query, func(entry rag.LogEntry) {
+	return p.connector.Subscribe(ctx, query, func(entry meerkatlogs.LogEntry) {
 		window.Add(entry.Timestamp)
 
 		select {
@@ -75,8 +75,8 @@ func (p *Processor) worker(ctx context.Context, wg *sync.WaitGroup) {
 	}
 }
 
-func (p *Processor) indexEntry(ctx context.Context, entry rag.LogEntry) {
-	_, err := p.ragSvc.Ingest(ctx, []rag.LogEntry{entry})
+func (p *Processor) indexEntry(ctx context.Context, entry meerkatlogs.LogEntry) {
+	_, err := p.ragSvc.Ingest(ctx, []meerkatlogs.LogEntry{entry})
 	if err != nil {
 		log.Printf("[stream] failed to index entry %s: %v", entry.ID, err)
 	}

@@ -6,28 +6,28 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/internal/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/logsclient"
 )
 
-// searchRAGTool searches the MeerkatLogs pipeline for semantically similar log entries.
-type searchRAGTool struct {
-	client ragclient.Client
+// searchLogsTool searches the MeerkatLogs pipeline for semantically similar log entries.
+type searchLogsTool struct {
+	client logsclient.Client
 }
 
-// NewSearchRAGTool creates a tool that searches the MeerkatLogs index via gRPC.
-func NewSearchRAGTool(client ragclient.Client) *searchRAGTool {
-	return &searchRAGTool{client: client}
+// NewSearchLogsTool creates a tool that searches the MeerkatLogs index via gRPC.
+func NewSearchLogsTool(client logsclient.Client) *searchLogsTool {
+	return &searchLogsTool{client: client}
 }
 
-func (t *searchRAGTool) Name() string {
-	return "search_rag"
+func (t *searchLogsTool) Name() string {
+	return "search_logs"
 }
 
-func (t *searchRAGTool) Description() string {
+func (t *searchLogsTool) Description() string {
 	return "Search semantically similar log entries from the MeerkatLogs vector index. Returns log entries with timestamps, service names, severity levels, and raw body text."
 }
 
-func (t *searchRAGTool) Parameters() json.RawMessage {
+func (t *searchLogsTool) Parameters() json.RawMessage {
 	return json.RawMessage(`{
 		"type": "object",
 		"properties": {
@@ -58,7 +58,7 @@ func (t *searchRAGTool) Parameters() json.RawMessage {
 	}`)
 }
 
-func (t *searchRAGTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
+func (t *searchLogsTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
 	var params struct {
 		Query     string `json:"query"`
 		Limit     int    `json:"limit"`
@@ -90,7 +90,7 @@ func (t *searchRAGTool) Execute(ctx context.Context, args json.RawMessage) (stri
 		timeRange = time.Hour
 	}
 
-	opts := ragclient.SearchOptions{
+	opts := logsclient.SearchOptions{
 		Limit:     params.Limit,
 		TimeRange: timeRange,
 		Service:   params.Service,
@@ -110,4 +110,4 @@ func (t *searchRAGTool) Execute(ctx context.Context, args json.RawMessage) (stri
 	return string(out), nil
 }
 
-var _ Plugin = (*searchRAGTool)(nil)
+var _ Plugin = (*searchLogsTool)(nil)

@@ -2,13 +2,13 @@
 // github.com/vektra/mockery
 // template: testify
 
-package ragclientmocks
+package logsclientmocks
 
 import (
 	"context"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/internal/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/logsclient"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -84,23 +84,23 @@ func (_c *ClientMock_Close_Call) RunAndReturn(run func() error) *ClientMock_Clos
 }
 
 // GetContext provides a mock function for the type ClientMock
-func (_mock *ClientMock) GetContext(ctx context.Context, service string, start time.Time, end time.Time, limit int) ([]ragclient.SearchResult, error) {
+func (_mock *ClientMock) GetContext(ctx context.Context, service string, start time.Time, end time.Time, limit int) ([]logsclient.SearchResult, error) {
 	ret := _mock.Called(ctx, service, start, end, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetContext")
 	}
 
-	var r0 []ragclient.SearchResult
+	var r0 []logsclient.SearchResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time, time.Time, int) ([]ragclient.SearchResult, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time, time.Time, int) ([]logsclient.SearchResult, error)); ok {
 		return returnFunc(ctx, service, start, end, limit)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time, time.Time, int) []ragclient.SearchResult); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time, time.Time, int) []logsclient.SearchResult); ok {
 		r0 = returnFunc(ctx, service, start, end, limit)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]ragclient.SearchResult)
+			r0 = ret.Get(0).([]logsclient.SearchResult)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string, time.Time, time.Time, int) error); ok {
@@ -159,37 +159,37 @@ func (_c *ClientMock_GetContext_Call) Run(run func(ctx context.Context, service 
 	return _c
 }
 
-func (_c *ClientMock_GetContext_Call) Return(searchResults []ragclient.SearchResult, err error) *ClientMock_GetContext_Call {
+func (_c *ClientMock_GetContext_Call) Return(searchResults []logsclient.SearchResult, err error) *ClientMock_GetContext_Call {
 	_c.Call.Return(searchResults, err)
 	return _c
 }
 
-func (_c *ClientMock_GetContext_Call) RunAndReturn(run func(ctx context.Context, service string, start time.Time, end time.Time, limit int) ([]ragclient.SearchResult, error)) *ClientMock_GetContext_Call {
+func (_c *ClientMock_GetContext_Call) RunAndReturn(run func(ctx context.Context, service string, start time.Time, end time.Time, limit int) ([]logsclient.SearchResult, error)) *ClientMock_GetContext_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Ingest provides a mock function for the type ClientMock
-func (_mock *ClientMock) Ingest(ctx context.Context, entries []ragclient.LogEntry) (*ragclient.IngestResult, error) {
+func (_mock *ClientMock) Ingest(ctx context.Context, entries []logsclient.LogEntry) (*logsclient.IngestResult, error) {
 	ret := _mock.Called(ctx, entries)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Ingest")
 	}
 
-	var r0 *ragclient.IngestResult
+	var r0 *logsclient.IngestResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []ragclient.LogEntry) (*ragclient.IngestResult, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []logsclient.LogEntry) (*logsclient.IngestResult, error)); ok {
 		return returnFunc(ctx, entries)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []ragclient.LogEntry) *ragclient.IngestResult); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []logsclient.LogEntry) *logsclient.IngestResult); ok {
 		r0 = returnFunc(ctx, entries)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*ragclient.IngestResult)
+			r0 = ret.Get(0).(*logsclient.IngestResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, []ragclient.LogEntry) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []logsclient.LogEntry) error); ok {
 		r1 = returnFunc(ctx, entries)
 	} else {
 		r1 = ret.Error(1)
@@ -204,20 +204,20 @@ type ClientMock_Ingest_Call struct {
 
 // Ingest is a helper method to define mock.On call
 //   - ctx context.Context
-//   - entries []ragclient.LogEntry
+//   - entries []logsclient.LogEntry
 func (_e *ClientMock_Expecter) Ingest(ctx interface{}, entries interface{}) *ClientMock_Ingest_Call {
 	return &ClientMock_Ingest_Call{Call: _e.mock.On("Ingest", ctx, entries)}
 }
 
-func (_c *ClientMock_Ingest_Call) Run(run func(ctx context.Context, entries []ragclient.LogEntry)) *ClientMock_Ingest_Call {
+func (_c *ClientMock_Ingest_Call) Run(run func(ctx context.Context, entries []logsclient.LogEntry)) *ClientMock_Ingest_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 []ragclient.LogEntry
+		var arg1 []logsclient.LogEntry
 		if args[1] != nil {
-			arg1 = args[1].([]ragclient.LogEntry)
+			arg1 = args[1].([]logsclient.LogEntry)
 		}
 		run(
 			arg0,
@@ -227,37 +227,37 @@ func (_c *ClientMock_Ingest_Call) Run(run func(ctx context.Context, entries []ra
 	return _c
 }
 
-func (_c *ClientMock_Ingest_Call) Return(ingestResult *ragclient.IngestResult, err error) *ClientMock_Ingest_Call {
+func (_c *ClientMock_Ingest_Call) Return(ingestResult *logsclient.IngestResult, err error) *ClientMock_Ingest_Call {
 	_c.Call.Return(ingestResult, err)
 	return _c
 }
 
-func (_c *ClientMock_Ingest_Call) RunAndReturn(run func(ctx context.Context, entries []ragclient.LogEntry) (*ragclient.IngestResult, error)) *ClientMock_Ingest_Call {
+func (_c *ClientMock_Ingest_Call) RunAndReturn(run func(ctx context.Context, entries []logsclient.LogEntry) (*logsclient.IngestResult, error)) *ClientMock_Ingest_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Search provides a mock function for the type ClientMock
-func (_mock *ClientMock) Search(ctx context.Context, query string, opts ragclient.SearchOptions) ([]ragclient.SearchResult, error) {
+func (_mock *ClientMock) Search(ctx context.Context, query string, opts logsclient.SearchOptions) ([]logsclient.SearchResult, error) {
 	ret := _mock.Called(ctx, query, opts)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Search")
 	}
 
-	var r0 []ragclient.SearchResult
+	var r0 []logsclient.SearchResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ragclient.SearchOptions) ([]ragclient.SearchResult, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, logsclient.SearchOptions) ([]logsclient.SearchResult, error)); ok {
 		return returnFunc(ctx, query, opts)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, ragclient.SearchOptions) []ragclient.SearchResult); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, logsclient.SearchOptions) []logsclient.SearchResult); ok {
 		r0 = returnFunc(ctx, query, opts)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]ragclient.SearchResult)
+			r0 = ret.Get(0).([]logsclient.SearchResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, ragclient.SearchOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, logsclient.SearchOptions) error); ok {
 		r1 = returnFunc(ctx, query, opts)
 	} else {
 		r1 = ret.Error(1)
@@ -273,12 +273,12 @@ type ClientMock_Search_Call struct {
 // Search is a helper method to define mock.On call
 //   - ctx context.Context
 //   - query string
-//   - opts ragclient.SearchOptions
+//   - opts logsclient.SearchOptions
 func (_e *ClientMock_Expecter) Search(ctx interface{}, query interface{}, opts interface{}) *ClientMock_Search_Call {
 	return &ClientMock_Search_Call{Call: _e.mock.On("Search", ctx, query, opts)}
 }
 
-func (_c *ClientMock_Search_Call) Run(run func(ctx context.Context, query string, opts ragclient.SearchOptions)) *ClientMock_Search_Call {
+func (_c *ClientMock_Search_Call) Run(run func(ctx context.Context, query string, opts logsclient.SearchOptions)) *ClientMock_Search_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -288,9 +288,9 @@ func (_c *ClientMock_Search_Call) Run(run func(ctx context.Context, query string
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 ragclient.SearchOptions
+		var arg2 logsclient.SearchOptions
 		if args[2] != nil {
-			arg2 = args[2].(ragclient.SearchOptions)
+			arg2 = args[2].(logsclient.SearchOptions)
 		}
 		run(
 			arg0,
@@ -301,12 +301,12 @@ func (_c *ClientMock_Search_Call) Run(run func(ctx context.Context, query string
 	return _c
 }
 
-func (_c *ClientMock_Search_Call) Return(searchResults []ragclient.SearchResult, err error) *ClientMock_Search_Call {
+func (_c *ClientMock_Search_Call) Return(searchResults []logsclient.SearchResult, err error) *ClientMock_Search_Call {
 	_c.Call.Return(searchResults, err)
 	return _c
 }
 
-func (_c *ClientMock_Search_Call) RunAndReturn(run func(ctx context.Context, query string, opts ragclient.SearchOptions) ([]ragclient.SearchResult, error)) *ClientMock_Search_Call {
+func (_c *ClientMock_Search_Call) RunAndReturn(run func(ctx context.Context, query string, opts logsclient.SearchOptions) ([]logsclient.SearchResult, error)) *ClientMock_Search_Call {
 	_c.Call.Return(run)
 	return _c
 }

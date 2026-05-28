@@ -1,6 +1,21 @@
-package ragclient
+package meerkatlogs
 
-import "time"
+import (
+	"context"
+	"time"
+)
+
+// Service provides log ingestion and semantic search for AI analysis.
+type Service interface {
+	// Ingest adds log entries to the vector store after template extraction.
+	Ingest(ctx context.Context, entries []LogEntry) (*IngestResult, error)
+
+	// Search finds semantically similar log entries.
+	Search(ctx context.Context, query string, opts SearchOptions) ([]SearchResult, error)
+
+	// GetContext retrieves relevant log context for a given service and time range.
+	GetContext(ctx context.Context, service string, start, end time.Time, limit int) ([]SearchResult, error)
+}
 
 // LogEntry represents a single log line for ingestion.
 type LogEntry struct {

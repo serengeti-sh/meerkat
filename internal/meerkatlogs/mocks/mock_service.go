@@ -2,13 +2,13 @@
 // github.com/vektra/mockery
 // template: testify
 
-package ragmocks
+package meerkatlogsmocks
 
 import (
 	"context"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/internal/rag"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogs"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -40,23 +40,23 @@ func (_m *ServiceMock) EXPECT() *ServiceMock_Expecter {
 }
 
 // GetContext provides a mock function for the type ServiceMock
-func (_mock *ServiceMock) GetContext(ctx context.Context, service string, start time.Time, end time.Time, limit int) ([]rag.SearchResult, error) {
+func (_mock *ServiceMock) GetContext(ctx context.Context, service string, start time.Time, end time.Time, limit int) ([]meerkatlogs.SearchResult, error) {
 	ret := _mock.Called(ctx, service, start, end, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetContext")
 	}
 
-	var r0 []rag.SearchResult
+	var r0 []meerkatlogs.SearchResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time, time.Time, int) ([]rag.SearchResult, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time, time.Time, int) ([]meerkatlogs.SearchResult, error)); ok {
 		return returnFunc(ctx, service, start, end, limit)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time, time.Time, int) []rag.SearchResult); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, time.Time, time.Time, int) []meerkatlogs.SearchResult); ok {
 		r0 = returnFunc(ctx, service, start, end, limit)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]rag.SearchResult)
+			r0 = ret.Get(0).([]meerkatlogs.SearchResult)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string, time.Time, time.Time, int) error); ok {
@@ -115,37 +115,37 @@ func (_c *ServiceMock_GetContext_Call) Run(run func(ctx context.Context, service
 	return _c
 }
 
-func (_c *ServiceMock_GetContext_Call) Return(searchResults []rag.SearchResult, err error) *ServiceMock_GetContext_Call {
+func (_c *ServiceMock_GetContext_Call) Return(searchResults []meerkatlogs.SearchResult, err error) *ServiceMock_GetContext_Call {
 	_c.Call.Return(searchResults, err)
 	return _c
 }
 
-func (_c *ServiceMock_GetContext_Call) RunAndReturn(run func(ctx context.Context, service string, start time.Time, end time.Time, limit int) ([]rag.SearchResult, error)) *ServiceMock_GetContext_Call {
+func (_c *ServiceMock_GetContext_Call) RunAndReturn(run func(ctx context.Context, service string, start time.Time, end time.Time, limit int) ([]meerkatlogs.SearchResult, error)) *ServiceMock_GetContext_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Ingest provides a mock function for the type ServiceMock
-func (_mock *ServiceMock) Ingest(ctx context.Context, entries []rag.LogEntry) (*rag.IngestResult, error) {
+func (_mock *ServiceMock) Ingest(ctx context.Context, entries []meerkatlogs.LogEntry) (*meerkatlogs.IngestResult, error) {
 	ret := _mock.Called(ctx, entries)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Ingest")
 	}
 
-	var r0 *rag.IngestResult
+	var r0 *meerkatlogs.IngestResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []rag.LogEntry) (*rag.IngestResult, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []meerkatlogs.LogEntry) (*meerkatlogs.IngestResult, error)); ok {
 		return returnFunc(ctx, entries)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []rag.LogEntry) *rag.IngestResult); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []meerkatlogs.LogEntry) *meerkatlogs.IngestResult); ok {
 		r0 = returnFunc(ctx, entries)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*rag.IngestResult)
+			r0 = ret.Get(0).(*meerkatlogs.IngestResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, []rag.LogEntry) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []meerkatlogs.LogEntry) error); ok {
 		r1 = returnFunc(ctx, entries)
 	} else {
 		r1 = ret.Error(1)
@@ -160,20 +160,20 @@ type ServiceMock_Ingest_Call struct {
 
 // Ingest is a helper method to define mock.On call
 //   - ctx context.Context
-//   - entries []rag.LogEntry
+//   - entries []meerkatlogs.LogEntry
 func (_e *ServiceMock_Expecter) Ingest(ctx interface{}, entries interface{}) *ServiceMock_Ingest_Call {
 	return &ServiceMock_Ingest_Call{Call: _e.mock.On("Ingest", ctx, entries)}
 }
 
-func (_c *ServiceMock_Ingest_Call) Run(run func(ctx context.Context, entries []rag.LogEntry)) *ServiceMock_Ingest_Call {
+func (_c *ServiceMock_Ingest_Call) Run(run func(ctx context.Context, entries []meerkatlogs.LogEntry)) *ServiceMock_Ingest_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 []rag.LogEntry
+		var arg1 []meerkatlogs.LogEntry
 		if args[1] != nil {
-			arg1 = args[1].([]rag.LogEntry)
+			arg1 = args[1].([]meerkatlogs.LogEntry)
 		}
 		run(
 			arg0,
@@ -183,37 +183,37 @@ func (_c *ServiceMock_Ingest_Call) Run(run func(ctx context.Context, entries []r
 	return _c
 }
 
-func (_c *ServiceMock_Ingest_Call) Return(ingestResult *rag.IngestResult, err error) *ServiceMock_Ingest_Call {
+func (_c *ServiceMock_Ingest_Call) Return(ingestResult *meerkatlogs.IngestResult, err error) *ServiceMock_Ingest_Call {
 	_c.Call.Return(ingestResult, err)
 	return _c
 }
 
-func (_c *ServiceMock_Ingest_Call) RunAndReturn(run func(ctx context.Context, entries []rag.LogEntry) (*rag.IngestResult, error)) *ServiceMock_Ingest_Call {
+func (_c *ServiceMock_Ingest_Call) RunAndReturn(run func(ctx context.Context, entries []meerkatlogs.LogEntry) (*meerkatlogs.IngestResult, error)) *ServiceMock_Ingest_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Search provides a mock function for the type ServiceMock
-func (_mock *ServiceMock) Search(ctx context.Context, query string, opts rag.SearchOptions) ([]rag.SearchResult, error) {
+func (_mock *ServiceMock) Search(ctx context.Context, query string, opts meerkatlogs.SearchOptions) ([]meerkatlogs.SearchResult, error) {
 	ret := _mock.Called(ctx, query, opts)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Search")
 	}
 
-	var r0 []rag.SearchResult
+	var r0 []meerkatlogs.SearchResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, rag.SearchOptions) ([]rag.SearchResult, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, meerkatlogs.SearchOptions) ([]meerkatlogs.SearchResult, error)); ok {
 		return returnFunc(ctx, query, opts)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, rag.SearchOptions) []rag.SearchResult); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, meerkatlogs.SearchOptions) []meerkatlogs.SearchResult); ok {
 		r0 = returnFunc(ctx, query, opts)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]rag.SearchResult)
+			r0 = ret.Get(0).([]meerkatlogs.SearchResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, rag.SearchOptions) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, meerkatlogs.SearchOptions) error); ok {
 		r1 = returnFunc(ctx, query, opts)
 	} else {
 		r1 = ret.Error(1)
@@ -229,12 +229,12 @@ type ServiceMock_Search_Call struct {
 // Search is a helper method to define mock.On call
 //   - ctx context.Context
 //   - query string
-//   - opts rag.SearchOptions
+//   - opts meerkatlogs.SearchOptions
 func (_e *ServiceMock_Expecter) Search(ctx interface{}, query interface{}, opts interface{}) *ServiceMock_Search_Call {
 	return &ServiceMock_Search_Call{Call: _e.mock.On("Search", ctx, query, opts)}
 }
 
-func (_c *ServiceMock_Search_Call) Run(run func(ctx context.Context, query string, opts rag.SearchOptions)) *ServiceMock_Search_Call {
+func (_c *ServiceMock_Search_Call) Run(run func(ctx context.Context, query string, opts meerkatlogs.SearchOptions)) *ServiceMock_Search_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -244,9 +244,9 @@ func (_c *ServiceMock_Search_Call) Run(run func(ctx context.Context, query strin
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
-		var arg2 rag.SearchOptions
+		var arg2 meerkatlogs.SearchOptions
 		if args[2] != nil {
-			arg2 = args[2].(rag.SearchOptions)
+			arg2 = args[2].(meerkatlogs.SearchOptions)
 		}
 		run(
 			arg0,
@@ -257,12 +257,12 @@ func (_c *ServiceMock_Search_Call) Run(run func(ctx context.Context, query strin
 	return _c
 }
 
-func (_c *ServiceMock_Search_Call) Return(searchResults []rag.SearchResult, err error) *ServiceMock_Search_Call {
+func (_c *ServiceMock_Search_Call) Return(searchResults []meerkatlogs.SearchResult, err error) *ServiceMock_Search_Call {
 	_c.Call.Return(searchResults, err)
 	return _c
 }
 
-func (_c *ServiceMock_Search_Call) RunAndReturn(run func(ctx context.Context, query string, opts rag.SearchOptions) ([]rag.SearchResult, error)) *ServiceMock_Search_Call {
+func (_c *ServiceMock_Search_Call) RunAndReturn(run func(ctx context.Context, query string, opts meerkatlogs.SearchOptions) ([]meerkatlogs.SearchResult, error)) *ServiceMock_Search_Call {
 	_c.Call.Return(run)
 	return _c
 }

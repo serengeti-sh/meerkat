@@ -1,4 +1,4 @@
-package rag
+package meerkatlogs
 
 import (
 	"context"
@@ -36,7 +36,7 @@ var severityRank = map[string]int{
 	"panic":     7,
 }
 
-// ServiceOption configures the RAG service.
+// ServiceOption configures the MeerkatLogs service.
 type ServiceOption func(*service)
 
 // WithSimilarityThreshold sets the template extraction similarity threshold.

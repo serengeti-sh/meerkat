@@ -1,4 +1,4 @@
-// Package rag implements the Retrieval-Augmented Generation (RAG) pipeline for
+// Package meerkatlogs implements the MeerkatLogs pipeline for
 // MeerkatLogs.
 //
 // It provides log ingestion with template extraction (Drain algorithm), semantic
@@ -12,6 +12,6 @@
 //
 // Entry points:
 //
-//	svc, err := rag.NewService(embedder, vectorStore, opts...)
-//	server, err := rag.NewGRPCServer(svc)
-package rag
+//	svc, err := meerkatlogs.NewService(embedder, vectorStore, opts...)
+//	server, err := meerkatlogs.NewGRPCServer(svc)
+package meerkatlogs

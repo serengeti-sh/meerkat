@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/internal/rag"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogs"
 )
 
 // Connector reads log entries from VictoriaLogs in real-time.
@@ -32,7 +32,7 @@ func NewConnector(baseURL string, client *http.Client) *Connector {
 // Subscribe opens a persistent connection to VM Logs tail endpoint and
 // yields each log entry to the handler. The connection is closed when
 // the context is cancelled.
-func (c *Connector) Subscribe(ctx context.Context, query string, handler func(rag.LogEntry)) error {
+func (c *Connector) Subscribe(ctx context.Context, query string, handler func(meerkatlogs.LogEntry)) error {
 	u, err := url.Parse(c.baseURL)
 	if err != nil {
 		return fmt.Errorf("invalid base URL: %w", err)
@@ -84,7 +84,7 @@ func (c *Connector) Subscribe(ctx context.Context, query string, handler func(ra
 			continue
 		}
 
-		handler(rag.LogEntry{
+		handler(meerkatlogs.LogEntry{
 			ID:         raw.ID,
 			Timestamp:  time.UnixMilli(raw.Timestamp),
 			Service:    raw.Service,

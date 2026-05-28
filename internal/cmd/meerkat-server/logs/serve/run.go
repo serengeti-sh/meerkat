@@ -18,7 +18,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/collector"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
-	"github.com/serengeti-sh/meerkat/internal/rag"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogs"
 	"github.com/serengeti-sh/meerkat/internal/ragpb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
@@ -56,22 +56,22 @@ func Run(cfgFile string, port int) error {
 	}()
 
 	// Create RAG service with configurable threshold and filtering.
-	ragOpts := []rag.ServiceOption{
-		rag.WithFilterMode(ml.FilterMode, ml.MinSeverity),
+	ragOpts := []meerkatlogs.ServiceOption{
+		meerkatlogs.WithFilterMode(ml.FilterMode, ml.MinSeverity),
 	}
 	if ml.SimilarityThreshold > 0 {
-		ragOpts = append(ragOpts, rag.WithSimilarityThreshold(ml.SimilarityThreshold))
+		ragOpts = append(ragOpts, meerkatlogs.WithSimilarityThreshold(ml.SimilarityThreshold))
 	}
 	if ml.IngestBatchSize > 0 {
-		ragOpts = append(ragOpts, rag.WithBatchSize(ml.IngestBatchSize))
+		ragOpts = append(ragOpts, meerkatlogs.WithBatchSize(ml.IngestBatchSize))
 	}
-	ragSvc, err := rag.NewService(emb, vstore, ragOpts...)
+	ragSvc, err := meerkatlogs.NewService(emb, vstore, ragOpts...)
 	if err != nil {
-		return fmt.Errorf("create rag service: %w", err)
+		return fmt.Errorf("create MeerkatLogs service: %w", err)
 	}
 
 	// Start gRPC server for Search/Ingest/GetContext.
-	ragServer, err := rag.NewGRPCServer(ragSvc)
+	ragServer, err := meerkatlogs.NewGRPCServer(ragSvc)
 	if err != nil {
 		return fmt.Errorf("create rag grpc server: %w", err)
 	}
@@ -115,7 +115,7 @@ func Run(cfgFile string, port int) error {
 	// Start OTLP receiver for log ingestion.
 	var otlpServer *collector.GRPCServer
 	if ml.OTLPBindAddr != "" {
-		batcher := collector.NewBatcher(cfg, emb, vstore).WithRAGService(ragSvc)
+		batcher := collector.NewBatcher(cfg, emb, vstore).WithLogsService(ragSvc)
 		batcher.Start()
 		defer batcher.Stop(context.Background())
 

@@ -6,12 +6,12 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
-	"github.com/serengeti-sh/meerkat/internal/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/logsclient"
 	"github.com/serengeti-sh/meerkat/internal/tool"
 )
 
 // buildToolRegistry constructs the tool registry from configuration.
-func buildToolRegistry(cfg *config.Config, emb embedder.Model, logsClient ragclient.Client) (*tool.Registry, error) {
+func buildToolRegistry(cfg *config.Config, emb embedder.Model, logsClient logsclient.Client) (*tool.Registry, error) {
 	var tools []tool.Plugin
 
 	for _, pc := range cfg.Tools.Prometheus {
@@ -89,7 +89,7 @@ func buildToolRegistry(cfg *config.Config, emb embedder.Model, logsClient ragcli
 	// Search logs directly via embedder (deprecated: use meerkatlogs instead).
 	// Kept for backward compatibility when meerkatlogs is disabled.
 	if logsClient != nil {
-		tools = append(tools, tool.NewSearchRAGTool(logsClient))
+		tools = append(tools, tool.NewSearchLogsTool(logsClient))
 	}
 
 	return tool.NewRegistry(tools...), nil

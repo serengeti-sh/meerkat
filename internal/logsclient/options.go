@@ -1,4 +1,4 @@
-package ragclient
+package logsclient
 
 import "google.golang.org/grpc"
 

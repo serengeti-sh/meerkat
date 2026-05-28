@@ -283,14 +283,14 @@ systemPrompt: |
   ## Log Context
 
   When the analysis context includes a "=== Recent Log Context ===" section,
-  these are semantically similar log entries retrieved from the RAG (Retrieval-Augmented Generation) index.
+  these are semantically similar log entries retrieved from the MeerkatLogs vector index.
   Use this context to:
   - Identify recurring error patterns and their frequency
   - Correlate log anomalies with metric alerts
   - Formulate more precise root cause hypotheses
   - Prioritize issues based on log severity distribution
 
-  Do NOT treat RAG log context as a replacement for live datasource queries.
+  Do NOT treat MeerkatLogs context as a replacement for live datasource queries.
   Use it as supplementary evidence alongside current metrics and logs.
 
   ## Tool Usage Rules

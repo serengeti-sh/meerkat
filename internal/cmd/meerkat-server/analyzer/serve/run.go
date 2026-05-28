@@ -17,7 +17,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/embedder"
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
-	"github.com/serengeti-sh/meerkat/internal/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/logsclient"
 	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
@@ -65,9 +65,9 @@ func Run(cfgFile string, port int) error {
 	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
 
 	// 5. MeerkatLogs client (for log search)
-	var logsClient ragclient.Client
+	var logsClient logsclient.Client
 	if cfg.MeerkatLogs.Enabled && cfg.MeerkatLogs.Address != "" {
-		logsClient, err = ragclient.New(cfg.MeerkatLogs.Address)
+		logsClient, err = logsclient.New(cfg.MeerkatLogs.Address)
 		if err != nil {
 			return fmt.Errorf("create meerkatlogs client: %w", err)
 		}
@@ -113,7 +113,7 @@ func Run(cfgFile string, port int) error {
 	// 11. Inspector options (meerkatlogs client for online log retrieval)
 	var inspectorOpts []inspector.ServiceOption
 	if logsClient != nil {
-		inspectorOpts = append(inspectorOpts, inspector.WithRAGClient(logsClient))
+		inspectorOpts = append(inspectorOpts, inspector.WithLogsClient(logsClient))
 	}
 
 	// 12. Inspector service

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/serengeti-sh/meerkat/internal/rag"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogs"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
@@ -26,12 +26,12 @@ func TestRAGEndToEnd(t *testing.T) {
 		},
 	}
 	vs := &inMemoryVectorStore{}
-	svc, err := rag.NewService(emb, vs)
+	svc, err := meerkatlogs.NewService(emb, vs)
 	require.NoError(t, err)
 	ctx := context.Background()
 
 	// Step 1: Ingest log entries
-	entries := []rag.LogEntry{
+	entries := []meerkatlogs.LogEntry{
 		{
 			ID:        "log-1",
 			Timestamp: time.Now().Add(-30 * time.Minute),
@@ -60,7 +60,7 @@ func TestRAGEndToEnd(t *testing.T) {
 	assert.Greater(t, result.IngestedCount, 0, "expected some entries to be ingested")
 
 	// Step 2: Search for similar entries
-	searchResults, err := svc.Search(ctx, "database connection error", rag.SearchOptions{
+	searchResults, err := svc.Search(ctx, "database connection error", meerkatlogs.SearchOptions{
 		Limit:     10,
 		TimeRange: time.Hour,
 		Service:   "api-server",

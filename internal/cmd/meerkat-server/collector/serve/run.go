@@ -12,7 +12,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/collector"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
-	"github.com/serengeti-sh/meerkat/internal/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/logsclient"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
@@ -48,7 +48,7 @@ func Run(cfgFile string) error {
 
 	// 5. Optional meerkatlogs client for deduplicated ingestion
 	if cfg.MeerkatLogs.Enabled && cfg.MeerkatLogs.Address != "" {
-		logsCli, err := ragclient.New(cfg.MeerkatLogs.Address)
+		logsCli, err := logsclient.New(cfg.MeerkatLogs.Address)
 		if err != nil {
 			return fmt.Errorf("create meerkatlogs client: %w", err)
 		}
@@ -57,7 +57,7 @@ func Run(cfgFile string) error {
 				log.Printf("failed to close meerkatlogs client: %v", err)
 			}
 		}()
-		batcher.WithRAGClient(logsCli)
+		batcher.WithLogsClient(logsCli)
 		log.Printf("[collector] connected to meerkatlogs server at %s", cfg.MeerkatLogs.Address)
 	}
 
