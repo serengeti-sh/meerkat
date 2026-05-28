@@ -15,7 +15,7 @@ type searchRAGTool struct {
 }
 
 // NewSearchRAGTool creates a tool that searches the RAG index.
-func NewSearchRAGTool(ragSvc rag.Service) Plugin {
+func NewSearchRAGTool(ragSvc rag.Service) *searchRAGTool {
 	return &searchRAGTool{ragSvc: ragSvc}
 }
 

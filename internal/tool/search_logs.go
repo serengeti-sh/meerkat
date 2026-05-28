@@ -18,7 +18,7 @@ type searchLogsTool struct {
 
 var _ Plugin = (*searchLogsTool)(nil)
 
-func NewSearchLogsTool(emb embedder.Model, vstore vectorstore.Store) Plugin {
+func NewSearchLogsTool(emb embedder.Model, vstore vectorstore.Store) *searchLogsTool {
 	return &searchLogsTool{
 		embedder:    emb,
 		vectorstore: vstore,
