@@ -13,10 +13,15 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/apperrors"
 )
 
-var severityRank = map[string]int{
-	"info":     0,
-	"warning":  1,
-	"critical": 2,
+func severityRank(s string) int {
+	switch s {
+	case "warning":
+		return 1
+	case "critical":
+		return 2
+	default:
+		return 0
+	}
 }
 
 type service struct {
@@ -46,8 +51,8 @@ func (s *service) Report(ctx context.Context, report *ReportData) error {
 		return nil // no webhook configured
 	}
 
-	minRank := severityRank[s.minSeverity]
-	if severityRank[report.Severity] < minRank {
+	minRank := severityRank(s.minSeverity)
+	if severityRank(report.Severity) < minRank {
 		return nil // severity below threshold
 	}
 
