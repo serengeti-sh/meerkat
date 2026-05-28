@@ -38,7 +38,7 @@ var _ Store = (*milvusStore)(nil)
 
 // NewMilvusClient creates a Store backed by Milvus.
 // On first use it ensures the collection exists with the correct schema and index.
-func NewMilvusClient(cfg *config.Config) (Store, error) {
+func NewMilvusClient(cfg *config.Config) (*milvusStore, error) {
 	mc := cfg.VectorStore.Milvus
 
 	connectCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

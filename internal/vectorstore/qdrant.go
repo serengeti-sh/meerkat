@@ -6,9 +6,10 @@ import (
 	"time"
 
 	"github.com/qdrant/go-client/qdrant"
-	"github.com/serengeti-sh/meerkat/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/serengeti-sh/meerkat/internal/config"
 )
 
 const (
@@ -26,7 +27,7 @@ type qdrantStore struct {
 var _ Store = (*qdrantStore)(nil)
 
 // NewQdrantClient creates a Store backed by Qdrant.
-func NewQdrantClient(cfg *config.Config) (Store, error) {
+func NewQdrantClient(cfg *config.Config) (*qdrantStore, error) {
 	qc := cfg.VectorStore.Qdrant
 
 	connectCtx, cancel := context.WithTimeout(context.Background(), qdrantDefaultTimeout)

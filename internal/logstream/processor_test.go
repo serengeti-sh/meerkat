@@ -43,9 +43,8 @@ func TestProcessor_SlidingWindow(t *testing.T) {
 
 	assert.Equal(t, 3, window.Count())
 
-	// Wait for window to expire
-	time.Sleep(6 * time.Second)
-	window.Add(time.Now())
+	// Trigger eviction by adding an entry far in the future
+	window.Add(now.Add(10 * time.Second))
 	assert.Equal(t, 1, window.Count())
 }
 

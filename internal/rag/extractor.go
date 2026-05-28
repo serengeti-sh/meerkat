@@ -9,6 +9,7 @@ import (
 const (
 	defaultSimilarityThreshold = 0.7
 	maxTemplateLength          = 100
+	maxTemplates               = 10000
 )
 
 var (
@@ -89,12 +90,35 @@ func (d *Extractor) Extract(message string) (tmpl string, isNew bool) {
 	copy(tmplTokens, tokens)
 	tmplTokens = maskParameters(tmplTokens)
 
+	// Evict the least-used template if at capacity.
+	if len(d.templates) >= maxTemplates {
+		d.evictLeastUsed()
+	}
+
 	d.templates = append(d.templates, template{
 		tokens: tmplTokens,
 		count:  1,
 	})
 
 	return reconstruct(tmplTokens), true
+}
+
+// evictLeastUsed removes the template with the lowest count.
+func (d *Extractor) evictLeastUsed() {
+	if len(d.templates) == 0 {
+		return
+	}
+	minIdx := 0
+	minCount := d.templates[0].count
+	for i := 1; i < len(d.templates); i++ {
+		if d.templates[i].count < minCount {
+			minCount = d.templates[i].count
+			minIdx = i
+		}
+	}
+	// Swap with last and truncate (order doesn't matter).
+	d.templates[minIdx] = d.templates[len(d.templates)-1]
+	d.templates = d.templates[:len(d.templates)-1]
 }
 
 // Templates returns all extracted templates.

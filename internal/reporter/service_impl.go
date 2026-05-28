@@ -65,7 +65,8 @@ func (s *service) Report(ctx context.Context, report *ReportData) error {
 
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return apperrors.Wrap(apperrors.ErrInternal, "send webhook request", err)
+		// Sanitize: the raw error may contain the secret webhook URL.
+		return apperrors.Wrap(apperrors.ErrInternal, "send webhook request failed", fmt.Errorf("network error"))
 	}
 	defer func() {
 		_, _ = io.Copy(io.Discard, resp.Body)

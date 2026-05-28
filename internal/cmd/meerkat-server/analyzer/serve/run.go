@@ -64,8 +64,8 @@ func Run(cfgFile string, port int) error {
 
 	// 5. Vector store
 	var vstore vectorstore.Store
-	if cfg.VectorStore.Milvus.Address != "" {
-		vstore, err = vectorstore.NewMilvusClient(cfg)
+	if cfg.VectorStore.Driver != "" {
+		vstore, err = vectorstore.New(cfg)
 		if err != nil {
 			return fmt.Errorf("create vector store: %w", err)
 		}

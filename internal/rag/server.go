@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/internal/ragpb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/serengeti-sh/meerkat/internal/ragpb"
 )
 
 // GRPCServer implements the ragpb.ServiceServer interface.
@@ -102,7 +103,7 @@ func (s *GRPCServer) GetContext(ctx context.Context, req *ragpb.GetContextReques
 		int(req.Limit),
 	)
 	if err != nil {
-		if err == ErrInvalidTimeRange {
+		if errors.Is(err, ErrInvalidTimeRange) {
 			return nil, status.Errorf(codes.InvalidArgument, "invalid time range")
 		}
 		return nil, status.Errorf(codes.Internal, "get context failed: %v", err)

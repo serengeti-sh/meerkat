@@ -5,9 +5,10 @@ import (
 	"log"
 	"net"
 
-	"github.com/serengeti-sh/meerkat/internal/config"
 	logsv1 "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	"google.golang.org/grpc"
+
+	"github.com/serengeti-sh/meerkat/internal/config"
 )
 
 // GRPCServer wraps a gRPC server that receives OTLP log exports.

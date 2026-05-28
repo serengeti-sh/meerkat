@@ -53,15 +53,15 @@ func (s *service) Start(ctx context.Context) error {
 				defer s.wg.Done()
 				log.Printf("[scheduler] starting job %q (interval: %s)", j.Name, j.Interval)
 
-				ticker := time.NewTicker(j.Interval)
-				defer ticker.Stop()
+				timer := time.NewTimer(j.Interval)
+				defer timer.Stop()
 
 				for {
 					select {
 					case <-ctx.Done():
 						log.Printf("[scheduler] stopping job %q", j.Name)
 						return
-					case <-ticker.C:
+					case <-timer.C:
 						log.Printf("[scheduler] running job %q", j.Name)
 						rpt, err := s.inspectorSvc.Inspect(ctx, inspector.InspectRequest{
 							MetricQuery: j.MetricQuery,
@@ -70,9 +70,11 @@ func (s *service) Start(ctx context.Context) error {
 						})
 						if err != nil {
 							log.Printf("[scheduler] job %q failed: %v", j.Name, err)
-							continue
 						}
-						log.Printf("[scheduler] job %q completed: severity=%s summary=%s", j.Name, rpt.Severity(), rpt.Summary())
+						if err == nil {
+							log.Printf("[scheduler] job %q completed: severity=%s summary=%s", j.Name, rpt.Severity(), rpt.Summary())
+						}
+						timer.Reset(j.Interval)
 					}
 				}
 			}(job)

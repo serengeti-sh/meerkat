@@ -117,6 +117,28 @@ func NewReport(opts ...ReportOption) *Report {
 	return r
 }
 
+// Clone returns a deep copy of the report with any options applied on top.
+// This is the preferred way to create a modified copy (e.g., change status).
+func (r *Report) Clone(opts ...ReportOption) *Report {
+	cp := &Report{
+		id:          r.id,
+		trigger:     r.trigger,
+		triggerID:   r.triggerID,
+		status:      r.status,
+		severity:    r.severity,
+		summary:     r.summary,
+		detail:      r.detail,
+		query:       r.query,
+		datasources: append([]string(nil), r.datasources...),
+		iterations:  r.iterations,
+		createdAt:   r.createdAt,
+	}
+	for _, opt := range opts {
+		opt(cp)
+	}
+	return cp
+}
+
 func (r *Report) ID() string            { return r.id }
 func (r *Report) Trigger() TriggerType  { return r.trigger }
 func (r *Report) TriggerID() string     { return r.triggerID }

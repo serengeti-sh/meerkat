@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
 	"github.com/serengeti-sh/meerkat/internal/ent"
@@ -49,7 +50,7 @@ type service struct {
 	queue       chan *analysisJob
 	wg          sync.WaitGroup
 	cancel      context.CancelFunc
-	started     bool
+	startOnce   sync.Once
 }
 
 var _ Service = (*service)(nil)
@@ -105,19 +106,17 @@ func NewService(
 
 // Start launches the worker pool. It is safe to call only once.
 func (s *service) Start() error {
-	if s.started {
-		return fmt.Errorf("inspector: already started")
-	}
-	s.started = true
+	var startErr error
+	s.startOnce.Do(func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		s.cancel = cancel
 
-	ctx, cancel := context.WithCancel(context.Background())
-	s.cancel = cancel
-
-	for i := 0; i < s.workerCount; i++ {
-		s.wg.Add(1)
-		go s.worker(i, ctx)
-	}
-	return nil
+		for i := 0; i < s.workerCount; i++ {
+			s.wg.Add(1)
+			go s.worker(i, ctx)
+		}
+	})
+	return startErr
 }
 
 // Inspect creates a queued report and submits it to the worker pool.
@@ -257,7 +256,9 @@ func (s *service) ListReports(ctx context.Context, limit int) ([]*report.Report,
 }
 
 func (s *service) Stop() {
-	s.cancel()
+	if s.cancel != nil {
+		s.cancel()
+	}
 	s.wg.Wait()
 	log.Printf("[inspector] all workers stopped")
 }

@@ -27,8 +27,8 @@ type client struct {
 
 var _ Client = (*client)(nil)
 
-// New creates a Client connected to the RAG gRPC server at addr.
-func New(addr string, opts ...Option) (Client, error) {
+// New creates a client connected to the RAG gRPC server at addr.
+func New(addr string, opts ...Option) (*client, error) {
 	cfg := &config{
 		dialOpts: []grpc.DialOption{
 			grpc.WithTransportCredentials(insecure.NewCredentials()),

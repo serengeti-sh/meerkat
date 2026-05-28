@@ -9,8 +9,8 @@ type Model interface {
 	Embed(ctx context.Context, texts []string) ([][]float32, error)
 }
 
-// New creates an Model based on the provider configuration.
+// New creates a Model based on the provider configuration.
 // Currently supports "openai".
-func New(apiKey, baseURL, model string) Model {
+func New(apiKey, baseURL, model string) *openAIEmbedder {
 	return newOpenAIEmbedder(apiKey, baseURL, model)
 }

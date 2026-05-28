@@ -31,8 +31,7 @@ func (s *service) worker(id int, ctx context.Context) {
 // runAnalysis executes the agent loop.
 func (s *service) runAnalysis(ctx context.Context, rpt *report.Report, input *analyzer.AnalysisInput) {
 	// Update status to running
-	runningReport := report.NewReport(report.WithID(rpt.ID()), report.WithTrigger(rpt.Trigger()), report.WithTriggerID(rpt.TriggerID()), report.WithStatus(report.StatusRunning), report.WithSeverity(rpt.Severity()), report.WithSummary(rpt.Summary()), report.WithDetail(rpt.Detail()), report.WithQuery(rpt.Query()), report.WithDatasources(rpt.Datasources()), report.WithIterations(rpt.Iterations()), report.WithCreatedAt(rpt.CreatedAt()),
-	)
+	runningReport := rpt.Clone(report.WithStatus(report.StatusRunning))
 	if err := s.reportRepo.Update(ctx, runningReport); err != nil {
 		log.Printf("[meerkat] failed to update report %s to running: %v", rpt.ID(), err)
 	}
@@ -43,21 +42,20 @@ func (s *service) runAnalysis(ctx context.Context, rpt *report.Report, input *an
 	var finalReport *report.Report
 	if err != nil {
 		log.Printf("[meerkat] analysis failed for report %s: %v", rpt.ID(), err)
-		finalReport = report.NewReport(
-			report.WithID(rpt.ID()),
-			report.WithTrigger(rpt.Trigger()),
-			report.WithTriggerID(rpt.TriggerID()),
+		finalReport = rpt.Clone(
 			report.WithStatus(report.StatusFailed),
 			report.WithSeverity(report.SeverityInfo),
 			report.WithSummary(fmt.Sprintf("Analysis failed: %v", err)),
-			report.WithDetail(rpt.Detail()),
-			report.WithQuery(rpt.Query()),
-			report.WithDatasources(rpt.Datasources()),
 			report.WithIterations(0),
-			report.WithCreatedAt(rpt.CreatedAt()),
 		)
 	} else {
-		finalReport = report.NewReport(report.WithID(rpt.ID()), report.WithTrigger(rpt.Trigger()), report.WithTriggerID(rpt.TriggerID()), report.WithStatus(report.StatusCompleted), report.WithSeverity(result.Severity), report.WithSummary(result.Summary), report.WithDetail(result.Detail), report.WithQuery(rpt.Query()), report.WithDatasources(result.Datasources), report.WithIterations(result.Iterations), report.WithCreatedAt(rpt.CreatedAt()),
+		finalReport = rpt.Clone(
+			report.WithStatus(report.StatusCompleted),
+			report.WithSeverity(result.Severity),
+			report.WithSummary(result.Summary),
+			report.WithDetail(result.Detail),
+			report.WithDatasources(result.Datasources),
+			report.WithIterations(result.Iterations),
 		)
 	}
 
