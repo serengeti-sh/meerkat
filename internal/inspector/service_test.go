@@ -56,7 +56,8 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 	assert.Equal(t, report.TriggerManual, rpt.Trigger())
 	assert.NotEmpty(t, rpt.ID())
 
-	// Wait for goroutine to finish
+	// Wait for async worker to process the job
+	time.Sleep(200 * time.Millisecond)
 }
 
 func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
@@ -92,6 +93,8 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 	assert.Equal(t, report.StatusQueued, rpt.Status())
 	assert.Equal(t, report.TriggerWebhook, rpt.Trigger())
 
+	// Wait for async worker to process the job
+	time.Sleep(200 * time.Millisecond)
 }
 
 func TestService_Inspect_NoDatasources(t *testing.T) {
