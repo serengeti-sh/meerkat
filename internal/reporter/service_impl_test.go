@@ -96,22 +96,29 @@ func TestService_Report_ServerError(t *testing.T) {
 }
 
 func TestService_Report_ContextCancelled(t *testing.T) {
+	blockCh := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(100 * time.Millisecond)
+		<-blockCh // block until test cancels context
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
 
 	svc := reporter.NewService(srv.URL, "info", http.DefaultClient)
 	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
 
-	err := svc.Report(ctx, &reporter.ReportData{
-		ID:       "r-1",
-		Severity: "critical",
-		Summary:  "Context test",
-	})
-	require.Error(t, err)
+	var reportErr error
+	go func() {
+		reportErr = svc.Report(ctx, &reporter.ReportData{
+			ID:       "r-1",
+			Severity: "critical",
+			Summary:  "Context test",
+		})
+		close(blockCh)
+	}()
+
+	cancel()
+	require.Eventually(t, func() bool { return reportErr != nil }, 200*time.Millisecond, 10*time.Millisecond)
+	require.Error(t, reportErr)
 }
 
 func TestBuildSlackPayload(t *testing.T) {

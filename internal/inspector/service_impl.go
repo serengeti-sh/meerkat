@@ -259,6 +259,39 @@ func (s *service) Stop() {
 	if s.cancel != nil {
 		s.cancel()
 	}
+
+	// Wait for workers to finish current jobs and exit.
+	// Workers read from queue with select { case job := <-s.queue: }
+	// After ctx is cancelled, they finish their current job and exit.
 	s.wg.Wait()
+
+	// Drain any remaining queued jobs and mark them as failed
+	// so they don't stay orphaned in DB as StatusQueued.
+	drainCtx, drainCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer drainCancel()
+	drained := 0
+	for {
+		select {
+		case job := <-s.queue:
+			if job == nil {
+				goto done
+			}
+			failedReport := job.report.Clone(
+				report.WithStatus(report.StatusFailed),
+				report.WithSummary("Analysis queue drained during shutdown"),
+			)
+			if err := s.reportRepo.Update(drainCtx, failedReport); err != nil {
+				log.Printf("[meerkat] failed to update report %s on drain: %v", job.report.ID(), err)
+			}
+			drained++
+		default:
+			// Queue is empty — nothing more to drain.
+			goto done
+		}
+	}
+done:
+	if drained > 0 {
+		log.Printf("[inspector] drained %d queued reports on shutdown", drained)
+	}
 	log.Printf("[inspector] all workers stopped")
 }
