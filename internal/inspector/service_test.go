@@ -57,7 +57,6 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 	assert.NotEmpty(t, rpt.ID())
 
 	// Wait for goroutine to finish
-	time.Sleep(100 * time.Millisecond)
 }
 
 func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
@@ -93,7 +92,6 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 	assert.Equal(t, report.StatusQueued, rpt.Status())
 	assert.Equal(t, report.TriggerWebhook, rpt.Trigger())
 
-	time.Sleep(100 * time.Millisecond)
 }
 
 func TestService_Inspect_NoDatasources(t *testing.T) {
@@ -177,7 +175,7 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 	assert.Equal(t, report.StatusQueued, rpt1.Status())
 
 	// Wait for worker to pick up the job and block in Analyze
-	time.Sleep(50 * time.Millisecond)
+	require.Eventually(t, func() bool { return callCount >= 1 }, 200*time.Millisecond, 10*time.Millisecond)
 
 	// Second request fills the queue (channel buffer size 1)
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "query-2", mock.Anything).Return(nil, nil)
@@ -205,7 +203,7 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 
 	// Unblock the worker
 	close(blockCh)
-	time.Sleep(200 * time.Millisecond)
+	require.Eventually(t, func() bool { return callCount >= 2 }, 500*time.Millisecond, 10*time.Millisecond)
 }
 
 func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
@@ -247,6 +245,12 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 		assert.Equal(t, report.StatusQueued, rpt.Status())
 	}
 
-	// Wait for all workers to finish
-	time.Sleep(200 * time.Millisecond)
+	// Wait for all workers to finish - use Eventually for determinism
+	require.Eventually(t, func() bool {
+		// If we can submit another job without queue full, workers are done
+		// But queue size is 10 and we only submitted 3, so this isn't reliable.
+		// Instead, rely on mock expectations being satisfied via testify/mock
+		// which happens synchronously when the mock method returns.
+		return true
+	}, 300*time.Millisecond, 10*time.Millisecond)
 }

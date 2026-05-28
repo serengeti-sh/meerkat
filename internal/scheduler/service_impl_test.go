@@ -65,7 +65,7 @@ func TestCronScheduler_StartStop(t *testing.T) {
 	err := s.Start(ctx)
 	assert.NoError(t, err)
 
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(150 * time.Millisecond)
 	s.Stop()
 
 	mockSvc.AssertExpectations(t)

@@ -2,7 +2,6 @@ package collector_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -23,8 +22,6 @@ func TestGRPCServer_StartStop(t *testing.T) {
 
 	err := srv.Start()
 	require.NoError(t, err)
-
-	time.Sleep(50 * time.Millisecond)
 
 	srv.Stop()
 }
