@@ -8,10 +8,17 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/report"
 )
 
+// Inspector is the subset of inspector.Service that the scheduler requires.
+// Defined locally so the scheduler depends only on what it uses.
+type Inspector interface {
+	Inspect(ctx context.Context, req inspector.InspectRequest) (*report.Report, error)
+}
+
 type service struct {
-	inspectorSvc inspector.Service
+	inspectorSvc Inspector
 	jobs         []Job
 	cancel       context.CancelFunc
 	wg           sync.WaitGroup
@@ -21,7 +28,7 @@ type service struct {
 var _ Service = (*service)(nil)
 
 // NewService creates a scheduler from configuration.
-func NewService(inspectorSvc inspector.Service, cfg *config.Config) *service {
+func NewService(inspectorSvc Inspector, cfg *config.Config) *service {
 	var jobs []Job
 	for _, j := range cfg.Scheduler.Jobs {
 		d, err := time.ParseDuration(j.Interval)
