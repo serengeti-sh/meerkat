@@ -25,6 +25,7 @@ import (
 )
 
 const (
+	defaultHTTPPort       = 8080
 	httpReadHeaderTimeout = 10 * time.Second
 	httpReadTimeout       = 30 * time.Second
 	httpWriteTimeout      = 60 * time.Second
@@ -136,6 +137,9 @@ func Run(cfgFile string, port int) error {
 	if err != nil {
 		return fmt.Errorf("create inspector service: %w", err)
 	}
+	if err := inspectorSvc.Start(); err != nil {
+		return fmt.Errorf("start inspector service: %w", err)
+	}
 	defer inspectorSvc.Stop()
 
 	// 13. Scheduler
@@ -227,7 +231,7 @@ func loadConfig(cfgFile string, port int) (*config.Config, error) {
 		return nil, err
 	}
 
-	if port != 8080 {
+	if port != defaultHTTPPort {
 		cfg.HTTP.Port = port
 	}
 

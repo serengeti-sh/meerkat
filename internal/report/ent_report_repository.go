@@ -13,9 +13,9 @@ type entReportRepository struct {
 	client *ent.Client
 }
 
-var _ ReportRepository = (*entReportRepository)(nil)
+var _ Repository = (*entReportRepository)(nil)
 
-func NewEntReportRepository(client *ent.Client) ReportRepository {
+func NewEntReportRepository(client *ent.Client) *entReportRepository {
 	return &entReportRepository{client: client}
 }
 
@@ -112,16 +112,16 @@ func (r *entReportRepository) FindActiveByQuery(ctx context.Context, trigger str
 
 func entToReport(r *ent.Report) (*Report, error) {
 	return NewReport(
-		r.ID,
-		TriggerType(r.Trigger),
-		r.TriggerID,
-		Status(r.Status),
-		Severity(r.Severity),
-		r.Summary,
-		r.Detail,
-		r.Query,
-		r.Datasources,
-		r.Iterations,
-		r.CreateTime,
+		WithID(r.ID),
+		WithTrigger(TriggerType(r.Trigger)),
+		WithTriggerID(r.TriggerID),
+		WithStatus(Status(r.Status)),
+		WithSeverity(Severity(r.Severity)),
+		WithSummary(r.Summary),
+		WithDetail(r.Detail),
+		WithQuery(r.Query),
+		WithDatasources(r.Datasources),
+		WithIterations(r.Iterations),
+		WithCreatedAt(r.CreateTime),
 	), nil
 }

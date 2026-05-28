@@ -44,7 +44,7 @@ func TestCronScheduler_StartStop(t *testing.T) {
 		LogQuery:    "",
 		Query:       "Scheduled inspection: test-job",
 	}).Return(
-		report.NewReport("r-1", report.TriggerScheduled, "", report.StatusCompleted, report.SeverityInfo, "ok", "", "", []string{}, 1, time.Now()),
+		report.NewReport(report.WithID("r-1"), report.WithTrigger(report.TriggerScheduled), report.WithStatus(report.StatusCompleted), report.WithSeverity(report.SeverityInfo), report.WithSummary("ok"), report.WithDatasources([]string{}), report.WithIterations(1), report.WithCreatedAt(time.Now())),
 		nil,
 	)
 

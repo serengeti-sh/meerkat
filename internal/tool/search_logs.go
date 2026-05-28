@@ -12,13 +12,13 @@ import (
 
 // searchLogsTool performs semantic search over stored log entries.
 type searchLogsTool struct {
-	embedder    embedder.Embedder
+	embedder    embedder.Model
 	vectorstore vectorstore.Store
 }
 
-var _ Tool = (*searchLogsTool)(nil)
+var _ Plugin = (*searchLogsTool)(nil)
 
-func NewSearchLogsTool(emb embedder.Embedder, vstore vectorstore.Store) Tool {
+func NewSearchLogsTool(emb embedder.Model, vstore vectorstore.Store) Plugin {
 	return &searchLogsTool{
 		embedder:    emb,
 		vectorstore: vstore,

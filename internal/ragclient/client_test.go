@@ -69,7 +69,7 @@ func TestClient_Close(t *testing.T) {
 	cleanup()
 }
 
-// mockEmbedder implements embedder.Embedder for testing.
+// mockEmbedder implements embedder.Model for testing.
 type mockEmbedder struct{}
 
 func (m *mockEmbedder) Embed(ctx context.Context, texts []string) ([][]float32, error) {

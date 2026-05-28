@@ -135,12 +135,11 @@ func TestConfig_DSN(t *testing.T) {
 	}
 
 	dsn := cfg.DSN()
-	assert.Contains(t, dsn, "host=localhost")
-	assert.Contains(t, dsn, "port=5432")
-	assert.Contains(t, dsn, "dbname=meerkat")
-	assert.Contains(t, dsn, "user=user")
-	assert.Contains(t, dsn, "password=pass")
-	assert.Contains(t, dsn, "sslmode=disable")
+	assert.Equal(t, "postgres://user:pass@localhost:5432/meerkat?sslmode=disable", dsn)
+
+	redacted := cfg.RedactedDSN()
+	assert.Contains(t, redacted, "REDACTED")
+	assert.NotContains(t, redacted, ":pass@")
 }
 
 func TestInspectorConfig_GetDedupWindow(t *testing.T) {

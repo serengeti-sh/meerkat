@@ -17,7 +17,7 @@ const (
 )
 
 type service struct {
-	embedder    embedder.Embedder
+	embedder    embedder.Model
 	vectorStore vectorstore.Store
 	extractor   *Extractor
 	batchSize   int
@@ -26,7 +26,7 @@ type service struct {
 var _ Service = (*service)(nil)
 
 // NewService creates a Service with the given dependencies.
-func NewService(emb embedder.Embedder, vstore vectorstore.Store) (*service, error) {
+func NewService(emb embedder.Model, vstore vectorstore.Store) (*service, error) {
 	if emb == nil {
 		return nil, fmt.Errorf("rag: embedder is required")
 	}

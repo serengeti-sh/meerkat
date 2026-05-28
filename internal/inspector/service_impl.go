@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
+	"github.com/serengeti-sh/meerkat/internal/ent"
 	"github.com/serengeti-sh/meerkat/internal/ragclient"
 	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
@@ -38,7 +39,7 @@ type DatasourceRefs func() []analyzer.DatasourceRef
 
 type service struct {
 	analyzerSvc analyzer.Service
-	reportRepo  report.ReportRepository
+	reportRepo  report.Repository
 	reporterSvc reporter.Service
 	ragClient   ragclient.Client
 	dsRefs      DatasourceRefs
@@ -48,6 +49,7 @@ type service struct {
 	queue       chan *analysisJob
 	wg          sync.WaitGroup
 	cancel      context.CancelFunc
+	started     bool
 }
 
 var _ Service = (*service)(nil)
@@ -59,7 +61,7 @@ type analysisJob struct {
 
 func NewService(
 	analyzerSvc analyzer.Service,
-	reportRepo report.ReportRepository,
+	reportRepo report.Repository,
 	reporterSvc reporter.Service,
 	dsRefs DatasourceRefs,
 	dedupWindow time.Duration,
@@ -83,7 +85,6 @@ func NewService(
 		workerCount = defaultWorkerCount
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
 	s := &service{
 		analyzerSvc: analyzerSvc,
 		reportRepo:  reportRepo,
@@ -93,20 +94,30 @@ func NewService(
 		queueSize:   queueSize,
 		workerCount: workerCount,
 		queue:       make(chan *analysisJob, queueSize),
-		cancel:      cancel,
 	}
 
 	for _, opt := range opts {
 		opt(s)
 	}
 
-	// Start worker pool — pass ctx explicitly as function parameter
-	for i := 0; i < workerCount; i++ {
+	return s, nil
+}
+
+// Start launches the worker pool. It is safe to call only once.
+func (s *service) Start() error {
+	if s.started {
+		return fmt.Errorf("inspector: already started")
+	}
+	s.started = true
+
+	ctx, cancel := context.WithCancel(context.Background())
+	s.cancel = cancel
+
+	for i := 0; i < s.workerCount; i++ {
 		s.wg.Add(1)
 		go s.worker(i, ctx)
 	}
-
-	return s, nil
+	return nil
 }
 
 // Inspect creates a queued report and submits it to the worker pool.
@@ -173,7 +184,7 @@ func (s *service) enqueue(ctx context.Context, trigger report.TriggerType, query
 	// Dedup: check for an active report with the same query
 	existing, err := s.reportRepo.FindActiveByQuery(ctx, string(trigger), query, time.Now().Add(-s.dedupWindow))
 	if err != nil {
-		log.Printf("[meerkat] dedup check failed: %v", err)
+		return nil, apperrors.Wrap(apperrors.ErrInternal, "dedup check failed", err)
 	}
 	if existing != nil {
 		return nil, apperrors.New(apperrors.ErrConflict,
@@ -181,18 +192,7 @@ func (s *service) enqueue(ctx context.Context, trigger report.TriggerType, query
 	}
 
 	triggerID := uuid.New().String()
-	rpt := report.NewReport(
-		uuid.New().String(),
-		trigger,
-		triggerID,
-		report.StatusQueued,
-		report.SeverityInfo,
-		"",
-		"",
-		query,
-		nil,
-		0,
-		time.Now(),
+	rpt := report.NewReport(report.WithID(uuid.New().String()), report.WithTrigger(trigger), report.WithTriggerID(triggerID), report.WithStatus(report.StatusQueued), report.WithSeverity(report.SeverityInfo), report.WithQuery(query), report.WithCreatedAt(time.Now()),
 	)
 
 	if err := s.reportRepo.Create(ctx, rpt); err != nil {
@@ -206,10 +206,6 @@ func (s *service) enqueue(ctx context.Context, trigger report.TriggerType, query
 		Context:     contextStr,
 		Datasources: refs,
 	}
-	if contextStr == "" {
-		input.Context = "" // ensure zero value when not set
-	}
-
 	job := &analysisJob{
 		report: rpt,
 		input:  input,
@@ -222,9 +218,17 @@ func (s *service) enqueue(ctx context.Context, trigger report.TriggerType, query
 	default:
 		// Queue is full — update report to failed and reject
 		failedReport := report.NewReport(
-			rpt.ID(), rpt.Trigger(), rpt.TriggerID(),
-			report.StatusFailed, report.SeverityInfo, "Analysis queue is full, request rejected",
-			"", rpt.Query(), rpt.Datasources(), 0, rpt.CreatedAt(),
+			report.WithID(rpt.ID()),
+			report.WithTrigger(rpt.Trigger()),
+			report.WithTriggerID(rpt.TriggerID()),
+			report.WithStatus(report.StatusFailed),
+			report.WithSeverity(report.SeverityInfo),
+			report.WithSummary("Analysis queue is full, request rejected"),
+			report.WithDetail(rpt.Detail()),
+			report.WithQuery(rpt.Query()),
+			report.WithDatasources(rpt.Datasources()),
+			report.WithIterations(0),
+			report.WithCreatedAt(rpt.CreatedAt()),
 		)
 		if err := s.reportRepo.Update(ctx, failedReport); err != nil {
 			log.Printf("[meerkat] failed to update report %s: %v", rpt.ID(), err)
@@ -236,7 +240,10 @@ func (s *service) enqueue(ctx context.Context, trigger report.TriggerType, query
 func (s *service) GetReport(ctx context.Context, id string) (*report.Report, error) {
 	rpt, err := s.reportRepo.GetByID(ctx, id)
 	if err != nil {
-		return nil, apperrors.Wrap(apperrors.ErrNotFound, "report not found", err)
+		if ent.IsNotFound(err) {
+			return nil, apperrors.Wrap(apperrors.ErrNotFound, "report not found", err)
+		}
+		return nil, apperrors.Wrap(apperrors.ErrInternal, "failed to get report", err)
 	}
 	return rpt, nil
 }

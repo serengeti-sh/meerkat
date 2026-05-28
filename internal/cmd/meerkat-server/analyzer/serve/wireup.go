@@ -12,8 +12,8 @@ import (
 )
 
 // buildToolRegistry constructs the tool registry from configuration.
-func buildToolRegistry(cfg *config.Config, emb embedder.Embedder, vstore vectorstore.Store) (*tool.Registry, error) {
-	var tools []tool.Tool
+func buildToolRegistry(cfg *config.Config, emb embedder.Model, vstore vectorstore.Store) (*tool.Registry, error) {
+	var tools []tool.Plugin
 
 	for _, pc := range cfg.Tools.Prometheus {
 		httpClient, err := tool.NewHTTPClient(pc.CAFile)

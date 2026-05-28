@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -29,7 +30,7 @@ var _ Service = (*service)(nil)
 const defaultHTTPTimeout = 30 * time.Second
 
 // NewService creates a Service that sends reports to the configured webhook URL.
-func NewService(webhookURL, minSeverity string, httpClient *http.Client) Service {
+func NewService(webhookURL, minSeverity string, httpClient *http.Client) *service {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: defaultHTTPTimeout}
 	}
@@ -66,7 +67,10 @@ func (s *service) Report(ctx context.Context, report *ReportData) error {
 	if err != nil {
 		return apperrors.Wrap(apperrors.ErrInternal, "send webhook request", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		resp.Body.Close()
+	}()
 
 	if resp.StatusCode >= 300 {
 		return apperrors.New(apperrors.ErrInternal,

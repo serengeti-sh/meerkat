@@ -18,7 +18,7 @@ const defaultFlushTimeout = 30 * time.Second
 
 // Batcher buffers log entries and flushes them to the vector store or RAG server.
 type Batcher struct {
-	embedder      embedder.Embedder
+	embedder      embedder.Model
 	vectorstore   vectorstore.Store
 	ragClient     ragclient.Client
 	batchSize     int
@@ -33,7 +33,7 @@ type Batcher struct {
 var _ LogSink = (*Batcher)(nil)
 
 // NewBatcher creates a Batcher with the given configuration.
-func NewBatcher(cfg *config.Config, emb embedder.Embedder, vstore vectorstore.Store) *Batcher {
+func NewBatcher(cfg *config.Config, emb embedder.Model, vstore vectorstore.Store) *Batcher {
 	return &Batcher{
 		embedder:      emb,
 		vectorstore:   vstore,

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -133,15 +134,30 @@ type InspectorConfig struct {
 
 // DSN builds the database connection string from individual config fields.
 func (c *Config) DSN() string {
-	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		c.Store.Host,
-		c.Store.Port,
-		c.Store.User,
-		c.Store.Password,
-		c.Store.Name,
-		c.Store.SSLMode,
-	)
+	u := &url.URL{
+		Scheme: "postgres",
+		Host:   fmt.Sprintf("%s:%d", c.Store.Host, c.Store.Port),
+		User:   url.UserPassword(c.Store.User, c.Store.Password),
+		Path:   c.Store.Name,
+	}
+	q := u.Query()
+	q.Set("sslmode", c.Store.SSLMode)
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+// RedactedDSN returns the DSN with the password masked for logging.
+func (c *Config) RedactedDSN() string {
+	u := &url.URL{
+		Scheme: "postgres",
+		Host:   fmt.Sprintf("%s:%d", c.Store.Host, c.Store.Port),
+		User:   url.UserPassword(c.Store.User, "***REDACTED***"),
+		Path:   c.Store.Name,
+	}
+	q := u.Query()
+	q.Set("sslmode", c.Store.SSLMode)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // GetDedupWindow parses the dedup window duration, falling back to 5m.

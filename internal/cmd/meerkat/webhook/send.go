@@ -46,9 +46,9 @@ func NewCmd() *cobra.Command {
 			}
 
 			resp, err := c.ReceiveWebhook(cmd.Context(), &api.ReceiveWebhookReq{
-				Source:  optString(payload.Source),
-				Alert:   optString(payload.Alert),
-				Message: optString(payload.Message),
+				Source:  meerkat.OptString(payload.Source),
+				Alert:   meerkat.OptString(payload.Alert),
+				Message: meerkat.OptString(payload.Message),
 			})
 			if err != nil {
 				return err
@@ -60,11 +60,4 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&file, "file", "f", "", "Webhook payload JSON file (required)")
 
 	return cmd
-}
-
-func optString(s string) api.OptString {
-	if s == "" {
-		return api.OptString{}
-	}
-	return api.NewOptString(s)
 }

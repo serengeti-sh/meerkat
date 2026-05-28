@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// ReportRepository stores and retrieves reports.
-type ReportRepository interface {
+// Repository stores and retrieves reports.
+type Repository interface {
 	Create(ctx context.Context, report *Report) error
 	Update(ctx context.Context, report *Report) error
 	GetByID(ctx context.Context, id string) (*Report, error)

@@ -50,32 +50,71 @@ type Report struct {
 	createdAt   time.Time
 }
 
-func NewReport(
-	id string,
-	trigger TriggerType,
-	triggerID string,
-	status Status,
-	severity Severity,
-	summary string,
-	detail string,
-	query string,
-	datasources []string,
-	iterations int,
-	createdAt time.Time,
-) *Report {
-	return &Report{
-		id:          id,
-		trigger:     trigger,
-		triggerID:   triggerID,
-		status:      status,
-		severity:    severity,
-		summary:     summary,
-		detail:      detail,
-		query:       query,
-		datasources: datasources,
-		iterations:  iterations,
-		createdAt:   createdAt,
+// ReportOption configures a Report via the builder.
+type ReportOption func(*Report)
+
+// WithID sets the report ID.
+func WithID(id string) ReportOption {
+	return func(r *Report) { r.id = id }
+}
+
+// WithTrigger sets the trigger type.
+func WithTrigger(t TriggerType) ReportOption {
+	return func(r *Report) { r.trigger = t }
+}
+
+// WithTriggerID sets the trigger ID.
+func WithTriggerID(id string) ReportOption {
+	return func(r *Report) { r.triggerID = id }
+}
+
+// WithStatus sets the status.
+func WithStatus(s Status) ReportOption {
+	return func(r *Report) { r.status = s }
+}
+
+// WithSeverity sets the severity.
+func WithSeverity(s Severity) ReportOption {
+	return func(r *Report) { r.severity = s }
+}
+
+// WithSummary sets the summary.
+func WithSummary(s string) ReportOption {
+	return func(r *Report) { r.summary = s }
+}
+
+// WithDetail sets the detail.
+func WithDetail(d string) ReportOption {
+	return func(r *Report) { r.detail = d }
+}
+
+// WithQuery sets the original query.
+func WithQuery(q string) ReportOption {
+	return func(r *Report) { r.query = q }
+}
+
+// WithDatasources sets the datasource names.
+func WithDatasources(ds []string) ReportOption {
+	return func(r *Report) { r.datasources = ds }
+}
+
+// WithIterations sets the iteration count.
+func WithIterations(n int) ReportOption {
+	return func(r *Report) { r.iterations = n }
+}
+
+// WithCreatedAt sets the creation time.
+func WithCreatedAt(t time.Time) ReportOption {
+	return func(r *Report) { r.createdAt = t }
+}
+
+// NewReport creates a Report with the given options.
+func NewReport(opts ...ReportOption) *Report {
+	r := &Report{}
+	for _, opt := range opts {
+		opt(r)
 	}
+	return r
 }
 
 func (r *Report) ID() string            { return r.id }

@@ -2,6 +2,7 @@ package rag
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -74,10 +75,10 @@ func (s *GRPCServer) Search(ctx context.Context, req *ragpb.SearchRequest) (*rag
 
 	results, err := s.svc.Search(ctx, req.Query, opts)
 	if err != nil {
-		if err == ErrEmptyQuery {
+		if errors.Is(err, ErrEmptyQuery) {
 			return nil, status.Errorf(codes.InvalidArgument, "empty query")
 		}
-		if err == ErrNoResults {
+		if errors.Is(err, ErrNoResults) {
 			return &ragpb.SearchResponse{}, nil
 		}
 		return nil, status.Errorf(codes.Internal, "search failed: %v", err)

@@ -64,10 +64,14 @@ func (p *openaiCompatProvider) Complete(ctx context.Context, req *CompletionRequ
 		if len(req.Tools) > 0 {
 			tools := make([]openai.ChatCompletionToolUnionParam, 0, len(req.Tools))
 			for _, t := range req.Tools {
+				params, err := jsonToMap(t.Parameters)
+				if err != nil {
+					return nil, err
+				}
 				tools = append(tools, openai.ChatCompletionFunctionTool(shared.FunctionDefinitionParam{
 					Name:        t.Name,
 					Description: openai.String(t.Description),
-					Parameters:  shared.FunctionParameters(jsonToMap(t.Parameters)),
+					Parameters:  shared.FunctionParameters(params),
 				}))
 			}
 			params.Tools = tools
@@ -153,12 +157,12 @@ func toOpenAIMessage(m Message) openai.ChatCompletionMessageParamUnion {
 }
 
 // jsonToMap converts JSON bytes to a map for SDK parameters.
-func jsonToMap(data json.RawMessage) map[string]any {
+func jsonToMap(data json.RawMessage) (map[string]any, error) {
 	var m map[string]any
 	if err := json.Unmarshal(data, &m); err != nil {
-		return map[string]any{"type": "object"}
+		return nil, fmt.Errorf("unmarshal tool parameters: %w", err)
 	}
-	return m
+	return m, nil
 }
 
 // NewLLMProvider creates the appropriate provider based on config.

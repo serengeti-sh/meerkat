@@ -44,7 +44,7 @@ func TestHandler_Inspect(t *testing.T) {
 		LogQuery:    "",
 		Query:       "check status",
 	}).Return(
-		report.NewReport("r-1", report.TriggerManual, "", report.StatusPending, report.SeverityInfo, "all ok", "", "check status", []string{"vm"}, 1, time.Now()),
+		report.NewReport(report.WithID("r-1"), report.WithTrigger(report.TriggerManual), report.WithStatus(report.StatusPending), report.WithSeverity(report.SeverityInfo), report.WithSummary("all ok"), report.WithQuery("check status"), report.WithDatasources([]string{"vm"}), report.WithIterations(1), report.WithCreatedAt(time.Now())),
 		nil,
 	)
 
@@ -90,7 +90,7 @@ func TestHandler_Webhook(t *testing.T) {
 		Message: "CPU > 80%",
 		Data:    json.RawMessage(`{"value": 85}`),
 	}).Return(
-		report.NewReport("r-2", report.TriggerWebhook, "", report.StatusCompleted, report.SeverityWarning, "high cpu", "", "", []string{"vm"}, 1, time.Now()),
+		report.NewReport(report.WithID("r-2"), report.WithTrigger(report.TriggerWebhook), report.WithStatus(report.StatusCompleted), report.WithSeverity(report.SeverityWarning), report.WithSummary("high cpu"), report.WithDatasources([]string{"vm"}), report.WithIterations(1), report.WithCreatedAt(time.Now())),
 		nil,
 	)
 
@@ -132,7 +132,7 @@ func TestHandler_ListReports(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("ListReports", mock.Anything, 50).Return(
 		[]*report.Report{
-			report.NewReport("r-1", report.TriggerManual, "", report.StatusCompleted, report.SeverityInfo, "ok", "", "", []string{}, 1, time.Now()),
+			report.NewReport(report.WithID("r-1"), report.WithTrigger(report.TriggerManual), report.WithStatus(report.StatusCompleted), report.WithSeverity(report.SeverityInfo), report.WithSummary("ok"), report.WithDatasources([]string{}), report.WithIterations(1), report.WithCreatedAt(time.Now())),
 		},
 		nil,
 	)
@@ -176,7 +176,7 @@ func TestHandler_ListReports_WithLimit(t *testing.T) {
 func TestHandler_GetReport(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("GetReport", mock.Anything, "r-1").Return(
-		report.NewReport("r-1", report.TriggerManual, "", report.StatusCompleted, report.SeverityCritical, "critical issue", "details", "", []string{"vm"}, 3, time.Now()),
+		report.NewReport(report.WithID("r-1"), report.WithTrigger(report.TriggerManual), report.WithStatus(report.StatusCompleted), report.WithSeverity(report.SeverityCritical), report.WithSummary("critical issue"), report.WithDetail("details"), report.WithDatasources([]string{"vm"}), report.WithIterations(3), report.WithCreatedAt(time.Now())),
 		nil,
 	)
 

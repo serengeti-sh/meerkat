@@ -29,10 +29,10 @@ var _ Store = (*qdrantStore)(nil)
 func NewQdrantClient(cfg *config.Config) (Store, error) {
 	qc := cfg.VectorStore.Qdrant
 
-	ctx, cancel := context.WithTimeout(context.Background(), qdrantDefaultTimeout)
+	connectCtx, cancel := context.WithTimeout(context.Background(), qdrantDefaultTimeout)
 	defer cancel()
 
-	conn, err := grpc.DialContext(ctx, qc.Address,
+	conn, err := grpc.DialContext(connectCtx, qc.Address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
 	)
@@ -47,7 +47,9 @@ func NewQdrantClient(cfg *config.Config) (Store, error) {
 		dimension:  qc.Dimension,
 	}
 
-	if err := store.ensureCollection(ctx); err != nil {
+	ensureCtx, cancel := context.WithTimeout(context.Background(), qdrantDefaultTimeout)
+	defer cancel()
+	if err := store.ensureCollection(ensureCtx); err != nil {
 		_ = conn.Close()
 		return nil, fmt.Errorf("ensure collection: %w", err)
 	}

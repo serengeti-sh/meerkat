@@ -25,12 +25,14 @@ func testRefs() inspector.DatasourceRefs {
 }
 
 func TestService_Inspect_ReturnsPending(t *testing.T) {
-	reportRepo := reportMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	svc, err := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 	require.NoError(t, err)
+	require.NoError(t, svc.Start())
+	defer svc.Stop()
 
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "check for errors", mock.Anything).Return(nil, nil)
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
@@ -59,12 +61,14 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 }
 
 func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
-	reportRepo := reportMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	svc, err := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 	require.NoError(t, err)
+	require.NoError(t, svc.Start())
+	defer svc.Stop()
 
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "webhook", "HighErrorRate", mock.Anything).Return(nil, nil)
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
@@ -93,7 +97,7 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 }
 
 func TestService_Inspect_NoDatasources(t *testing.T) {
-	reportRepo := reportMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
@@ -107,14 +111,14 @@ func TestService_Inspect_NoDatasources(t *testing.T) {
 }
 
 func TestService_GetReport(t *testing.T) {
-	reportRepo := reportMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	svc, err := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 	require.NoError(t, err)
 
-	expected := report.NewReport("rpt-1", report.TriggerManual, "t-1", report.StatusCompleted, report.SeverityWarning, "test", "detail", "test query", nil, 3, time.Now())
+	expected := report.NewReport(report.WithID("rpt-1"), report.WithTrigger(report.TriggerManual), report.WithTriggerID("t-1"), report.WithStatus(report.StatusCompleted), report.WithSeverity(report.SeverityWarning), report.WithSummary("test"), report.WithDetail("detail"), report.WithQuery("test query"), report.WithIterations(3), report.WithCreatedAt(time.Now()))
 	reportRepo.EXPECT().GetByID(mock.Anything, "rpt-1").Return(expected, nil)
 
 	rpt, err := svc.GetReport(context.Background(), "rpt-1")
@@ -125,15 +129,15 @@ func TestService_GetReport(t *testing.T) {
 }
 
 func TestService_ListReports(t *testing.T) {
-	reportRepo := reportMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	svc, err := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 	require.NoError(t, err)
 
-	r1 := report.NewReport("rpt-1", report.TriggerManual, "t-1", report.StatusCompleted, report.SeverityInfo, "ok", "", "", nil, 1, time.Now())
-	r2 := report.NewReport("rpt-2", report.TriggerWebhook, "t-2", report.StatusCompleted, report.SeverityCritical, "bad", "", "HighErrorRate", nil, 5, time.Now())
+	r1 := report.NewReport(report.WithID("rpt-1"), report.WithTrigger(report.TriggerManual), report.WithTriggerID("t-1"), report.WithStatus(report.StatusCompleted), report.WithSeverity(report.SeverityInfo), report.WithSummary("ok"), report.WithIterations(1), report.WithCreatedAt(time.Now()))
+	r2 := report.NewReport(report.WithID("rpt-2"), report.WithTrigger(report.TriggerWebhook), report.WithTriggerID("t-2"), report.WithStatus(report.StatusCompleted), report.WithSeverity(report.SeverityCritical), report.WithSummary("bad"), report.WithQuery("HighErrorRate"), report.WithIterations(5), report.WithCreatedAt(time.Now()))
 	reportRepo.EXPECT().List(mock.Anything, 10).Return([]*report.Report{r1, r2}, nil)
 
 	reports, err := svc.ListReports(context.Background(), 10)
@@ -143,7 +147,7 @@ func TestService_ListReports(t *testing.T) {
 }
 
 func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
-	reportRepo := reportMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
@@ -160,6 +164,8 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 
 	svc, err := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 1, 1)
 	require.NoError(t, err)
+	require.NoError(t, svc.Start())
+	defer svc.Stop()
 
 	// First request - worker picks it up and blocks
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "query-1", mock.Anything).Return(nil, nil)
@@ -203,13 +209,15 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 }
 
 func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
-	reportRepo := reportMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	// Queue size 10, 2 workers
 	svc, err := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 10, 2)
 	require.NoError(t, err)
+	require.NoError(t, svc.Start())
+	defer svc.Stop()
 
 	// Submit 3 jobs
 	for range 3 {

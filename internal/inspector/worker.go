@@ -31,11 +31,7 @@ func (s *service) worker(id int, ctx context.Context) {
 // runAnalysis executes the agent loop.
 func (s *service) runAnalysis(ctx context.Context, rpt *report.Report, input *analyzer.AnalysisInput) {
 	// Update status to running
-	runningReport := report.NewReport(
-		rpt.ID(), rpt.Trigger(), rpt.TriggerID(),
-		report.StatusRunning, rpt.Severity(), rpt.Summary(),
-		rpt.Detail(), rpt.Query(), rpt.Datasources(), rpt.Iterations(),
-		rpt.CreatedAt(),
+	runningReport := report.NewReport(report.WithID(rpt.ID()), report.WithTrigger(rpt.Trigger()), report.WithTriggerID(rpt.TriggerID()), report.WithStatus(report.StatusRunning), report.WithSeverity(rpt.Severity()), report.WithSummary(rpt.Summary()), report.WithDetail(rpt.Detail()), report.WithQuery(rpt.Query()), report.WithDatasources(rpt.Datasources()), report.WithIterations(rpt.Iterations()), report.WithCreatedAt(rpt.CreatedAt()),
 	)
 	if err := s.reportRepo.Update(ctx, runningReport); err != nil {
 		log.Printf("[meerkat] failed to update report %s to running: %v", rpt.ID(), err)
@@ -48,15 +44,20 @@ func (s *service) runAnalysis(ctx context.Context, rpt *report.Report, input *an
 	if err != nil {
 		log.Printf("[meerkat] analysis failed for report %s: %v", rpt.ID(), err)
 		finalReport = report.NewReport(
-			rpt.ID(), rpt.Trigger(), rpt.TriggerID(),
-			report.StatusFailed, report.SeverityInfo, fmt.Sprintf("Analysis failed: %v", err),
-			rpt.Detail(), rpt.Query(), rpt.Datasources(), 0, rpt.CreatedAt(),
+			report.WithID(rpt.ID()),
+			report.WithTrigger(rpt.Trigger()),
+			report.WithTriggerID(rpt.TriggerID()),
+			report.WithStatus(report.StatusFailed),
+			report.WithSeverity(report.SeverityInfo),
+			report.WithSummary(fmt.Sprintf("Analysis failed: %v", err)),
+			report.WithDetail(rpt.Detail()),
+			report.WithQuery(rpt.Query()),
+			report.WithDatasources(rpt.Datasources()),
+			report.WithIterations(0),
+			report.WithCreatedAt(rpt.CreatedAt()),
 		)
 	} else {
-		finalReport = report.NewReport(
-			rpt.ID(), rpt.Trigger(), rpt.TriggerID(),
-			report.StatusCompleted, result.Severity, result.Summary,
-			result.Detail, rpt.Query(), result.Datasources, result.Iterations, rpt.CreatedAt(),
+		finalReport = report.NewReport(report.WithID(rpt.ID()), report.WithTrigger(rpt.Trigger()), report.WithTriggerID(rpt.TriggerID()), report.WithStatus(report.StatusCompleted), report.WithSeverity(result.Severity), report.WithSummary(result.Summary), report.WithDetail(result.Detail), report.WithQuery(rpt.Query()), report.WithDatasources(result.Datasources), report.WithIterations(result.Iterations), report.WithCreatedAt(rpt.CreatedAt()),
 		)
 	}
 

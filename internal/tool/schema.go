@@ -6,6 +6,7 @@ import (
 	"maps"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
@@ -109,7 +110,5 @@ func parseTime(s string) (time.Time, error) {
 }
 
 func parseFloat(s string) (float64, error) {
-	var f float64
-	_, err := fmt.Sscanf(s, "%f", &f)
-	return f, err
+	return strconv.ParseFloat(s, 64)
 }

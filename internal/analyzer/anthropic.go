@@ -94,11 +94,15 @@ func (p *anthropicProvider) Complete(ctx context.Context, req *CompletionRequest
 		if len(req.Tools) > 0 {
 			tools := make([]anthropic.ToolUnionParam, 0, len(req.Tools))
 			for _, t := range req.Tools {
+				schema, err := parseSchema(t.Parameters)
+				if err != nil {
+					return nil, err
+				}
 				tools = append(tools, anthropic.ToolUnionParam{
 					OfTool: &anthropic.ToolParam{
 						Name:        t.Name,
 						Description: anthropic.String(t.Description),
-						InputSchema: parseSchema(t.Parameters),
+						InputSchema: schema,
 					},
 				})
 			}
@@ -150,8 +154,11 @@ func classifyAnthropicError(err error) error {
 	return err
 }
 
-func parseSchema(data json.RawMessage) anthropic.ToolInputSchemaParam {
-	m := jsonToMap(data)
+func parseSchema(data json.RawMessage) (anthropic.ToolInputSchemaParam, error) {
+	m, err := jsonToMap(data)
+	if err != nil {
+		return anthropic.ToolInputSchemaParam{}, err
+	}
 	schema := anthropic.ToolInputSchemaParam{}
 	if props, ok := m["properties"]; ok {
 		schema.Properties = props
@@ -165,5 +172,5 @@ func parseSchema(data json.RawMessage) anthropic.ToolInputSchemaParam {
 		}
 		schema.Required = required
 	}
-	return schema
+	return schema, nil
 }

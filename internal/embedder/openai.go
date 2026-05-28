@@ -9,13 +9,13 @@ import (
 	"github.com/openai/openai-go/v3/option"
 )
 
-// openAIEmbedder implements Embedder using the official OpenAI Go SDK v3.
+// openAIEmbedder implements Model using the official OpenAI Go SDK v3.
 type openAIEmbedder struct {
 	client openai.Client
 	model  string
 }
 
-var _ Embedder = (*openAIEmbedder)(nil)
+var _ Model = (*openAIEmbedder)(nil)
 
 func newOpenAIEmbedder(apiKey, baseURL, model string) *openAIEmbedder {
 	if model == "" {

@@ -22,9 +22,9 @@ func NewCmd() *cobra.Command {
 			}
 
 			resp, err := c.CreateInspect(cmd.Context(), &api.CreateInspectReq{
-				Query:       optString(query),
-				MetricQuery: optString(metricQuery),
-				LogQuery:    optString(logQuery),
+				Query:       meerkat.OptString(query),
+				MetricQuery: meerkat.OptString(metricQuery),
+				LogQuery:    meerkat.OptString(logQuery),
 			})
 			if err != nil {
 				return err
@@ -38,11 +38,4 @@ func NewCmd() *cobra.Command {
 	cmd.Flags().StringVar(&logQuery, "log-query", "", "LogsQL log query")
 
 	return cmd
-}
-
-func optString(s string) api.OptString {
-	if s == "" {
-		return api.OptString{}
-	}
-	return api.NewOptString(s)
 }

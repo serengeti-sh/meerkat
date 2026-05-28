@@ -47,7 +47,7 @@ func TestService_Analyze_SingleResponse(t *testing.T) {
 
 func TestService_Analyze_ToolCalls(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	mockTool := toolMocks.NewToolMock(t)
+	mockTool := toolMocks.NewPluginMock(t)
 
 	// Registration + Defs
 	mockTool.EXPECT().Name().Return("query_metrics").Twice()
@@ -127,7 +127,7 @@ func TestService_Analyze_ToolCalls(t *testing.T) {
 
 func TestService_Analyze_MaxIterations(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	mockTool := toolMocks.NewToolMock(t)
+	mockTool := toolMocks.NewPluginMock(t)
 
 	// Registration + Defs
 	mockTool.EXPECT().Name().Return("query_metrics").Twice()
@@ -170,7 +170,7 @@ func TestService_Analyze_MaxIterations(t *testing.T) {
 
 func TestService_Analyze_ToolResultTruncation(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	mockTool := toolMocks.NewToolMock(t)
+	mockTool := toolMocks.NewPluginMock(t)
 
 	mockTool.EXPECT().Name().Return("query_metrics").Twice()
 	mockTool.EXPECT().Description().Return("query metrics")
@@ -227,7 +227,7 @@ func TestService_Analyze_ToolResultTruncation(t *testing.T) {
 
 func TestService_Analyze_ContextOverflowRecovery(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
-	mockTool := toolMocks.NewToolMock(t)
+	mockTool := toolMocks.NewPluginMock(t)
 
 	mockTool.EXPECT().Name().Return("query_metrics").Twice()
 	mockTool.EXPECT().Description().Return("query metrics")
@@ -304,7 +304,7 @@ func TestService_Analyze_ContextOverflowUnrecoverable(t *testing.T) {
 
 func TestToolRegistry(t *testing.T) {
 	t.Run("get existing tool", func(t *testing.T) {
-		mockTool := toolMocks.NewToolMock(t)
+		mockTool := toolMocks.NewPluginMock(t)
 		mockTool.EXPECT().Name().Return("test-tool")
 		reg := tool.NewRegistry(mockTool)
 		found, ok := reg.Get("test-tool")
@@ -319,7 +319,7 @@ func TestToolRegistry(t *testing.T) {
 	})
 
 	t.Run("defs returns tool definitions", func(t *testing.T) {
-		mockTool := toolMocks.NewToolMock(t)
+		mockTool := toolMocks.NewPluginMock(t)
 		mockTool.EXPECT().Name().Return("test-tool").Twice()
 		mockTool.EXPECT().Description().Return("a test tool")
 		mockTool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))

@@ -311,6 +311,50 @@ func (_c *ServiceMock_ListReports_Call) RunAndReturn(run func(ctx context.Contex
 	return _c
 }
 
+// Start provides a mock function for the type ServiceMock
+func (_mock *ServiceMock) Start() error {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Start")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func() error); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// ServiceMock_Start_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Start'
+type ServiceMock_Start_Call struct {
+	*mock.Call
+}
+
+// Start is a helper method to define mock.On call
+func (_e *ServiceMock_Expecter) Start() *ServiceMock_Start_Call {
+	return &ServiceMock_Start_Call{Call: _e.mock.On("Start")}
+}
+
+func (_c *ServiceMock_Start_Call) Run(run func()) *ServiceMock_Start_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *ServiceMock_Start_Call) Return(err error) *ServiceMock_Start_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *ServiceMock_Start_Call) RunAndReturn(run func() error) *ServiceMock_Start_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Stop provides a mock function for the type ServiceMock
 func (_mock *ServiceMock) Stop() {
 	_mock.Called()

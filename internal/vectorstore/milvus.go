@@ -11,9 +11,10 @@ import (
 
 	"github.com/milvus-io/milvus-sdk-go/v2/client"
 	"github.com/milvus-io/milvus-sdk-go/v2/entity"
-	"github.com/serengeti-sh/meerkat/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/serengeti-sh/meerkat/internal/config"
 )
 
 const (
@@ -40,7 +41,7 @@ var _ Store = (*milvusStore)(nil)
 func NewMilvusClient(cfg *config.Config) (Store, error) {
 	mc := cfg.VectorStore.Milvus
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	connectCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	config := client.Config{
@@ -72,7 +73,7 @@ func NewMilvusClient(cfg *config.Config) (Store, error) {
 		}
 	}
 
-	c, err := client.NewClient(ctx, config)
+	c, err := client.NewClient(connectCtx, config)
 	if err != nil {
 		return nil, fmt.Errorf("connect to milvus: %w", err)
 	}
@@ -83,7 +84,9 @@ func NewMilvusClient(cfg *config.Config) (Store, error) {
 		dimension:  mc.Dimension,
 	}
 
-	if err := store.ensureCollection(ctx, mc.Retention); err != nil {
+	ensureCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := store.ensureCollection(ensureCtx, mc.Retention); err != nil {
 		_ = c.Close()
 		return nil, fmt.Errorf("ensure collection: %w", err)
 	}
