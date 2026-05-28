@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/serengeti-sh/meerkat/internal/rag"
 	"github.com/serengeti-sh/meerkat/internal/logstream"
+	"github.com/serengeti-sh/meerkat/internal/rag"
 )
 
 // mockRAGService implements rag.Service for testing.

@@ -135,7 +135,7 @@ func Run(cfgFile string, port int) error {
 	defer inspectorSvc.Stop()
 
 	// 13. Scheduler
-	sched := scheduler.NewCronScheduler(inspectorSvc, cfg)
+	sched := scheduler.NewService(inspectorSvc, cfg)
 
 	// 14. HTTP handler
 	h := httphandler.New(inspectorSvc)

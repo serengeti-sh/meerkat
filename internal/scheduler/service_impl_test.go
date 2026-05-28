@@ -14,7 +14,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
 )
 
-func TestNewCronScheduler_InvalidInterval(t *testing.T) {
+func TestNewService_InvalidInterval(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	cfg := &config.Config{
 		Scheduler: config.SchedulerConfig{
@@ -25,7 +25,7 @@ func TestNewCronScheduler_InvalidInterval(t *testing.T) {
 		},
 	}
 
-	s := scheduler.NewCronScheduler(mockSvc, cfg)
+	s := scheduler.NewService(mockSvc, cfg)
 	assert.NotNil(t, s)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
@@ -56,7 +56,7 @@ func TestCronScheduler_StartStop(t *testing.T) {
 		},
 	}
 
-	s := scheduler.NewCronScheduler(mockSvc, cfg)
+	s := scheduler.NewService(mockSvc, cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
@@ -79,7 +79,7 @@ func TestCronScheduler_StartStop_NoJobs(t *testing.T) {
 		},
 	}
 
-	s := scheduler.NewCronScheduler(mockSvc, cfg)
+	s := scheduler.NewService(mockSvc, cfg)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()

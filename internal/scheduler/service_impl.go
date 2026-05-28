@@ -10,17 +10,17 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
 
-type cronScheduler struct {
+type service struct {
 	inspectorSvc inspector.Service
 	jobs         []Job
 	cancel       context.CancelFunc
 	wg           sync.WaitGroup
 }
 
-var _ Service = (*cronScheduler)(nil)
+var _ Service = (*service)(nil)
 
-// NewCronScheduler creates a scheduler from configuration.
-func NewCronScheduler(inspectorSvc inspector.Service, cfg *config.Config) Service {
+// NewService creates a scheduler from configuration.
+func NewService(inspectorSvc inspector.Service, cfg *config.Config) Service {
 	var jobs []Job
 	for _, j := range cfg.Scheduler.Jobs {
 		d, err := time.ParseDuration(j.Interval)
@@ -36,13 +36,13 @@ func NewCronScheduler(inspectorSvc inspector.Service, cfg *config.Config) Servic
 		})
 	}
 
-	return &cronScheduler{
+	return &service{
 		inspectorSvc: inspectorSvc,
 		jobs:         jobs,
 	}
 }
 
-func (s *cronScheduler) Start(ctx context.Context) error {
+func (s *service) Start(ctx context.Context) error {
 	ctx, s.cancel = context.WithCancel(ctx)
 
 	for _, job := range s.jobs {
@@ -79,7 +79,7 @@ func (s *cronScheduler) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *cronScheduler) Stop() {
+func (s *service) Stop() {
 	if s.cancel != nil {
 		s.cancel()
 	}

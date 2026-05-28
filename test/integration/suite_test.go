@@ -204,7 +204,7 @@ Respond with JSON only:
 	inspectorSvc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10)
 
 	// Scheduler (disabled)
-	sched := scheduler.NewCronScheduler(inspectorSvc, cfg)
+	sched := scheduler.NewService(inspectorSvc, cfg)
 
 	// HTTP handler
 	h := httphandler.New(inspectorSvc)
