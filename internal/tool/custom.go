@@ -24,7 +24,7 @@ type CustomTool struct {
 }
 
 // NewCustomTool creates a tool backed by an arbitrary HTTP endpoint.
-func NewCustomTool(name, description, method, baseURL, paramSchemaFile string, client *http.Client) (Interface, error) {
+func NewCustomTool(name, description, method, baseURL, paramSchemaFile string, client *http.Client) (Tool, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 15 * time.Second}
 	}
@@ -135,4 +135,4 @@ func (t *CustomTool) buildPostRequest(ctx context.Context, params map[string]any
 	return req, nil
 }
 
-var _ Interface = (*CustomTool)(nil)
+var _ Tool = (*CustomTool)(nil)

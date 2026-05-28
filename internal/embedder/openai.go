@@ -15,7 +15,7 @@ type openAIEmbedder struct {
 	model  string
 }
 
-var _ Interface = (*openAIEmbedder)(nil)
+var _ Embedder = (*openAIEmbedder)(nil)
 
 func newOpenAIEmbedder(apiKey, baseURL, model string) *openAIEmbedder {
 	if model == "" {

@@ -24,7 +24,7 @@ type LokiTool struct {
 }
 
 // NewLokiTool creates a tool backed by one Loki endpoint.
-func NewLokiTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Interface, error) {
+func NewLokiTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 15 * time.Second}
 	}
@@ -148,4 +148,4 @@ func parseLokiResponse(body []byte) ([]logEntry, error) {
 	return entries, nil
 }
 
-var _ Interface = (*LokiTool)(nil)
+var _ Tool = (*LokiTool)(nil)

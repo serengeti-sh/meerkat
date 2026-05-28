@@ -10,18 +10,6 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 )
 
-type Service interface {
-	Start(ctx context.Context) error
-	Stop()
-}
-
-type Job struct {
-	Name        string
-	Interval    time.Duration
-	MetricQuery string
-	LogQuery    string
-}
-
 type cronScheduler struct {
 	inspectorSvc inspector.Service
 	jobs         []Job
@@ -31,6 +19,7 @@ type cronScheduler struct {
 
 var _ Service = (*cronScheduler)(nil)
 
+// NewCronScheduler creates a scheduler from configuration.
 func NewCronScheduler(inspectorSvc inspector.Service, cfg *config.Config) Service {
 	var jobs []Job
 	for _, j := range cfg.Scheduler.Jobs {
