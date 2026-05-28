@@ -87,8 +87,11 @@ func (s *Suite) Start(ctx context.Context) error {
 	s.mockPrometheus = newMockPrometheusServer()
 
 	// 4. Copy resources to temp dir so the binary can find schema files
-	if err := copyDir(filepath.Join(repoRoot(s.t), "resources"), filepath.Join(s.tmpDir, "resources")); err != nil {
-		return fmt.Errorf("copy resources: %w", err)
+	resourcesDir := filepath.Join(repoRoot(s.t), "resources")
+	if _, err := os.Stat(resourcesDir); err == nil {
+		if err := copyDir(resourcesDir, filepath.Join(s.tmpDir, "resources")); err != nil {
+			return fmt.Errorf("copy resources: %w", err)
+		}
 	}
 
 	// 5. Build meerkat-server binary
