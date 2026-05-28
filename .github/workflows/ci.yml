@@ -62,7 +62,7 @@ jobs:
 
   unit-test:
     name: Unit Tests
-    needs: [vet, lint]
+    needs: [fmt-check, vet, lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
@@ -98,7 +98,7 @@ jobs:
 
   docker-build:
     name: Docker Build
-    needs: [build]
+    needs: [unit-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
@@ -172,7 +172,7 @@ jobs:
 
   e2e-test:
     name: E2E Tests
-    needs: [unit-test, lint]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
@@ -192,6 +192,7 @@ jobs:
 
   goreleaser-check:
     name: GoReleaser Check
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.2
