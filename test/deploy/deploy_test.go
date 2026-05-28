@@ -82,13 +82,13 @@ func TestDeploy(t *testing.T) {
 	helm.Install(t, helmOptions, chartDir, "meerkat")
 	defer helm.Delete(t, helmOptions, "meerkat", true)
 
-	// Step 8: Wait for deployment to be available
-	t.Log("Waiting for Meerkat deployment to be available")
-	waitForDeployment(t, kubectlOptions)
+	// Step 8: Wait for deployments to be available
+	t.Log("Waiting for Meerkat deployments to be available")
+	waitForDeployments(t, kubectlOptions)
 
-	// Step 9: Verify health endpoint via port-forward
-	t.Log("Verifying health endpoint")
-	verifyHealthEndpoint(t, kubectlOptions)
+	// Step 9: Verify health endpoints via port-forward
+	t.Log("Verifying health endpoints")
+	verifyHealthEndpoints(t, kubectlOptions)
 
 	t.Log("Deployment test PASSED")
 }
@@ -177,15 +177,24 @@ func installPostgres(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	helm.Install(t, pgOptions, "bitnami/postgresql", "meerkat-postgres")
 }
 
-func waitForDeployment(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
+func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	t.Helper()
 	maxRetries := 60
 	retrySleep := 5 * time.Second
 
+	deployments := []string{"meerkat-analyzer", "meerkat-logs", "meerkat-collector"}
+
 	for i := range maxRetries {
-		deploy, err := k8s.GetDeploymentE(t, kubectlOptions, "meerkat-analyzer")
-		if err == nil && k8s.IsDeploymentAvailable(deploy) {
-			t.Log("Deployment is available")
+		allReady := true
+		for _, name := range deployments {
+			deploy, err := k8s.GetDeploymentE(t, kubectlOptions, name)
+			if err != nil || !k8s.IsDeploymentAvailable(deploy) {
+				allReady = false
+				break
+			}
+		}
+		if allReady {
+			t.Log("All deployments are available")
 			return
 		}
 
@@ -230,33 +239,58 @@ func waitForDeployment(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 			})
 		}
 
-		t.Logf("Deployment not ready (retry %d/%d), sleeping %v", i+1, maxRetries, retrySleep)
+		t.Logf("Deployments not ready (retry %d/%d), sleeping %v", i+1, maxRetries, retrySleep)
 		time.Sleep(retrySleep)
 	}
 
-	t.Fatal("Deployment failed to become available within timeout")
+	t.Fatal("Deployments failed to become available within timeout")
 }
 
-func verifyHealthEndpoint(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
+func verifyHealthEndpoints(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	t.Helper()
 
-	// Start port-forward in background
-	pfCmd := exec.Command("kubectl", "port-forward",
+	// Verify analyzer health endpoint
+	t.Log("Verifying analyzer health endpoint")
+	pfCmdAnalyzer := exec.Command("kubectl", "port-forward",
 		"-n", namespace,
 		"svc/meerkat-analyzer", "18080:8080",
 	)
-	pfCmd.Stdout = os.Stderr
-	pfCmd.Stderr = os.Stderr
-	require.NoError(t, pfCmd.Start(), "Failed to start port-forward")
+	pfCmdAnalyzer.Stdout = os.Stderr
+	pfCmdAnalyzer.Stderr = os.Stderr
+	require.NoError(t, pfCmdAnalyzer.Start(), "Failed to start analyzer port-forward")
 	defer func() {
-		_ = pfCmd.Process.Kill()
-		_ = pfCmd.Wait()
+		_ = pfCmdAnalyzer.Process.Kill()
+		_ = pfCmdAnalyzer.Wait()
 	}()
 
-	// Wait and verify health endpoint with retries
 	http_helper.HttpGetWithRetryWithCustomValidation(
 		t,
 		"http://localhost:18080"+healthPath,
+		nil,
+		60,
+		3*time.Second,
+		func(statusCode int, body string) bool {
+			return statusCode == 200
+		},
+	)
+
+	// Verify logs health endpoint (metrics server)
+	t.Log("Verifying logs health endpoint")
+	pfCmdLogs := exec.Command("kubectl", "port-forward",
+		"-n", namespace,
+		"svc/meerkat-logs", "19090:51051",
+	)
+	pfCmdLogs.Stdout = os.Stderr
+	pfCmdLogs.Stderr = os.Stderr
+	require.NoError(t, pfCmdLogs.Start(), "Failed to start logs port-forward")
+	defer func() {
+		_ = pfCmdLogs.Process.Kill()
+		_ = pfCmdLogs.Wait()
+	}()
+
+	http_helper.HttpGetWithRetryWithCustomValidation(
+		t,
+		"http://localhost:19090/healthz",
 		nil,
 		60,
 		3*time.Second,

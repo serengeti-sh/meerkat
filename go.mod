@@ -1,6 +1,6 @@
 module github.com/serengeti-sh/meerkat
 
-go 1.26.1
+go 1.26.3
 
 tool github.com/ogen-go/ogen/cmd/ogen
 

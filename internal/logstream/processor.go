@@ -14,15 +14,20 @@ const (
 	ingestQueueFactor    = 2
 )
 
+// OnThresholdBreached is called when the log rate threshold is breached.
+// The service parameter identifies the source service that triggered the breach.
+type OnThresholdBreached func(service string)
+
 // Processor consumes log entries from a Connector, indexes them into MeerkatLogs,
 // and optionally triggers analysis when thresholds are breached.
 type Processor struct {
-	connector  *Connector
-	logsSvc    meerkatlogs.Service
-	windowSize time.Duration
-	threshold  int
-	workers    int
-	ingestCh   chan meerkatlogs.LogEntry
+	connector           *Connector
+	logsSvc             meerkatlogs.Service
+	onThresholdBreached OnThresholdBreached
+	windowSize          time.Duration
+	threshold           int
+	workers             int
+	ingestCh            chan meerkatlogs.LogEntry
 }
 
 // NewProcessor creates a stream processor.
@@ -35,6 +40,13 @@ func NewProcessor(conn *Connector, logsSvc meerkatlogs.Service, windowSize time.
 		workers:    defaultIngestWorkers,
 		ingestCh:   make(chan meerkatlogs.LogEntry, defaultIngestWorkers*ingestQueueFactor),
 	}
+}
+
+// WithOnThresholdBreached sets the callback invoked when the log rate threshold
+// is breached. Use this to trigger an analyzer inspection (e.g. via inspector.Service).
+func (p *Processor) WithOnThresholdBreached(fn OnThresholdBreached) *Processor {
+	p.onThresholdBreached = fn
+	return p
 }
 
 // Run starts processing the stream until the context is cancelled.
@@ -63,7 +75,10 @@ func (p *Processor) Run(ctx context.Context, query string) error {
 		// Check threshold — triggers analysis when the window is full.
 		if window.Count() >= p.threshold {
 			log.Printf("[stream] threshold breached: %d entries in %v", window.Count(), p.windowSize)
-			// TODO: invoke analyzer inspection when threshold is breached
+			if p.onThresholdBreached != nil {
+				// Extract service from the entry that triggered the breach
+				p.onThresholdBreached(entry.Service)
+			}
 			window.Reset()
 		}
 	})

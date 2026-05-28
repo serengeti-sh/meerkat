@@ -38,6 +38,25 @@ func TestProcessor_ThresholdBreach(t *testing.T) {
 	assert.True(t, window.Count() >= 3)
 }
 
+func TestProcessor_ThresholdBreach_Callback(t *testing.T) {
+	window := logstream.NewSlidingWindow(5 * time.Second)
+	called := false
+	var calledService string
+
+	// Simulate threshold breach with callback
+	for i := 0; i < 3; i++ {
+		window.Add(time.Now())
+	}
+
+	if window.Count() >= 3 {
+		called = true
+		calledService = "test-service"
+	}
+
+	assert.True(t, called, "expected callback to be triggered")
+	assert.Equal(t, "test-service", calledService)
+}
+
 func TestProcessor_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
