@@ -63,9 +63,8 @@ func Run(cfgFile string, port int) error {
 
 	// 5. MeerkatLogs client (for log search)
 	var logsClient ragclient.Client
-	mlCfg := cfg.ResolveMeerkatLogs()
-	if mlCfg.Enabled && mlCfg.Address != "" {
-		logsClient, err = ragclient.New(mlCfg.Address)
+	if cfg.MeerkatLogs.Enabled && cfg.MeerkatLogs.Address != "" {
+		logsClient, err = ragclient.New(cfg.MeerkatLogs.Address)
 		if err != nil {
 			return fmt.Errorf("create meerkatlogs client: %w", err)
 		}

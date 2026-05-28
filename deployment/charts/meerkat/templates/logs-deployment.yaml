@@ -1,17 +1,17 @@
-{{- if .Values.rag.enabled }}
+{{- if .Values.logs.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "meerkat.fullname" . }}-rag
+  name: {{ include "meerkat.fullname" . }}-logs
   labels:
     {{- include "meerkat.labels" . | nindent 4 }}
-    app.kubernetes.io/component: rag
+    app.kubernetes.io/component: logs
 spec:
-  replicas: {{ .Values.rag.replicaCount | default 1 }}
+  replicas: {{ .Values.logs.replicaCount | default 1 }}
   selector:
     matchLabels:
       {{- include "meerkat.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: rag
+      app.kubernetes.io/component: logs
   template:
     metadata:
       annotations:
@@ -21,7 +21,7 @@ spec:
         {{- end }}
       labels:
         {{- include "meerkat.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: rag
+        app.kubernetes.io/component: logs
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -35,13 +35,13 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: rag
+        - name: logs
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: {{ include "meerkat.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - rag
+            - logs
             - serve
             - --config
             - /app/config/config.yaml
@@ -82,10 +82,13 @@ spec:
           {{- end }}
           ports:
             - name: grpc
-              containerPort: {{ .Values.rag.service.port }}
+              containerPort: {{ .Values.logs.service.port }}
+              protocol: TCP
+            - name: otlp
+              containerPort: {{ .Values.logs.service.otlpPort }}
               protocol: TCP
           resources:
-            {{- toYaml .Values.rag.resources | nindent 12 }}
+            {{- toYaml .Values.logs.resources | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: /app/config

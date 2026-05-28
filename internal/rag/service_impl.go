@@ -3,6 +3,7 @@ package rag
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,6 +16,24 @@ const (
 	defaultSearchLimit     = 10
 	maxSearchLimit         = 100
 )
+
+// severityRank defines the priority order for severity levels.
+// Higher index = more severe.
+var severityRank = map[string]int{
+	"debug":     0,
+	"info":      1,
+	"notice":    2,
+	"warning":   3,
+	"warn":      3,
+	"error":     4,
+	"err":       4,
+	"critical":  5,
+	"crit":      5,
+	"alert":     6,
+	"emergency": 7,
+	"fatal":     7,
+	"panic":     7,
+}
 
 // ServiceOption configures the RAG service.
 type ServiceOption func(*service)
@@ -37,11 +56,22 @@ func WithBatchSize(size int) ServiceOption {
 	}
 }
 
+// WithFilterMode configures log filtering during ingestion.
+// mode: "all" (no filtering), "severity" (filter by minSeverity), "template" (deduplicate).
+func WithFilterMode(mode, minSeverity string) ServiceOption {
+	return func(s *service) {
+		s.filterMode = strings.ToLower(mode)
+		s.minSeverity = strings.ToLower(minSeverity)
+	}
+}
+
 type service struct {
 	embedder    embedder.Model
 	vectorStore vectorstore.Store
 	extractor   *Extractor
 	batchSize   int
+	filterMode  string
+	minSeverity string
 }
 
 var _ Service = (*service)(nil)
@@ -60,6 +90,7 @@ func NewService(emb embedder.Model, vstore vectorstore.Store, opts ...ServiceOpt
 		vectorStore: vstore,
 		extractor:   NewExtractor(),
 		batchSize:   defaultIngestBatchSize,
+		filterMode:  "template", // default: deduplicate by template
 	}
 
 	for _, opt := range opts {
@@ -76,15 +107,31 @@ func (s *service) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult
 
 	var (
 		ingested     int
+		filtered     int
 		deduplicated int
 		records      []vectorstore.Record
 	)
 
+	minRank := severityRank[s.minSeverity]
+
 	for _, entry := range entries {
-		template, isNew := s.extractor.Extract(entry.Body)
-		if !isNew {
-			deduplicated++
-			continue
+		// Severity filtering.
+		if s.filterMode == "severity" && s.minSeverity != "" {
+			entryRank := severityRank[strings.ToLower(entry.Severity)]
+			if entryRank < minRank {
+				filtered++
+				continue
+			}
+		}
+
+		// Template deduplication.
+		if s.filterMode == "template" {
+			template, isNew := s.extractor.Extract(entry.Body)
+			if !isNew {
+				deduplicated++
+				continue
+			}
+			entry.Body = template
 		}
 
 		records = append(records, vectorstore.NewRecord(
@@ -92,7 +139,7 @@ func (s *service) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult
 			entry.Timestamp,
 			entry.Service,
 			entry.Severity,
-			template,
+			entry.Body,
 			entry.Attributes,
 		))
 	}

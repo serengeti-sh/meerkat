@@ -44,9 +44,8 @@ func Run(cfgFile string) error {
 	batcher := collector.NewBatcher(cfg, emb, vstore)
 
 	// 5. Optional meerkatlogs client for deduplicated ingestion
-	mlCfg := cfg.ResolveMeerkatLogs()
-	if mlCfg.Enabled && mlCfg.Address != "" {
-		logsCli, err := ragclient.New(mlCfg.Address)
+	if cfg.MeerkatLogs.Enabled && cfg.MeerkatLogs.Address != "" {
+		logsCli, err := ragclient.New(cfg.MeerkatLogs.Address)
 		if err != nil {
 			return fmt.Errorf("create meerkatlogs client: %w", err)
 		}
@@ -56,7 +55,7 @@ func Run(cfgFile string) error {
 			}
 		}()
 		batcher.WithRAGClient(logsCli)
-		log.Printf("[collector] connected to meerkatlogs server at %s", mlCfg.Address)
+		log.Printf("[collector] connected to meerkatlogs server at %s", cfg.MeerkatLogs.Address)
 	}
 
 	// 6. gRPC server

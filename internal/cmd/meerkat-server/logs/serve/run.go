@@ -27,14 +27,14 @@ func Run(cfgFile string, port int) error {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	mlCfg := cfg.ResolveMeerkatLogs()
+	ml := cfg.MeerkatLogs
 	if port != 0 {
-		mlCfg.Port = port
+		ml.Port = port
 	}
 
 	// Override vector store retention if meerkat_logs.retention is set.
-	if mlCfg.Retention > 0 {
-		cfg.VectorStore.Milvus.Retention = mlCfg.Retention
+	if ml.Retention > 0 {
+		cfg.VectorStore.Milvus.Retention = ml.Retention
 	}
 
 	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
@@ -49,13 +49,15 @@ func Run(cfgFile string, port int) error {
 		}
 	}()
 
-	// Create RAG service with configurable threshold.
-	ragOpts := []rag.ServiceOption{}
-	if mlCfg.SimilarityThreshold > 0 {
-		ragOpts = append(ragOpts, rag.WithSimilarityThreshold(mlCfg.SimilarityThreshold))
+	// Create RAG service with configurable threshold and filtering.
+	ragOpts := []rag.ServiceOption{
+		rag.WithFilterMode(ml.FilterMode, ml.MinSeverity),
 	}
-	if mlCfg.IngestBatchSize > 0 {
-		ragOpts = append(ragOpts, rag.WithBatchSize(mlCfg.IngestBatchSize))
+	if ml.SimilarityThreshold > 0 {
+		ragOpts = append(ragOpts, rag.WithSimilarityThreshold(ml.SimilarityThreshold))
+	}
+	if ml.IngestBatchSize > 0 {
+		ragOpts = append(ragOpts, rag.WithBatchSize(ml.IngestBatchSize))
 	}
 	ragSvc, err := rag.NewService(emb, vstore, ragOpts...)
 	if err != nil {
@@ -71,10 +73,7 @@ func Run(cfgFile string, port int) error {
 	grpcServer := grpc.NewServer()
 	ragpb.RegisterServiceServer(grpcServer, ragServer)
 
-	grpcAddr := mlCfg.Address
-	if grpcAddr == "" {
-		grpcAddr = fmt.Sprintf(":%d", mlCfg.Port)
-	}
+	grpcAddr := ml.GetAddress()
 	lis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		return fmt.Errorf("listen grpc: %w", err)
@@ -89,20 +88,20 @@ func Run(cfgFile string, port int) error {
 
 	// Start OTLP receiver for log ingestion.
 	var otlpServer *collector.GRPCServer
-	if mlCfg.OTLPBindAddr != "" {
+	if ml.OTLPBindAddr != "" {
 		batcher := collector.NewBatcher(cfg, emb, vstore).WithRAGService(ragSvc)
 		batcher.Start()
 		defer batcher.Stop(context.Background())
 
 		// Collector config uses OTLPBindAddr from meerkat_logs.
 		collectorCfg := *cfg
-		collectorCfg.Collector.OTLPBindAddr = mlCfg.OTLPBindAddr
+		collectorCfg.Collector.OTLPBindAddr = ml.OTLPBindAddr
 
 		otlpServer = collector.NewGRPCServer(&collectorCfg, batcher)
 		if err := otlpServer.Start(); err != nil {
 			return fmt.Errorf("start otlp receiver: %w", err)
 		}
-		log.Printf("MeerkatLogs OTLP receiver listening on %s", mlCfg.OTLPBindAddr)
+		log.Printf("MeerkatLogs OTLP receiver listening on %s", ml.OTLPBindAddr)
 		defer otlpServer.Stop()
 	}
 

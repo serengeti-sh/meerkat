@@ -20,8 +20,6 @@ type Config struct {
 	Embedder    EmbedderConfig    `mapstructure:"embedder"`
 	VectorStore VectorStoreConfig `mapstructure:"vector_store"`
 	MeerkatLogs MeerkatLogsConfig `mapstructure:"meerkat_logs"`
-	// Deprecated: Use MeerkatLogs instead. RAG is kept for backward compatibility.
-	RAG RAGConfig `mapstructure:"rag"`
 }
 
 type AppConfig struct {
@@ -200,16 +198,6 @@ type QdrantConfig struct {
 	APIKey     string `mapstructure:"api_key"`
 }
 
-// RAGConfig is deprecated. Use MeerkatLogsConfig instead.
-type RAGConfig struct {
-	Enabled             bool    `mapstructure:"enabled"`
-	Address             string  `mapstructure:"address"`
-	Port                int     `mapstructure:"port"`
-	IngestBatchSize     int     `mapstructure:"ingest_batch_size"`
-	SimilarityThreshold float64 `mapstructure:"similarity_threshold"`
-	MaxContextLogs      int     `mapstructure:"max_context_logs"`
-}
-
 // MeerkatLogsConfig configures the meerkatlogs ingestion and search service.
 type MeerkatLogsConfig struct {
 	Enabled               bool          `mapstructure:"enabled"`
@@ -223,6 +211,24 @@ type MeerkatLogsConfig struct {
 	MinSeverity           string        `mapstructure:"min_severity"`            // info, warning, error, critical
 	DeduplicateByTemplate bool          `mapstructure:"deduplicate_by_template"` // true (default), false
 	Retention             time.Duration `mapstructure:"retention"`               // vector store TTL
+}
+
+func (c MeerkatLogsConfig) GetAddress() string {
+	if c.Address != "" {
+		return c.Address
+	}
+	if c.Port != 0 {
+		return fmt.Sprintf(":%d", c.Port)
+	}
+	return ":50051"
+}
+
+func (c MeerkatLogsConfig) ShouldFilterBySeverity() bool {
+	return c.FilterMode == "severity" && c.MinSeverity != "" && c.MinSeverity != "info"
+}
+
+func (c MeerkatLogsConfig) ShouldDeduplicate() bool {
+	return c.FilterMode == "template" || c.DeduplicateByTemplate
 }
 
 type MilvusConfig struct {
@@ -246,26 +252,6 @@ type MilvusTLS struct {
 	Enabled    bool   `mapstructure:"enabled"`
 	CAFile     string `mapstructure:"ca_file"`
 	SkipVerify bool   `mapstructure:"skip_verify"`
-}
-
-// ResolveMeerkatLogs returns the effective meerkat logs configuration.
-// If the legacy RAG config is populated and MeerkatLogs is not, it falls back
-// to RAG for backward compatibility.
-func (c *Config) ResolveMeerkatLogs() MeerkatLogsConfig {
-	ml := c.MeerkatLogs
-
-	// Backward compatibility: if MeerkatLogs is empty but RAG is enabled,
-	// copy RAG values over.
-	if !ml.Enabled && c.RAG.Enabled {
-		ml.Enabled = c.RAG.Enabled
-		ml.Address = c.RAG.Address
-		ml.Port = c.RAG.Port
-		ml.IngestBatchSize = c.RAG.IngestBatchSize
-		ml.SimilarityThreshold = c.RAG.SimilarityThreshold
-		ml.MaxContextLogs = c.RAG.MaxContextLogs
-	}
-
-	return ml
 }
 
 func (c *Config) IsDevelopment() bool {
