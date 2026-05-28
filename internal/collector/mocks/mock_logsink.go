@@ -37,9 +37,12 @@ func (_m *LogSinkMock) EXPECT() *LogSinkMock_Expecter {
 }
 
 // Add provides a mock function for the type LogSinkMock
-func (_mock *LogSinkMock) Add(entry collector.LogEntry) {
-	_mock.Called(entry)
-	return
+func (_mock *LogSinkMock) Add(entry collector.LogEntry) error {
+	_ret := _mock.Called(entry)
+	if _ret.Get(0) == nil {
+		return nil
+	}
+	return _ret.Get(0).(error)
 }
 
 // LogSinkMock_Add_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Add'
@@ -66,12 +69,12 @@ func (_c *LogSinkMock_Add_Call) Run(run func(entry collector.LogEntry)) *LogSink
 	return _c
 }
 
-func (_c *LogSinkMock_Add_Call) Return() *LogSinkMock_Add_Call {
-	_c.Call.Return()
+func (_c *LogSinkMock_Add_Call) Return(err error) *LogSinkMock_Add_Call {
+	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *LogSinkMock_Add_Call) RunAndReturn(run func(entry collector.LogEntry)) *LogSinkMock_Add_Call {
-	_c.Run(run)
+func (_c *LogSinkMock_Add_Call) RunAndReturn(run func(entry collector.LogEntry) error) *LogSinkMock_Add_Call {
+	_c.Call.Return(run)
 	return _c
 }

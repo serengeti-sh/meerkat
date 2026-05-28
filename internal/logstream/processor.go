@@ -85,6 +85,7 @@ func (p *Processor) indexEntry(ctx context.Context, entry rag.LogEntry) {
 // slidingWindow counts entries within a time window.
 type slidingWindow struct {
 	duration time.Duration
+	mu       sync.Mutex
 	entries  []time.Time
 }
 
@@ -94,15 +95,21 @@ func NewSlidingWindow(duration time.Duration) *slidingWindow {
 }
 
 func (w *slidingWindow) Add(t time.Time) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.entries = append(w.entries, t)
 	w.evict(t)
 }
 
 func (w *slidingWindow) Count() int {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	return len(w.entries)
 }
 
 func (w *slidingWindow) Reset() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.entries = w.entries[:0]
 }
 

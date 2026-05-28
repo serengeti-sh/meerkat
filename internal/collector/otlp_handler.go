@@ -5,6 +5,9 @@ import (
 	"strconv"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	logsv1 "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	commonv1 "go.opentelemetry.io/proto/otlp/common/v1"
 	logsv1data "go.opentelemetry.io/proto/otlp/logs/v1"
@@ -13,7 +16,7 @@ import (
 
 // LogSink accepts log entries for batching.
 type LogSink interface {
-	Add(entry LogEntry)
+	Add(entry LogEntry) error
 }
 
 // otlpHandler implements the OTLP LogsServiceServer.
@@ -30,7 +33,9 @@ func (h *otlpHandler) Export(ctx context.Context, req *logsv1.ExportLogsServiceR
 		for _, sl := range rl.ScopeLogs {
 			for _, lr := range sl.LogRecords {
 				entry := logRecordToEntry(lr, serviceName)
-				h.batcher.Add(entry)
+				if err := h.batcher.Add(entry); err != nil {
+					return nil, status.Errorf(codes.ResourceExhausted, "batcher rejected log: %v", err)
+				}
 			}
 		}
 	}

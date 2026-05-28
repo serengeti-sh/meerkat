@@ -167,8 +167,9 @@ type testBatcher struct {
 	onAdd func(LogEntry)
 }
 
-func (b *testBatcher) Add(entry LogEntry) {
+func (b *testBatcher) Add(entry LogEntry) error {
 	if b.onAdd != nil {
 		b.onAdd(entry)
 	}
+	return nil
 }

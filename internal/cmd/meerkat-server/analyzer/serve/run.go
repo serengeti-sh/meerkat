@@ -39,6 +39,9 @@ func Run(cfgFile string, port int) error {
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
+	if err := cfg.Validate(); err != nil {
+		return fmt.Errorf("validate config: %w", err)
+	}
 
 	// 2. Database
 	client, err := inspector.NewEntClient(cfg)

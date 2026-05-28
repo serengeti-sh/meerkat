@@ -86,15 +86,22 @@ func (b *Batcher) Stop(ctx context.Context) {
 }
 
 // Add appends a log entry to the buffer and triggers a flush if the batch is full.
-func (b *Batcher) Add(entry LogEntry) {
+// Returns an error if the batcher has been stopped.
+func (b *Batcher) Add(entry LogEntry) error {
 	b.mu.Lock()
-	b.buffer = append(b.buffer, entry)
-	shouldFlush := len(b.buffer) >= b.batchSize
-	b.mu.Unlock()
+	defer b.mu.Unlock()
 
-	if shouldFlush {
-		b.triggerFlush()
+	select {
+	case <-b.stopCh:
+		return fmt.Errorf("batcher is stopped")
+	default:
 	}
+
+	b.buffer = append(b.buffer, entry)
+	if len(b.buffer) >= b.batchSize {
+		b.triggerFlushLocked()
+	}
+	return nil
 }
 
 func (b *Batcher) loop() {
@@ -114,15 +121,22 @@ func (b *Batcher) loop() {
 
 func (b *Batcher) triggerFlush() {
 	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.triggerFlushLocked()
+}
+
+func (b *Batcher) triggerFlushLocked() {
 	if len(b.buffer) == 0 {
-		b.mu.Unlock()
 		return
 	}
 	entries := make([]LogEntry, len(b.buffer))
 	copy(entries, b.buffer)
 	b.buffer = b.buffer[:0]
-	b.mu.Unlock()
 
+	go b.flushAsync(entries)
+}
+
+func (b *Batcher) flushAsync(entries []LogEntry) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultFlushTimeout)
 	defer cancel()
 

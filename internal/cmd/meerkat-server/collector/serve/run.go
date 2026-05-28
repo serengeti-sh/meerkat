@@ -25,6 +25,9 @@ func Run(cfgFile string) error {
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
+	if err := cfg.Validate(); err != nil {
+		return fmt.Errorf("validate config: %w", err)
+	}
 
 	// 2. Embedder
 	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)

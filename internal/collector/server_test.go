@@ -43,6 +43,6 @@ func TestGRPCServer_Start_InvalidAddr(t *testing.T) {
 
 type mockBatcher struct{}
 
-func (b *mockBatcher) Add(entry collector.LogEntry) {}
+func (b *mockBatcher) Add(entry collector.LogEntry) error { return nil }
 
 var _ collector.LogSink = (*mockBatcher)(nil)

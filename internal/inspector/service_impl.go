@@ -79,6 +79,10 @@ func NewService(
 	if dsRefs == nil {
 		return nil, fmt.Errorf("inspector: dsRefs is required")
 	}
+	if reporterSvc == nil {
+		return nil, fmt.Errorf("inspector: reporterSvc is required")
+	}
+
 	if queueSize <= 0 {
 		queueSize = defaultQueueSize
 	}

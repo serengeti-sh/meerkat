@@ -82,7 +82,8 @@ func TestBatcher_Add_FlushOnBatchSize(t *testing.T) {
 	}
 
 	for _, e := range entries {
-		b.Add(e)
+		err := b.Add(e)
+		require.NoError(t, err)
 	}
 
 	require.Eventually(t, func() bool {
@@ -108,8 +109,10 @@ func TestBatcher_Stop_FlushesRemaining(t *testing.T) {
 	b := NewBatcher(cfg, emb, vs)
 	b.Start()
 
-	b.Add(LogEntry{Body: "log1", Service: "svc", Severity: "info"})
-	b.Add(LogEntry{Body: "log2", Service: "svc", Severity: "warn"})
+	err := b.Add(LogEntry{Body: "log1", Service: "svc", Severity: "info"})
+	require.NoError(t, err)
+	err = b.Add(LogEntry{Body: "log2", Service: "svc", Severity: "warn"})
+	require.NoError(t, err)
 
 	b.Stop(context.Background())
 
@@ -143,7 +146,8 @@ func TestBatcher_InsertError(t *testing.T) {
 	}
 
 	for _, e := range entries {
-		b.Add(e)
+		err := b.Add(e)
+		require.NoError(t, err)
 	}
 
 	assert.NotPanics(t, func() {
@@ -164,7 +168,8 @@ func TestBatcher_GeneratesID(t *testing.T) {
 
 	b := NewBatcher(cfg, emb, vs)
 
-	b.Add(LogEntry{Body: "log1", Service: "svc", Severity: "info"})
+	err := b.Add(LogEntry{Body: "log1", Service: "svc", Severity: "info"})
+	require.NoError(t, err)
 
 	require.Eventually(t, func() bool {
 		vs.mu.Lock()
@@ -175,4 +180,17 @@ func TestBatcher_GeneratesID(t *testing.T) {
 	vs.mu.Lock()
 	defer vs.mu.Unlock()
 	assert.NotEmpty(t, vs.records[0].ID, "ID should be auto-generated")
+}
+
+func TestBatcher_Add_AfterStop(t *testing.T) {
+	emb := &mockEmbedder{}
+	vs := &mockVectorStore{}
+
+	b := NewBatcher(testBatcherConfig(), emb, vs)
+	b.Start()
+	b.Stop(context.Background())
+
+	err := b.Add(LogEntry{Body: "log1", Service: "svc", Severity: "info"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "stopped")
 }

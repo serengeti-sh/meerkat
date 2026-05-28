@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
+	"github.com/serengeti-sh/meerkat/internal/metrics"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
@@ -129,6 +130,7 @@ func (s *service) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult
 			template, isNew := s.extractor.Extract(entry.Body)
 			if !isNew {
 				deduplicated++
+				metrics.IngestDedupTotal.Inc()
 				continue
 			}
 			entry.Body = template
@@ -175,6 +177,7 @@ func (s *service) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult
 	}
 
 	ingested = len(records)
+	metrics.IngestTotal.WithLabelValues("success").Add(float64(ingested))
 
 	return &IngestResult{
 		IngestedCount:     ingested,
@@ -183,7 +186,13 @@ func (s *service) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult
 }
 
 func (s *service) Search(ctx context.Context, query string, opts SearchOptions) ([]SearchResult, error) {
+	start := time.Now()
+	defer func() {
+		metrics.SearchDuration.Observe(time.Since(start).Seconds())
+	}()
+
 	if query == "" {
+		metrics.SearchTotal.WithLabelValues("error_empty_query").Inc()
 		return nil, ErrEmptyQuery
 	}
 
@@ -196,6 +205,7 @@ func (s *service) Search(ctx context.Context, query string, opts SearchOptions) 
 
 	vectors, err := s.embedder.Embed(ctx, []string{query})
 	if err != nil {
+		metrics.SearchTotal.WithLabelValues("error_embed").Inc()
 		return nil, fmt.Errorf("embed query: %w", err)
 	}
 
@@ -208,13 +218,16 @@ func (s *service) Search(ctx context.Context, query string, opts SearchOptions) 
 
 	results, err := s.vectorStore.Search(ctx, vectors[0], vsOpts)
 	if err != nil {
+		metrics.SearchTotal.WithLabelValues("error_store").Inc()
 		return nil, fmt.Errorf("search vector store: %w", err)
 	}
 
 	if len(results) == 0 {
+		metrics.SearchTotal.WithLabelValues("no_results").Inc()
 		return nil, ErrNoResults
 	}
 
+	metrics.SearchTotal.WithLabelValues("success").Inc()
 	out := make([]SearchResult, len(results))
 	for i, r := range results {
 		out[i] = SearchResult{

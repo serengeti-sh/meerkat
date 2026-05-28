@@ -2,14 +2,17 @@ package serve
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 
 	"github.com/serengeti-sh/meerkat/internal/collector"
@@ -25,6 +28,9 @@ func Run(cfgFile string, port int) error {
 	cfg, err := loadConfig(cfgFile)
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
+	}
+	if err := cfg.Validate(); err != nil {
+		return fmt.Errorf("validate config: %w", err)
 	}
 
 	ml := cfg.MeerkatLogs
@@ -86,6 +92,26 @@ func Run(cfgFile string, port int) error {
 		}
 	}()
 
+	// Start HTTP server for metrics.
+	httpMux := http.NewServeMux()
+	httpMux.Handle("/metrics", promhttp.Handler())
+	httpMux.Handle("/healthz", http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+
+	httpAddr := ":9090"
+	if ml.Port != 0 {
+		httpAddr = fmt.Sprintf(":%d", ml.Port+1000)
+	}
+	httpServer := &http.Server{Addr: httpAddr, Handler: httpMux}
+	go func() {
+		log.Printf("MeerkatLogs metrics server listening on %s", httpAddr)
+		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Printf("metrics server error: %v", err)
+		}
+	}()
+
 	// Start OTLP receiver for log ingestion.
 	var otlpServer *collector.GRPCServer
 	if ml.OTLPBindAddr != "" {
@@ -115,13 +141,24 @@ func Run(cfgFile string, port int) error {
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	grpcServer.GracefulStop()
+	done := make(chan struct{})
+	go func() {
+		grpcServer.GracefulStop()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-shutdownCtx.Done():
+		grpcServer.Stop()
+	}
 	if otlpServer != nil {
 		otlpServer.Stop()
 	}
+	if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		log.Printf("metrics server shutdown error: %v", err)
+	}
 
 	log.Println("MeerkatLogs server stopped gracefully")
-	_ = shutdownCtx
 	return nil
 }
 

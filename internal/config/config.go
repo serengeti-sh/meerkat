@@ -254,6 +254,63 @@ type MilvusTLS struct {
 	SkipVerify bool   `mapstructure:"skip_verify"`
 }
 
+// Validate checks that the configuration is valid.
+func (c *Config) Validate() error {
+	if c.HTTP.Port < 0 || c.HTTP.Port > 65535 {
+		return fmt.Errorf("http.port must be between 0 and 65535")
+	}
+
+	if c.Store.Host == "" {
+		return fmt.Errorf("store.host is required")
+	}
+	if c.Store.Name == "" {
+		return fmt.Errorf("store.name is required")
+	}
+	if c.Store.User == "" {
+		return fmt.Errorf("store.user is required")
+	}
+
+	if c.Analyzer.Provider != "" {
+		switch c.Analyzer.Provider {
+		case "openai", "anthropic":
+			// ok
+		default:
+			return fmt.Errorf("analyzer.provider must be 'openai' or 'anthropic', got %q", c.Analyzer.Provider)
+		}
+	}
+
+	if c.VectorStore.Driver != "" {
+		switch c.VectorStore.Driver {
+		case "milvus", "qdrant":
+			// ok
+		default:
+			return fmt.Errorf("vector_store.driver must be 'milvus' or 'qdrant', got %q", c.VectorStore.Driver)
+		}
+	}
+
+	if c.MeerkatLogs.Enabled {
+		if c.MeerkatLogs.Port < 0 || c.MeerkatLogs.Port > 65535 {
+			return fmt.Errorf("meerkat_logs.port must be between 0 and 65535")
+		}
+		if c.MeerkatLogs.FilterMode != "" {
+			switch c.MeerkatLogs.FilterMode {
+			case "all", "severity", "template":
+				// ok
+			default:
+				return fmt.Errorf("meerkat_logs.filter_mode must be 'all', 'severity', or 'template', got %q", c.MeerkatLogs.FilterMode)
+			}
+		}
+	}
+
+	if c.Collector.OTLPBindAddr != "" {
+		if c.Collector.BatchSize <= 0 {
+			return fmt.Errorf("collector.batch_size must be > 0")
+		}
+	}
+
+	return nil
+}
+
 func (c *Config) IsDevelopment() bool {
 	return strings.ToLower(c.App.Env) == "development"
 }
