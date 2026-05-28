@@ -43,19 +43,20 @@ func Run(cfgFile string) error {
 	// 4. Batcher
 	batcher := collector.NewBatcher(cfg, emb, vstore)
 
-	// 5. Optional RAG client for deduplicated ingestion
-	if cfg.RAG.Enabled && cfg.RAG.Address != "" {
-		ragCli, err := ragclient.New(cfg.RAG.Address)
+	// 5. Optional meerkatlogs client for deduplicated ingestion
+	mlCfg := cfg.ResolveMeerkatLogs()
+	if mlCfg.Enabled && mlCfg.Address != "" {
+		logsCli, err := ragclient.New(mlCfg.Address)
 		if err != nil {
-			return fmt.Errorf("create rag client: %w", err)
+			return fmt.Errorf("create meerkatlogs client: %w", err)
 		}
 		defer func() {
-			if err := ragCli.Close(); err != nil {
-				log.Printf("failed to close rag client: %v", err)
+			if err := logsCli.Close(); err != nil {
+				log.Printf("failed to close meerkatlogs client: %v", err)
 			}
 		}()
-		batcher.WithRAGClient(ragCli)
-		log.Printf("[collector] connected to RAG server at %s", cfg.RAG.Address)
+		batcher.WithRAGClient(logsCli)
+		log.Printf("[collector] connected to meerkatlogs server at %s", mlCfg.Address)
 	}
 
 	// 6. gRPC server

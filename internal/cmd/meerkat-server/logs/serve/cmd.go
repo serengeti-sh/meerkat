@@ -8,7 +8,7 @@ func NewCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "serve",
-		Short: "Start the RAG gRPC server",
+		Short: "Start the MeerkatLogs gRPC and OTLP server",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return Run(cfgFile, port)
 		},

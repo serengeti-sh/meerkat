@@ -132,3 +132,20 @@ vector_store:
       enabled: false
       # ca_file: ""
       # skip_verify: false
+
+meerkat_logs:
+  enabled: true
+  address: ":50051"
+  otlp_bind_addr: ":4317"
+  ingest_batch_size: 100
+  similarity_threshold: 0.7
+  max_context_logs: 20
+
+  # Filtering mode: "all" (no filtering), "severity" (filter by min_severity),
+  # or "template" (deduplicate by template)
+  filter_mode: template
+  min_severity: info
+  deduplicate_by_template: true
+
+  # Vector store retention (overrides vector_store.milvus.retention)
+  retention: 72h

@@ -21,7 +21,6 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
-	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
 const (
@@ -62,22 +61,23 @@ func Run(cfgFile string, port int) error {
 	// 4. Embedder
 	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
 
-	// 5. Vector store
-	var vstore vectorstore.Store
-	if cfg.VectorStore.Driver != "" {
-		vstore, err = vectorstore.New(cfg)
+	// 5. MeerkatLogs client (for log search)
+	var logsClient ragclient.Client
+	mlCfg := cfg.ResolveMeerkatLogs()
+	if mlCfg.Enabled && mlCfg.Address != "" {
+		logsClient, err = ragclient.New(mlCfg.Address)
 		if err != nil {
-			return fmt.Errorf("create vector store: %w", err)
+			return fmt.Errorf("create meerkatlogs client: %w", err)
 		}
 		defer func() {
-			if err := vstore.Close(); err != nil {
-				log.Printf("failed to close vector store: %v", err)
+			if err := logsClient.Close(); err != nil {
+				log.Printf("failed to close meerkatlogs client: %v", err)
 			}
 		}()
 	}
 
 	// 6. Tool registry
-	toolRegistry, err := buildToolRegistry(cfg, emb, vstore)
+	toolRegistry, err := buildToolRegistry(cfg, emb, logsClient)
 	if err != nil {
 		return fmt.Errorf("build tool registry: %w", err)
 	}
@@ -108,19 +108,10 @@ func Run(cfgFile string, port int) error {
 	// 10. Datasource refs
 	dsRefs := buildDatasourceRefs(cfg)
 
-	// 11. RAG client (optional — for online log retrieval)
+	// 11. Inspector options (meerkatlogs client for online log retrieval)
 	var inspectorOpts []inspector.ServiceOption
-	if cfg.RAG.Enabled && cfg.RAG.Address != "" {
-		ragCli, err := ragclient.New(cfg.RAG.Address)
-		if err != nil {
-			return fmt.Errorf("create rag client: %w", err)
-		}
-		defer func() {
-			if err := ragCli.Close(); err != nil {
-				log.Printf("failed to close rag client: %v", err)
-			}
-		}()
-		inspectorOpts = append(inspectorOpts, inspector.WithRAGClient(ragCli))
+	if logsClient != nil {
+		inspectorOpts = append(inspectorOpts, inspector.WithRAGClient(logsClient))
 	}
 
 	// 12. Inspector service

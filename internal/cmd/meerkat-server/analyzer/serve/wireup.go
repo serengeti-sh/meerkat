@@ -6,13 +6,12 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
-	"github.com/serengeti-sh/meerkat/internal/rag"
+	"github.com/serengeti-sh/meerkat/internal/ragclient"
 	"github.com/serengeti-sh/meerkat/internal/tool"
-	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
 // buildToolRegistry constructs the tool registry from configuration.
-func buildToolRegistry(cfg *config.Config, emb embedder.Model, vstore vectorstore.Store) (*tool.Registry, error) {
+func buildToolRegistry(cfg *config.Config, emb embedder.Model, logsClient ragclient.Client) (*tool.Registry, error) {
 	var tools []tool.Plugin
 
 	for _, pc := range cfg.Tools.Prometheus {
@@ -87,16 +86,10 @@ func buildToolRegistry(cfg *config.Config, emb embedder.Model, vstore vectorstor
 		tools = append(tools, t)
 	}
 
-	if vstore != nil {
-		tools = append(tools, tool.NewSearchLogsTool(emb, vstore))
-	}
-
-	if cfg.RAG.Enabled && vstore != nil {
-		ragSvc, err := rag.NewService(emb, vstore)
-		if err != nil {
-			return nil, fmt.Errorf("create rag service: %w", err)
-		}
-		tools = append(tools, tool.NewSearchRAGTool(ragSvc))
+	// Search logs directly via embedder (deprecated: use meerkatlogs instead).
+	// Kept for backward compatibility when meerkatlogs is disabled.
+	if logsClient != nil {
+		tools = append(tools, tool.NewSearchRAGTool(logsClient))
 	}
 
 	return tool.NewRegistry(tools...), nil

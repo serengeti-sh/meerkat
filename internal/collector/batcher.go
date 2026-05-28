@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
+	"github.com/serengeti-sh/meerkat/internal/rag"
 	"github.com/serengeti-sh/meerkat/internal/ragclient"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
@@ -21,6 +22,7 @@ type Batcher struct {
 	embedder      embedder.Model
 	vectorstore   vectorstore.Store
 	ragClient     ragclient.Client
+	ragService    rag.Service
 	batchSize     int
 	flushInterval time.Duration
 	mu            sync.Mutex
@@ -43,11 +45,19 @@ func NewBatcher(cfg *config.Config, emb embedder.Model, vstore vectorstore.Store
 	}
 }
 
-// WithRAGClient configures the batcher to send logs to a RAG server instead of
-// directly to the vector store. The RAG server handles deduplication via its
-// Extractor (Drain algorithm) before embedding and storage.
+// WithRAGClient configures the batcher to send logs to a remote RAG server via
+// gRPC. The RAG server handles deduplication via its Extractor (Drain algorithm)
+// before embedding and storage.
 func (b *Batcher) WithRAGClient(client ragclient.Client) *Batcher {
 	b.ragClient = client
+	return b
+}
+
+// WithRAGService configures the batcher to send logs to an in-process RAG
+// service. Used when the batcher and RAG pipeline run in the same process
+// (e.g. meerkatlogs server).
+func (b *Batcher) WithRAGService(svc rag.Service) *Batcher {
+	b.ragService = svc
 	return b
 }
 
@@ -122,13 +132,16 @@ func (b *Batcher) triggerFlush() {
 }
 
 func (b *Batcher) flush(ctx context.Context, entries []LogEntry) error {
+	if b.ragService != nil {
+		return b.flushToRAGService(ctx, entries)
+	}
 	if b.ragClient != nil {
-		return b.flushToRAG(ctx, entries)
+		return b.flushToRAGClient(ctx, entries)
 	}
 	return b.flushToVectorStore(ctx, entries)
 }
 
-func (b *Batcher) flushToRAG(ctx context.Context, entries []LogEntry) error {
+func (b *Batcher) flushToRAGClient(ctx context.Context, entries []LogEntry) error {
 	ragEntries := make([]ragclient.LogEntry, len(entries))
 	for i, e := range entries {
 		if e.ID == "" {
@@ -146,7 +159,30 @@ func (b *Batcher) flushToRAG(ctx context.Context, entries []LogEntry) error {
 
 	_, err := b.ragClient.Ingest(ctx, ragEntries)
 	if err != nil {
-		return fmt.Errorf("ingest to rag: %w", err)
+		return fmt.Errorf("ingest to rag client: %w", err)
+	}
+	return nil
+}
+
+func (b *Batcher) flushToRAGService(ctx context.Context, entries []LogEntry) error {
+	ragEntries := make([]rag.LogEntry, len(entries))
+	for i, e := range entries {
+		if e.ID == "" {
+			e.ID = uuid.New().String()
+		}
+		ragEntries[i] = rag.LogEntry{
+			ID:         e.ID,
+			Timestamp:  e.Timestamp,
+			Service:    e.Service,
+			Severity:   e.Severity,
+			Body:       e.Body,
+			Attributes: e.Attributes,
+		}
+	}
+
+	_, err := b.ragService.Ingest(ctx, ragEntries)
+	if err != nil {
+		return fmt.Errorf("ingest to rag service: %w", err)
 	}
 	return nil
 }

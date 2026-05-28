@@ -5,7 +5,7 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat-server/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat-server/collector"
-	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat-server/rag"
+	"github.com/serengeti-sh/meerkat/internal/cmd/meerkat-server/logs"
 )
 
 func NewCmd() *cobra.Command {
@@ -16,7 +16,7 @@ func NewCmd() *cobra.Command {
 
 	cmd.AddCommand(analyzer.NewCmd())
 	cmd.AddCommand(collector.NewCmd())
-	cmd.AddCommand(rag.NewCmd())
+	cmd.AddCommand(logs.NewCmd())
 
 	return cmd
 }

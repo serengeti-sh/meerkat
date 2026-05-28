@@ -16,6 +16,27 @@ const (
 	maxSearchLimit         = 100
 )
 
+// ServiceOption configures the RAG service.
+type ServiceOption func(*service)
+
+// WithSimilarityThreshold sets the template extraction similarity threshold.
+func WithSimilarityThreshold(threshold float64) ServiceOption {
+	return func(s *service) {
+		if threshold > 0 {
+			s.extractor.threshold = threshold
+		}
+	}
+}
+
+// WithBatchSize sets the ingestion batch size.
+func WithBatchSize(size int) ServiceOption {
+	return func(s *service) {
+		if size > 0 {
+			s.batchSize = size
+		}
+	}
+}
+
 type service struct {
 	embedder    embedder.Model
 	vectorStore vectorstore.Store
@@ -26,7 +47,7 @@ type service struct {
 var _ Service = (*service)(nil)
 
 // NewService creates a Service with the given dependencies.
-func NewService(emb embedder.Model, vstore vectorstore.Store) (*service, error) {
+func NewService(emb embedder.Model, vstore vectorstore.Store, opts ...ServiceOption) (*service, error) {
 	if emb == nil {
 		return nil, fmt.Errorf("rag: embedder is required")
 	}
@@ -34,12 +55,18 @@ func NewService(emb embedder.Model, vstore vectorstore.Store) (*service, error) 
 		return nil, fmt.Errorf("rag: vectorStore is required")
 	}
 
-	return &service{
+	s := &service{
 		embedder:    emb,
 		vectorStore: vstore,
 		extractor:   NewExtractor(),
 		batchSize:   defaultIngestBatchSize,
-	}, nil
+	}
+
+	for _, opt := range opts {
+		opt(s)
+	}
+
+	return s, nil
 }
 
 func (s *service) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult, error) {

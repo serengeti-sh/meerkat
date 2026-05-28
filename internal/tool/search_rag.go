@@ -6,17 +6,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/internal/rag"
+	"github.com/serengeti-sh/meerkat/internal/ragclient"
 )
 
-// searchRAGTool searches the RAG pipeline for semantically similar log entries.
+// searchRAGTool searches the MeerkatLogs pipeline for semantically similar log entries.
 type searchRAGTool struct {
-	ragSvc rag.Service
+	client ragclient.Client
 }
 
-// NewSearchRAGTool creates a tool that searches the RAG index.
-func NewSearchRAGTool(ragSvc rag.Service) *searchRAGTool {
-	return &searchRAGTool{ragSvc: ragSvc}
+// NewSearchRAGTool creates a tool that searches the MeerkatLogs index via gRPC.
+func NewSearchRAGTool(client ragclient.Client) *searchRAGTool {
+	return &searchRAGTool{client: client}
 }
 
 func (t *searchRAGTool) Name() string {
@@ -24,7 +24,7 @@ func (t *searchRAGTool) Name() string {
 }
 
 func (t *searchRAGTool) Description() string {
-	return "Search semantically similar log entries from the RAG (Retrieval-Augmented Generation) index. Returns log entries with timestamps, service names, severity levels, and raw body text."
+	return "Search semantically similar log entries from the MeerkatLogs vector index. Returns log entries with timestamps, service names, severity levels, and raw body text."
 }
 
 func (t *searchRAGTool) Parameters() json.RawMessage {
@@ -90,16 +90,16 @@ func (t *searchRAGTool) Execute(ctx context.Context, args json.RawMessage) (stri
 		timeRange = time.Hour
 	}
 
-	opts := rag.SearchOptions{
+	opts := ragclient.SearchOptions{
 		Limit:     params.Limit,
 		TimeRange: timeRange,
 		Service:   params.Service,
 		Severity:  params.Severity,
 	}
 
-	results, err := t.ragSvc.Search(ctx, params.Query, opts)
+	results, err := t.client.Search(ctx, params.Query, opts)
 	if err != nil {
-		return "", fmt.Errorf("search rag: %w", err)
+		return "", fmt.Errorf("search meerkatlogs: %w", err)
 	}
 
 	out, err := json.Marshal(results)
