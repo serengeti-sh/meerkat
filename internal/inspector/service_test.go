@@ -13,7 +13,8 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	analyzerMocks "github.com/serengeti-sh/meerkat/internal/analyzer/mocks"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
-	inspectorMocks "github.com/serengeti-sh/meerkat/internal/inspector/mocks"
+	"github.com/serengeti-sh/meerkat/internal/report"
+	reportMocks "github.com/serengeti-sh/meerkat/internal/report/mocks"
 	reporterMocks "github.com/serengeti-sh/meerkat/internal/reporter/mocks"
 )
 
@@ -24,7 +25,7 @@ func testRefs() inspector.DatasourceRefs {
 }
 
 func TestService_Inspect_ReturnsPending(t *testing.T) {
-	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewReportRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
@@ -44,21 +45,21 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 	}, nil)
 	reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
 
-	report, err := svc.Inspect(context.Background(), inspector.InspectRequest{
+	rpt, err := svc.Inspect(context.Background(), inspector.InspectRequest{
 		Query: "check for errors",
 	})
 
 	require.NoError(t, err)
-	assert.Equal(t, inspector.StatusQueued, report.Status())
-	assert.Equal(t, inspector.TriggerManual, report.Trigger())
-	assert.NotEmpty(t, report.ID())
+	assert.Equal(t, report.StatusQueued, rpt.Status())
+	assert.Equal(t, report.TriggerManual, rpt.Trigger())
+	assert.NotEmpty(t, rpt.ID())
 
 	// Wait for goroutine to finish
 	time.Sleep(100 * time.Millisecond)
 }
 
 func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
-	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewReportRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
@@ -78,21 +79,21 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 	}, nil)
 	reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
 
-	report, err := svc.InspectByWebhook(context.Background(), inspector.WebhookPayload{
+	rpt, err := svc.InspectByWebhook(context.Background(), inspector.WebhookPayload{
 		Source:  "grafana",
 		Alert:   "HighErrorRate",
 		Message: "Error rate above 5%",
 	})
 
 	require.NoError(t, err)
-	assert.Equal(t, inspector.StatusQueued, report.Status())
-	assert.Equal(t, inspector.TriggerWebhook, report.Trigger())
+	assert.Equal(t, report.StatusQueued, rpt.Status())
+	assert.Equal(t, report.TriggerWebhook, rpt.Trigger())
 
 	time.Sleep(100 * time.Millisecond)
 }
 
 func TestService_Inspect_NoDatasources(t *testing.T) {
-	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewReportRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
@@ -106,34 +107,34 @@ func TestService_Inspect_NoDatasources(t *testing.T) {
 }
 
 func TestService_GetReport(t *testing.T) {
-	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewReportRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	svc, err := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 	require.NoError(t, err)
 
-	expected := inspector.NewReport("rpt-1", inspector.TriggerManual, "t-1", inspector.StatusCompleted, inspector.SeverityWarning, "test", "detail", "test query", nil, 3, time.Now())
+	expected := report.NewReport("rpt-1", report.TriggerManual, "t-1", report.StatusCompleted, report.SeverityWarning, "test", "detail", "test query", nil, 3, time.Now())
 	reportRepo.EXPECT().GetByID(mock.Anything, "rpt-1").Return(expected, nil)
 
-	report, err := svc.GetReport(context.Background(), "rpt-1")
+	rpt, err := svc.GetReport(context.Background(), "rpt-1")
 
 	require.NoError(t, err)
-	assert.Equal(t, "rpt-1", report.ID())
-	assert.Equal(t, inspector.StatusCompleted, report.Status())
+	assert.Equal(t, "rpt-1", rpt.ID())
+	assert.Equal(t, report.StatusCompleted, rpt.Status())
 }
 
 func TestService_ListReports(t *testing.T) {
-	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewReportRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	svc, err := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
 	require.NoError(t, err)
 
-	r1 := inspector.NewReport("rpt-1", inspector.TriggerManual, "t-1", inspector.StatusCompleted, inspector.SeverityInfo, "ok", "", "", nil, 1, time.Now())
-	r2 := inspector.NewReport("rpt-2", inspector.TriggerWebhook, "t-2", inspector.StatusCompleted, inspector.SeverityCritical, "bad", "", "HighErrorRate", nil, 5, time.Now())
-	reportRepo.EXPECT().List(mock.Anything, 10).Return([]*inspector.Report{r1, r2}, nil)
+	r1 := report.NewReport("rpt-1", report.TriggerManual, "t-1", report.StatusCompleted, report.SeverityInfo, "ok", "", "", nil, 1, time.Now())
+	r2 := report.NewReport("rpt-2", report.TriggerWebhook, "t-2", report.StatusCompleted, report.SeverityCritical, "bad", "", "HighErrorRate", nil, 5, time.Now())
+	reportRepo.EXPECT().List(mock.Anything, 10).Return([]*report.Report{r1, r2}, nil)
 
 	reports, err := svc.ListReports(context.Background(), 10)
 
@@ -142,7 +143,7 @@ func TestService_ListReports(t *testing.T) {
 }
 
 func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
-	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewReportRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
@@ -165,9 +166,9 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running
 
-	report1, err := svc.Inspect(context.Background(), inspector.InspectRequest{Query: "query-1"})
+	rpt1, err := svc.Inspect(context.Background(), inspector.InspectRequest{Query: "query-1"})
 	require.NoError(t, err)
-	assert.Equal(t, inspector.StatusQueued, report1.Status())
+	assert.Equal(t, report.StatusQueued, rpt1.Status())
 
 	// Wait for worker to pick up the job and block in Analyze
 	time.Sleep(50 * time.Millisecond)
@@ -176,9 +177,9 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "query-2", mock.Anything).Return(nil, nil)
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 
-	report2, err := svc.Inspect(context.Background(), inspector.InspectRequest{Query: "query-2"})
+	rpt2, err := svc.Inspect(context.Background(), inspector.InspectRequest{Query: "query-2"})
 	require.NoError(t, err)
-	assert.Equal(t, inspector.StatusQueued, report2.Status())
+	assert.Equal(t, report.StatusQueued, rpt2.Status())
 
 	// Third request should be rejected (queue full)
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "query-3", mock.Anything).Return(nil, nil)
@@ -202,7 +203,7 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 }
 
 func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
-	reportRepo := inspectorMocks.NewReportRepositoryMock(t)
+	reportRepo := reportMocks.NewReportRepositoryMock(t)
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
@@ -228,14 +229,14 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 		reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
 	}
 
-	reports := make([]*inspector.Report, 3)
+	reports := make([]*report.Report, 3)
 	for i := range 3 {
-		report, err := svc.Inspect(context.Background(), inspector.InspectRequest{
+		rpt, err := svc.Inspect(context.Background(), inspector.InspectRequest{
 			Query: fmt.Sprintf("query-%d", i),
 		})
 		require.NoError(t, err)
-		reports[i] = report
-		assert.Equal(t, inspector.StatusQueued, report.Status())
+		reports[i] = rpt
+		assert.Equal(t, report.StatusQueued, rpt.Status())
 	}
 
 	// Wait for all workers to finish

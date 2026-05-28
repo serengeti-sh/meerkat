@@ -11,6 +11,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	inspectorMocks "github.com/serengeti-sh/meerkat/internal/inspector/mocks"
+	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
 )
 
@@ -43,7 +44,7 @@ func TestCronScheduler_StartStop(t *testing.T) {
 		LogQuery:    "",
 		Query:       "Scheduled inspection: test-job",
 	}).Return(
-		inspector.NewReport("r-1", inspector.TriggerScheduled, "", inspector.StatusCompleted, inspector.SeverityInfo, "ok", "", "", []string{}, 1, time.Now()),
+		report.NewReport("r-1", report.TriggerScheduled, "", report.StatusCompleted, report.SeverityInfo, "ok", "", "", []string{}, 1, time.Now()),
 		nil,
 	)
 

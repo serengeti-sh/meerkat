@@ -11,8 +11,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
-	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/report"
+	"github.com/serengeti-sh/meerkat/internal/reporter"
 )
 
 const (
@@ -37,7 +38,7 @@ type DatasourceRefs func() []analyzer.DatasourceRef
 
 type service struct {
 	analyzerSvc analyzer.Service
-	reportRepo  ReportRepository
+	reportRepo  report.ReportRepository
 	reporterSvc reporter.Service
 	ragClient   ragclient.Client
 	dsRefs      DatasourceRefs
@@ -52,13 +53,13 @@ type service struct {
 var _ Service = (*service)(nil)
 
 type analysisJob struct {
-	report *Report
+	report *report.Report
 	input  *analyzer.AnalysisInput
 }
 
 func NewService(
 	analyzerSvc analyzer.Service,
-	reportRepo ReportRepository,
+	reportRepo report.ReportRepository,
 	reporterSvc reporter.Service,
 	dsRefs DatasourceRefs,
 	dedupWindow time.Duration,
@@ -109,7 +110,7 @@ func NewService(
 }
 
 // Inspect creates a queued report and submits it to the worker pool.
-func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, error) {
+func (s *service) Inspect(ctx context.Context, req InspectRequest) (*report.Report, error) {
 	query := req.Query
 	if query == "" && req.MetricQuery != "" {
 		query = fmt.Sprintf("Check metrics: %s", req.MetricQuery)
@@ -118,11 +119,11 @@ func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, err
 		query += fmt.Sprintf("\nCheck logs: %s", req.LogQuery)
 	}
 
-	return s.enqueue(ctx, TriggerManual, query, "")
+	return s.enqueue(ctx, report.TriggerManual, query, "")
 }
 
 // InspectByWebhook creates a queued report and submits it to the worker pool.
-func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) (*Report, error) {
+func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) (*report.Report, error) {
 	contextStr := fmt.Sprintf("Source: %s\nAlert: %s\nMessage: %s\nData: %s",
 		payload.Source, payload.Alert, payload.Message, string(payload.Data))
 
@@ -134,7 +135,7 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 		}
 	}
 
-	return s.enqueue(ctx, TriggerWebhook, payload.Alert, contextStr)
+	return s.enqueue(ctx, report.TriggerWebhook, payload.Alert, contextStr)
 }
 
 // fetchRAGContext extracts a service name from the webhook payload and queries
@@ -163,7 +164,7 @@ func (s *service) fetchRAGContext(ctx context.Context, payload WebhookPayload) s
 }
 
 // enqueue is the shared logic for Inspect and InspectByWebhook.
-func (s *service) enqueue(ctx context.Context, trigger TriggerType, query, contextStr string) (*Report, error) {
+func (s *service) enqueue(ctx context.Context, trigger report.TriggerType, query, contextStr string) (*report.Report, error) {
 	refs := s.dsRefs()
 	if len(refs) == 0 {
 		return nil, apperrors.New(apperrors.ErrInvalidInput, "no datasources configured")
@@ -180,12 +181,12 @@ func (s *service) enqueue(ctx context.Context, trigger TriggerType, query, conte
 	}
 
 	triggerID := uuid.New().String()
-	report := NewReport(
+	rpt := report.NewReport(
 		uuid.New().String(),
 		trigger,
 		triggerID,
-		StatusQueued,
-		SeverityInfo,
+		report.StatusQueued,
+		report.SeverityInfo,
 		"",
 		"",
 		query,
@@ -194,7 +195,7 @@ func (s *service) enqueue(ctx context.Context, trigger TriggerType, query, conte
 		time.Now(),
 	)
 
-	if err := s.reportRepo.Create(ctx, report); err != nil {
+	if err := s.reportRepo.Create(ctx, rpt); err != nil {
 		return nil, apperrors.Wrap(apperrors.ErrInternal, "failed to create report", err)
 	}
 
@@ -210,37 +211,37 @@ func (s *service) enqueue(ctx context.Context, trigger TriggerType, query, conte
 	}
 
 	job := &analysisJob{
-		report: report,
+		report: rpt,
 		input:  input,
 	}
 
 	select {
 	case s.queue <- job:
-		log.Printf("[inspector] report %s queued (queue: %d/%d)", report.ID(), len(s.queue), s.queueSize)
-		return report, nil
+		log.Printf("[inspector] report %s queued (queue: %d/%d)", rpt.ID(), len(s.queue), s.queueSize)
+		return rpt, nil
 	default:
 		// Queue is full — update report to failed and reject
-		failedReport := NewReport(
-			report.ID(), report.Trigger(), report.TriggerID(),
-			StatusFailed, SeverityInfo, "Analysis queue is full, request rejected",
-			"", report.Query(), report.Datasources(), 0, report.CreatedAt(),
+		failedReport := report.NewReport(
+			rpt.ID(), rpt.Trigger(), rpt.TriggerID(),
+			report.StatusFailed, report.SeverityInfo, "Analysis queue is full, request rejected",
+			"", rpt.Query(), rpt.Datasources(), 0, rpt.CreatedAt(),
 		)
 		if err := s.reportRepo.Update(ctx, failedReport); err != nil {
-			log.Printf("[meerkat] failed to update report %s: %v", report.ID(), err)
+			log.Printf("[meerkat] failed to update report %s: %v", rpt.ID(), err)
 		}
 		return nil, apperrors.New(apperrors.ErrRateLimit, "analysis queue is full, try again later")
 	}
 }
 
-func (s *service) GetReport(ctx context.Context, id string) (*Report, error) {
-	report, err := s.reportRepo.GetByID(ctx, id)
+func (s *service) GetReport(ctx context.Context, id string) (*report.Report, error) {
+	rpt, err := s.reportRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, apperrors.Wrap(apperrors.ErrNotFound, "report not found", err)
 	}
-	return report, nil
+	return rpt, nil
 }
 
-func (s *service) ListReports(ctx context.Context, limit int) ([]*Report, error) {
+func (s *service) ListReports(ctx context.Context, limit int) ([]*report.Report, error) {
 	reports, err := s.reportRepo.List(ctx, limit)
 	if err != nil {
 		return nil, apperrors.Wrap(apperrors.ErrInternal, "failed to list reports", err)

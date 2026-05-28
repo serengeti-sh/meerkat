@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/serengeti-sh/meerkat/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/report"
 )
 
 type reportResponse struct {
@@ -38,7 +39,7 @@ func (h *Handler) Inspect(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusAccepted, mapReport(report))
 }
 
-func mapReport(r *inspector.Report) reportResponse {
+func mapReport(r *report.Report) reportResponse {
 	return reportResponse{
 		ID:          r.ID(),
 		Trigger:     string(r.Trigger()),

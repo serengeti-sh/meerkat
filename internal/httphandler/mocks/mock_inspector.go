@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"github.com/serengeti-sh/meerkat/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/report"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -39,23 +40,23 @@ func (_m *InspectorMock) EXPECT() *InspectorMock_Expecter {
 }
 
 // GetReport provides a mock function for the type InspectorMock
-func (_mock *InspectorMock) GetReport(ctx context.Context, id string) (*inspector.Report, error) {
+func (_mock *InspectorMock) GetReport(ctx context.Context, id string) (*report.Report, error) {
 	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetReport")
 	}
 
-	var r0 *inspector.Report
+	var r0 *report.Report
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*inspector.Report, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*report.Report, error)); ok {
 		return returnFunc(ctx, id)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *inspector.Report); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *report.Report); ok {
 		r0 = returnFunc(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*inspector.Report)
+			r0 = ret.Get(0).(*report.Report)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
@@ -96,34 +97,34 @@ func (_c *InspectorMock_GetReport_Call) Run(run func(ctx context.Context, id str
 	return _c
 }
 
-func (_c *InspectorMock_GetReport_Call) Return(report *inspector.Report, err error) *InspectorMock_GetReport_Call {
-	_c.Call.Return(report, err)
+func (_c *InspectorMock_GetReport_Call) Return(report1 *report.Report, err error) *InspectorMock_GetReport_Call {
+	_c.Call.Return(report1, err)
 	return _c
 }
 
-func (_c *InspectorMock_GetReport_Call) RunAndReturn(run func(ctx context.Context, id string) (*inspector.Report, error)) *InspectorMock_GetReport_Call {
+func (_c *InspectorMock_GetReport_Call) RunAndReturn(run func(ctx context.Context, id string) (*report.Report, error)) *InspectorMock_GetReport_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Inspect provides a mock function for the type InspectorMock
-func (_mock *InspectorMock) Inspect(ctx context.Context, req inspector.InspectRequest) (*inspector.Report, error) {
+func (_mock *InspectorMock) Inspect(ctx context.Context, req inspector.InspectRequest) (*report.Report, error) {
 	ret := _mock.Called(ctx, req)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Inspect")
 	}
 
-	var r0 *inspector.Report
+	var r0 *report.Report
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.InspectRequest) (*inspector.Report, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.InspectRequest) (*report.Report, error)); ok {
 		return returnFunc(ctx, req)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.InspectRequest) *inspector.Report); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.InspectRequest) *report.Report); ok {
 		r0 = returnFunc(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*inspector.Report)
+			r0 = ret.Get(0).(*report.Report)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, inspector.InspectRequest) error); ok {
@@ -164,34 +165,34 @@ func (_c *InspectorMock_Inspect_Call) Run(run func(ctx context.Context, req insp
 	return _c
 }
 
-func (_c *InspectorMock_Inspect_Call) Return(report *inspector.Report, err error) *InspectorMock_Inspect_Call {
-	_c.Call.Return(report, err)
+func (_c *InspectorMock_Inspect_Call) Return(report1 *report.Report, err error) *InspectorMock_Inspect_Call {
+	_c.Call.Return(report1, err)
 	return _c
 }
 
-func (_c *InspectorMock_Inspect_Call) RunAndReturn(run func(ctx context.Context, req inspector.InspectRequest) (*inspector.Report, error)) *InspectorMock_Inspect_Call {
+func (_c *InspectorMock_Inspect_Call) RunAndReturn(run func(ctx context.Context, req inspector.InspectRequest) (*report.Report, error)) *InspectorMock_Inspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // InspectByWebhook provides a mock function for the type InspectorMock
-func (_mock *InspectorMock) InspectByWebhook(ctx context.Context, payload inspector.WebhookPayload) (*inspector.Report, error) {
+func (_mock *InspectorMock) InspectByWebhook(ctx context.Context, payload inspector.WebhookPayload) (*report.Report, error) {
 	ret := _mock.Called(ctx, payload)
 
 	if len(ret) == 0 {
 		panic("no return value specified for InspectByWebhook")
 	}
 
-	var r0 *inspector.Report
+	var r0 *report.Report
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.WebhookPayload) (*inspector.Report, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.WebhookPayload) (*report.Report, error)); ok {
 		return returnFunc(ctx, payload)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.WebhookPayload) *inspector.Report); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.WebhookPayload) *report.Report); ok {
 		r0 = returnFunc(ctx, payload)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*inspector.Report)
+			r0 = ret.Get(0).(*report.Report)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, inspector.WebhookPayload) error); ok {
@@ -232,34 +233,34 @@ func (_c *InspectorMock_InspectByWebhook_Call) Run(run func(ctx context.Context,
 	return _c
 }
 
-func (_c *InspectorMock_InspectByWebhook_Call) Return(report *inspector.Report, err error) *InspectorMock_InspectByWebhook_Call {
-	_c.Call.Return(report, err)
+func (_c *InspectorMock_InspectByWebhook_Call) Return(report1 *report.Report, err error) *InspectorMock_InspectByWebhook_Call {
+	_c.Call.Return(report1, err)
 	return _c
 }
 
-func (_c *InspectorMock_InspectByWebhook_Call) RunAndReturn(run func(ctx context.Context, payload inspector.WebhookPayload) (*inspector.Report, error)) *InspectorMock_InspectByWebhook_Call {
+func (_c *InspectorMock_InspectByWebhook_Call) RunAndReturn(run func(ctx context.Context, payload inspector.WebhookPayload) (*report.Report, error)) *InspectorMock_InspectByWebhook_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ListReports provides a mock function for the type InspectorMock
-func (_mock *InspectorMock) ListReports(ctx context.Context, limit int) ([]*inspector.Report, error) {
+func (_mock *InspectorMock) ListReports(ctx context.Context, limit int) ([]*report.Report, error) {
 	ret := _mock.Called(ctx, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListReports")
 	}
 
-	var r0 []*inspector.Report
+	var r0 []*report.Report
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) ([]*inspector.Report, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) ([]*report.Report, error)); ok {
 		return returnFunc(ctx, limit)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) []*inspector.Report); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) []*report.Report); ok {
 		r0 = returnFunc(ctx, limit)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*inspector.Report)
+			r0 = ret.Get(0).([]*report.Report)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, int) error); ok {
@@ -300,12 +301,12 @@ func (_c *InspectorMock_ListReports_Call) Run(run func(ctx context.Context, limi
 	return _c
 }
 
-func (_c *InspectorMock_ListReports_Call) Return(reports []*inspector.Report, err error) *InspectorMock_ListReports_Call {
+func (_c *InspectorMock_ListReports_Call) Return(reports []*report.Report, err error) *InspectorMock_ListReports_Call {
 	_c.Call.Return(reports, err)
 	return _c
 }
 
-func (_c *InspectorMock_ListReports_Call) RunAndReturn(run func(ctx context.Context, limit int) ([]*inspector.Report, error)) *InspectorMock_ListReports_Call {
+func (_c *InspectorMock_ListReports_Call) RunAndReturn(run func(ctx context.Context, limit int) ([]*report.Report, error)) *InspectorMock_ListReports_Call {
 	_c.Call.Return(run)
 	return _c
 }

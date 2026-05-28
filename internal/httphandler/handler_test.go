@@ -15,6 +15,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	inspectorMocks "github.com/serengeti-sh/meerkat/internal/inspector/mocks"
+	"github.com/serengeti-sh/meerkat/internal/report"
 )
 
 func TestHandler_Health(t *testing.T) {
@@ -43,7 +44,7 @@ func TestHandler_Inspect(t *testing.T) {
 		LogQuery:    "",
 		Query:       "check status",
 	}).Return(
-		inspector.NewReport("r-1", inspector.TriggerManual, "", inspector.StatusPending, inspector.SeverityInfo, "all ok", "", "check status", []string{"vm"}, 1, time.Now()),
+		report.NewReport("r-1", report.TriggerManual, "", report.StatusPending, report.SeverityInfo, "all ok", "", "check status", []string{"vm"}, 1, time.Now()),
 		nil,
 	)
 
@@ -89,7 +90,7 @@ func TestHandler_Webhook(t *testing.T) {
 		Message: "CPU > 80%",
 		Data:    json.RawMessage(`{"value": 85}`),
 	}).Return(
-		inspector.NewReport("r-2", inspector.TriggerWebhook, "", inspector.StatusCompleted, inspector.SeverityWarning, "high cpu", "", "", []string{"vm"}, 1, time.Now()),
+		report.NewReport("r-2", report.TriggerWebhook, "", report.StatusCompleted, report.SeverityWarning, "high cpu", "", "", []string{"vm"}, 1, time.Now()),
 		nil,
 	)
 
@@ -130,8 +131,8 @@ func TestHandler_Webhook_InvalidBody(t *testing.T) {
 func TestHandler_ListReports(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("ListReports", mock.Anything, 50).Return(
-		[]*inspector.Report{
-			inspector.NewReport("r-1", inspector.TriggerManual, "", inspector.StatusCompleted, inspector.SeverityInfo, "ok", "", "", []string{}, 1, time.Now()),
+		[]*report.Report{
+			report.NewReport("r-1", report.TriggerManual, "", report.StatusCompleted, report.SeverityInfo, "ok", "", "", []string{}, 1, time.Now()),
 		},
 		nil,
 	)
@@ -156,7 +157,7 @@ func TestHandler_ListReports(t *testing.T) {
 func TestHandler_ListReports_WithLimit(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("ListReports", mock.Anything, 10).Return(
-		[]*inspector.Report{},
+		[]*report.Report{},
 		nil,
 	)
 
@@ -175,7 +176,7 @@ func TestHandler_ListReports_WithLimit(t *testing.T) {
 func TestHandler_GetReport(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("GetReport", mock.Anything, "r-1").Return(
-		inspector.NewReport("r-1", inspector.TriggerManual, "", inspector.StatusCompleted, inspector.SeverityCritical, "critical issue", "details", "", []string{"vm"}, 3, time.Now()),
+		report.NewReport("r-1", report.TriggerManual, "", report.StatusCompleted, report.SeverityCritical, "critical issue", "details", "", []string{"vm"}, 3, time.Now()),
 		nil,
 	)
 

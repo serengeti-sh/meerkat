@@ -2,13 +2,13 @@
 // github.com/vektra/mockery
 // template: testify
 
-package inspectormocks
+package reportmocks
 
 import (
 	"context"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/report"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -40,16 +40,16 @@ func (_m *ReportRepositoryMock) EXPECT() *ReportRepositoryMock_Expecter {
 }
 
 // Create provides a mock function for the type ReportRepositoryMock
-func (_mock *ReportRepositoryMock) Create(ctx context.Context, report *inspector.Report) error {
-	ret := _mock.Called(ctx, report)
+func (_mock *ReportRepositoryMock) Create(ctx context.Context, report1 *report.Report) error {
+	ret := _mock.Called(ctx, report1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Create")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *inspector.Report) error); ok {
-		r0 = returnFunc(ctx, report)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *report.Report) error); ok {
+		r0 = returnFunc(ctx, report1)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -63,20 +63,20 @@ type ReportRepositoryMock_Create_Call struct {
 
 // Create is a helper method to define mock.On call
 //   - ctx context.Context
-//   - report *inspector.Report
-func (_e *ReportRepositoryMock_Expecter) Create(ctx interface{}, report interface{}) *ReportRepositoryMock_Create_Call {
-	return &ReportRepositoryMock_Create_Call{Call: _e.mock.On("Create", ctx, report)}
+//   - report1 *report.Report
+func (_e *ReportRepositoryMock_Expecter) Create(ctx interface{}, report1 interface{}) *ReportRepositoryMock_Create_Call {
+	return &ReportRepositoryMock_Create_Call{Call: _e.mock.On("Create", ctx, report1)}
 }
 
-func (_c *ReportRepositoryMock_Create_Call) Run(run func(ctx context.Context, report *inspector.Report)) *ReportRepositoryMock_Create_Call {
+func (_c *ReportRepositoryMock_Create_Call) Run(run func(ctx context.Context, report1 *report.Report)) *ReportRepositoryMock_Create_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 *inspector.Report
+		var arg1 *report.Report
 		if args[1] != nil {
-			arg1 = args[1].(*inspector.Report)
+			arg1 = args[1].(*report.Report)
 		}
 		run(
 			arg0,
@@ -91,29 +91,29 @@ func (_c *ReportRepositoryMock_Create_Call) Return(err error) *ReportRepositoryM
 	return _c
 }
 
-func (_c *ReportRepositoryMock_Create_Call) RunAndReturn(run func(ctx context.Context, report *inspector.Report) error) *ReportRepositoryMock_Create_Call {
+func (_c *ReportRepositoryMock_Create_Call) RunAndReturn(run func(ctx context.Context, report1 *report.Report) error) *ReportRepositoryMock_Create_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // FindActiveByQuery provides a mock function for the type ReportRepositoryMock
-func (_mock *ReportRepositoryMock) FindActiveByQuery(ctx context.Context, trigger string, query string, since time.Time) (*inspector.Report, error) {
+func (_mock *ReportRepositoryMock) FindActiveByQuery(ctx context.Context, trigger string, query string, since time.Time) (*report.Report, error) {
 	ret := _mock.Called(ctx, trigger, query, since)
 
 	if len(ret) == 0 {
 		panic("no return value specified for FindActiveByQuery")
 	}
 
-	var r0 *inspector.Report
+	var r0 *report.Report
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, time.Time) (*inspector.Report, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, time.Time) (*report.Report, error)); ok {
 		return returnFunc(ctx, trigger, query, since)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, time.Time) *inspector.Report); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, time.Time) *report.Report); ok {
 		r0 = returnFunc(ctx, trigger, query, since)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*inspector.Report)
+			r0 = ret.Get(0).(*report.Report)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, time.Time) error); ok {
@@ -166,34 +166,34 @@ func (_c *ReportRepositoryMock_FindActiveByQuery_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *ReportRepositoryMock_FindActiveByQuery_Call) Return(report *inspector.Report, err error) *ReportRepositoryMock_FindActiveByQuery_Call {
-	_c.Call.Return(report, err)
+func (_c *ReportRepositoryMock_FindActiveByQuery_Call) Return(report1 *report.Report, err error) *ReportRepositoryMock_FindActiveByQuery_Call {
+	_c.Call.Return(report1, err)
 	return _c
 }
 
-func (_c *ReportRepositoryMock_FindActiveByQuery_Call) RunAndReturn(run func(ctx context.Context, trigger string, query string, since time.Time) (*inspector.Report, error)) *ReportRepositoryMock_FindActiveByQuery_Call {
+func (_c *ReportRepositoryMock_FindActiveByQuery_Call) RunAndReturn(run func(ctx context.Context, trigger string, query string, since time.Time) (*report.Report, error)) *ReportRepositoryMock_FindActiveByQuery_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // GetByID provides a mock function for the type ReportRepositoryMock
-func (_mock *ReportRepositoryMock) GetByID(ctx context.Context, id string) (*inspector.Report, error) {
+func (_mock *ReportRepositoryMock) GetByID(ctx context.Context, id string) (*report.Report, error) {
 	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetByID")
 	}
 
-	var r0 *inspector.Report
+	var r0 *report.Report
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*inspector.Report, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*report.Report, error)); ok {
 		return returnFunc(ctx, id)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *inspector.Report); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *report.Report); ok {
 		r0 = returnFunc(ctx, id)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*inspector.Report)
+			r0 = ret.Get(0).(*report.Report)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
@@ -234,34 +234,34 @@ func (_c *ReportRepositoryMock_GetByID_Call) Run(run func(ctx context.Context, i
 	return _c
 }
 
-func (_c *ReportRepositoryMock_GetByID_Call) Return(report *inspector.Report, err error) *ReportRepositoryMock_GetByID_Call {
-	_c.Call.Return(report, err)
+func (_c *ReportRepositoryMock_GetByID_Call) Return(report1 *report.Report, err error) *ReportRepositoryMock_GetByID_Call {
+	_c.Call.Return(report1, err)
 	return _c
 }
 
-func (_c *ReportRepositoryMock_GetByID_Call) RunAndReturn(run func(ctx context.Context, id string) (*inspector.Report, error)) *ReportRepositoryMock_GetByID_Call {
+func (_c *ReportRepositoryMock_GetByID_Call) RunAndReturn(run func(ctx context.Context, id string) (*report.Report, error)) *ReportRepositoryMock_GetByID_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // List provides a mock function for the type ReportRepositoryMock
-func (_mock *ReportRepositoryMock) List(ctx context.Context, limit int) ([]*inspector.Report, error) {
+func (_mock *ReportRepositoryMock) List(ctx context.Context, limit int) ([]*report.Report, error) {
 	ret := _mock.Called(ctx, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for List")
 	}
 
-	var r0 []*inspector.Report
+	var r0 []*report.Report
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) ([]*inspector.Report, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) ([]*report.Report, error)); ok {
 		return returnFunc(ctx, limit)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) []*inspector.Report); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) []*report.Report); ok {
 		r0 = returnFunc(ctx, limit)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*inspector.Report)
+			r0 = ret.Get(0).([]*report.Report)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, int) error); ok {
@@ -302,27 +302,27 @@ func (_c *ReportRepositoryMock_List_Call) Run(run func(ctx context.Context, limi
 	return _c
 }
 
-func (_c *ReportRepositoryMock_List_Call) Return(reports []*inspector.Report, err error) *ReportRepositoryMock_List_Call {
+func (_c *ReportRepositoryMock_List_Call) Return(reports []*report.Report, err error) *ReportRepositoryMock_List_Call {
 	_c.Call.Return(reports, err)
 	return _c
 }
 
-func (_c *ReportRepositoryMock_List_Call) RunAndReturn(run func(ctx context.Context, limit int) ([]*inspector.Report, error)) *ReportRepositoryMock_List_Call {
+func (_c *ReportRepositoryMock_List_Call) RunAndReturn(run func(ctx context.Context, limit int) ([]*report.Report, error)) *ReportRepositoryMock_List_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Update provides a mock function for the type ReportRepositoryMock
-func (_mock *ReportRepositoryMock) Update(ctx context.Context, report *inspector.Report) error {
-	ret := _mock.Called(ctx, report)
+func (_mock *ReportRepositoryMock) Update(ctx context.Context, report1 *report.Report) error {
+	ret := _mock.Called(ctx, report1)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *inspector.Report) error); ok {
-		r0 = returnFunc(ctx, report)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *report.Report) error); ok {
+		r0 = returnFunc(ctx, report1)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -336,20 +336,20 @@ type ReportRepositoryMock_Update_Call struct {
 
 // Update is a helper method to define mock.On call
 //   - ctx context.Context
-//   - report *inspector.Report
-func (_e *ReportRepositoryMock_Expecter) Update(ctx interface{}, report interface{}) *ReportRepositoryMock_Update_Call {
-	return &ReportRepositoryMock_Update_Call{Call: _e.mock.On("Update", ctx, report)}
+//   - report1 *report.Report
+func (_e *ReportRepositoryMock_Expecter) Update(ctx interface{}, report1 interface{}) *ReportRepositoryMock_Update_Call {
+	return &ReportRepositoryMock_Update_Call{Call: _e.mock.On("Update", ctx, report1)}
 }
 
-func (_c *ReportRepositoryMock_Update_Call) Run(run func(ctx context.Context, report *inspector.Report)) *ReportRepositoryMock_Update_Call {
+func (_c *ReportRepositoryMock_Update_Call) Run(run func(ctx context.Context, report1 *report.Report)) *ReportRepositoryMock_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 *inspector.Report
+		var arg1 *report.Report
 		if args[1] != nil {
-			arg1 = args[1].(*inspector.Report)
+			arg1 = args[1].(*report.Report)
 		}
 		run(
 			arg0,
@@ -364,7 +364,7 @@ func (_c *ReportRepositoryMock_Update_Call) Return(err error) *ReportRepositoryM
 	return _c
 }
 
-func (_c *ReportRepositoryMock_Update_Call) RunAndReturn(run func(ctx context.Context, report *inspector.Report) error) *ReportRepositoryMock_Update_Call {
+func (_c *ReportRepositoryMock_Update_Call) RunAndReturn(run func(ctx context.Context, report1 *report.Report) error) *ReportRepositoryMock_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -10,15 +10,16 @@ import (
 	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
 
 	"github.com/serengeti-sh/meerkat/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/report"
 )
 
 // Inspector is the subset of inspector.Service that Handler requires.
 // Defined locally so Handler depends only on what it uses.
 type Inspector interface {
-	Inspect(ctx context.Context, req inspector.InspectRequest) (*inspector.Report, error)
-	InspectByWebhook(ctx context.Context, payload inspector.WebhookPayload) (*inspector.Report, error)
-	GetReport(ctx context.Context, id string) (*inspector.Report, error)
-	ListReports(ctx context.Context, limit int) ([]*inspector.Report, error)
+	Inspect(ctx context.Context, req inspector.InspectRequest) (*report.Report, error)
+	InspectByWebhook(ctx context.Context, payload inspector.WebhookPayload) (*report.Report, error)
+	GetReport(ctx context.Context, id string) (*report.Report, error)
+	ListReports(ctx context.Context, limit int) ([]*report.Report, error)
 }
 
 type Handler struct {

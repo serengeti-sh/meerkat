@@ -17,6 +17,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/embedder"
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
@@ -55,7 +56,7 @@ func Run(cfgFile string, port int) error {
 	}
 
 	// 3. Repository
-	reportRepo := inspector.NewEntReportRepository(client)
+	reportRepo := report.NewEntReportRepository(client)
 
 	// 4. Embedder
 	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
