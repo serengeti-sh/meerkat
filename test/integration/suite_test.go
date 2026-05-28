@@ -24,6 +24,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/ent"
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
 	"github.com/serengeti-sh/meerkat/internal/tool"
@@ -198,7 +199,7 @@ Respond with JSON only:
 	reporterSvc := reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
 
 	// Inspector service
-	reportRepo := inspector.NewEntReportRepository(entClient)
+	reportRepo := report.NewEntReportRepository(entClient)
 	dsRefs := func() []analyzer.DatasourceRef {
 		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
 	}
