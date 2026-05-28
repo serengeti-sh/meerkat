@@ -14,11 +14,11 @@ const (
 	ingestQueueFactor    = 2
 )
 
-// Processor consumes log entries from a Connector, indexes them into RAG,
+// Processor consumes log entries from a Connector, indexes them into MeerkatLogs,
 // and optionally triggers analysis when thresholds are breached.
 type Processor struct {
 	connector  *Connector
-	ragSvc     meerkatlogs.Service
+	logsSvc    meerkatlogs.Service
 	windowSize time.Duration
 	threshold  int
 	workers    int
@@ -26,10 +26,10 @@ type Processor struct {
 }
 
 // NewProcessor creates a stream processor.
-func NewProcessor(conn *Connector, ragSvc meerkatlogs.Service, windowSize time.Duration, threshold int) *Processor {
+func NewProcessor(conn *Connector, logsSvc meerkatlogs.Service, windowSize time.Duration, threshold int) *Processor {
 	return &Processor{
 		connector:  conn,
-		ragSvc:     ragSvc,
+		logsSvc:    logsSvc,
 		windowSize: windowSize,
 		threshold:  threshold,
 		workers:    defaultIngestWorkers,
@@ -60,9 +60,10 @@ func (p *Processor) Run(ctx context.Context, query string) error {
 			log.Printf("[stream] ingest queue full, dropping entry %s", entry.ID)
 		}
 
-		// Check threshold.
+		// Check threshold — triggers analysis when the window is full.
 		if window.Count() >= p.threshold {
 			log.Printf("[stream] threshold breached: %d entries in %v", window.Count(), p.windowSize)
+			// TODO: invoke analyzer inspection when threshold is breached
 			window.Reset()
 		}
 	})
@@ -76,7 +77,7 @@ func (p *Processor) worker(ctx context.Context, wg *sync.WaitGroup) {
 }
 
 func (p *Processor) indexEntry(ctx context.Context, entry meerkatlogs.LogEntry) {
-	_, err := p.ragSvc.Ingest(ctx, []meerkatlogs.LogEntry{entry})
+	_, err := p.logsSvc.Ingest(ctx, []meerkatlogs.LogEntry{entry})
 	if err != nil {
 		log.Printf("[stream] failed to index entry %s: %v", entry.ID, err)
 	}

@@ -14,13 +14,13 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
 )
 
-// mockRAGServer implements a minimal RAG gRPC server for E2E testing.
-type mockRAGServer struct {
+// mockMeerkatLogsServer implements a minimal MeerkatLogs gRPC server for E2E testing.
+type mockMeerkatLogsServer struct {
 	meerkatlogspb.UnimplementedServiceServer
 	entries []*meerkatlogspb.LogEntry
 }
 
-func (m *mockRAGServer) Ingest(ctx context.Context, req *meerkatlogspb.IngestRequest) (*meerkatlogspb.IngestResponse, error) {
+func (m *mockMeerkatLogsServer) Ingest(ctx context.Context, req *meerkatlogspb.IngestRequest) (*meerkatlogspb.IngestResponse, error) {
 	m.entries = append(m.entries, req.Entries...)
 	return &meerkatlogspb.IngestResponse{
 		IngestedCount:     int32(len(req.Entries)),
@@ -28,15 +28,15 @@ func (m *mockRAGServer) Ingest(ctx context.Context, req *meerkatlogspb.IngestReq
 	}, nil
 }
 
-func (m *mockRAGServer) Search(ctx context.Context, req *meerkatlogspb.SearchRequest) (*meerkatlogspb.SearchResponse, error) {
+func (m *mockMeerkatLogsServer) Search(ctx context.Context, req *meerkatlogspb.SearchRequest) (*meerkatlogspb.SearchResponse, error) {
 	return &meerkatlogspb.SearchResponse{Results: m.toResults()}, nil
 }
 
-func (m *mockRAGServer) GetContext(ctx context.Context, req *meerkatlogspb.GetContextRequest) (*meerkatlogspb.GetContextResponse, error) {
+func (m *mockMeerkatLogsServer) GetContext(ctx context.Context, req *meerkatlogspb.GetContextRequest) (*meerkatlogspb.GetContextResponse, error) {
 	return &meerkatlogspb.GetContextResponse{Results: m.toResults()}, nil
 }
 
-func (m *mockRAGServer) toResults() []*meerkatlogspb.SearchResult {
+func (m *mockMeerkatLogsServer) toResults() []*meerkatlogspb.SearchResult {
 	results := make([]*meerkatlogspb.SearchResult, len(m.entries))
 	for i, e := range m.entries {
 		results[i] = &meerkatlogspb.SearchResult{
@@ -51,33 +51,33 @@ func (m *mockRAGServer) toResults() []*meerkatlogspb.SearchResult {
 	return results
 }
 
-// TestE2E_Webhook_WithRAGContext verifies that when a webhook is received
-// and a RAG server is available, the analyzer receives log context in its prompt.
-func TestE2E_Webhook_WithRAGContext(t *testing.T) {
+// TestE2E_Webhook_WithLogContext verifies that when a webhook is received
+// and a MeerkatLogs server is available, the analyzer receives log context in its prompt.
+func TestE2E_Webhook_WithLogContext(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping e2e test in short mode")
 	}
 
 	ctx := context.Background()
 
-	// 1. Start mock RAG gRPC server
+	// 1. Start mock MeerkatLogs gRPC server
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	ragPort := lis.Addr().(*net.TCPAddr).Port
+	logsPort := lis.Addr().(*net.TCPAddr).Port
 
-	ragSvc := &mockRAGServer{}
-	ragGRPC := grpc.NewServer()
-	meerkatlogspb.RegisterServiceServer(ragGRPC, ragSvc)
+	logsSvc := &mockMeerkatLogsServer{}
+	logsGRPC := grpc.NewServer()
+	meerkatlogspb.RegisterServiceServer(logsGRPC, logsSvc)
 
 	go func() {
-		if err := ragGRPC.Serve(lis); err != nil {
-			t.Logf("mock RAG server error: %v", err)
+		if err := logsGRPC.Serve(lis); err != nil {
+			t.Logf("mock MeerkatLogs server error: %v", err)
 		}
 	}()
-	defer ragGRPC.GracefulStop()
+	defer logsGRPC.GracefulStop()
 
-	// 2. Pre-populate mock RAG with logs
-	_, err = ragSvc.Ingest(ctx, &meerkatlogspb.IngestRequest{
+	// 2. Pre-populate mock MeerkatLogs with logs
+	_, err = logsSvc.Ingest(ctx, &meerkatlogspb.IngestRequest{
 		Entries: []*meerkatlogspb.LogEntry{
 			{
 				Id:        "log-1",
@@ -97,8 +97,8 @@ func TestE2E_Webhook_WithRAGContext(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// 3. Start e2e suite with RAG server configured
-	suite := SetupSuiteWithRAG(t, ragPort)
+	// 3. Start e2e suite with MeerkatLogs server configured
+	suite := SetupSuiteWithLogs(t, logsPort)
 
 	// 4. Send webhook referencing the service
 	payload := map[string]any{
@@ -126,8 +126,8 @@ func TestE2E_Webhook_WithRAGContext(t *testing.T) {
 	assert.NotEmpty(t, report["summary"])
 }
 
-// SetupSuiteWithRAG creates an e2e suite with RAG_ADDRESS env var set.
-func SetupSuiteWithRAG(t *testing.T, ragPort int) *Suite {
+// SetupSuiteWithLogs creates an e2e suite with MEERKAT_LOGS_ADDRESS env var set.
+func SetupSuiteWithLogs(t *testing.T, logsPort int) *Suite {
 	if testing.Short() {
 		t.Skip("Skipping e2e test in short mode")
 	}
@@ -135,7 +135,7 @@ func SetupSuiteWithRAG(t *testing.T, ragPort int) *Suite {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 
 	suite := NewSuite(t)
-	require.NoError(t, suite.StartWithRAG(ctx, ragPort), "Failed to start e2e test suite with RAG")
+	require.NoError(t, suite.StartWithLogs(ctx, logsPort), "Failed to start e2e test suite with MeerkatLogs")
 	t.Cleanup(func() {
 		cancel()
 		suite.Stop()

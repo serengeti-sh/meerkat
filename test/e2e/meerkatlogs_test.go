@@ -12,11 +12,11 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
-// TestRAGEndToEnd demonstrates the complete RAG pipeline flow:
+// TestMeerkatLogsEndToEnd demonstrates the complete MeerkatLogs pipeline flow:
 // 1. Ingest log entries
 // 2. Search for similar entries
 // 3. Retrieve context for a time range
-func TestRAGEndToEnd(t *testing.T) {
+func TestMeerkatLogsEndToEnd(t *testing.T) {
 	// Setup
 	emb := &mockEmbedder{
 		vectors: [][]float32{

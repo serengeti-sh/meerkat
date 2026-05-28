@@ -292,6 +292,9 @@ func (c *Config) Validate() error {
 		if c.MeerkatLogs.Port < 0 || c.MeerkatLogs.Port > 65535 {
 			return fmt.Errorf("meerkat_logs.port must be between 0 and 65535")
 		}
+		if c.MeerkatLogs.Address == "" && c.MeerkatLogs.Port == 0 {
+			return fmt.Errorf("meerkat_logs.address or meerkat_logs.port is required when meerkat_logs is enabled")
+		}
 		if c.MeerkatLogs.FilterMode != "" {
 			switch c.MeerkatLogs.FilterMode {
 			case "all", "severity", "template":

@@ -27,7 +27,7 @@ type client struct {
 
 var _ Client = (*client)(nil)
 
-// New creates a client connected to the RAG gRPC server at addr.
+// New creates a client connected to the MeerkatLogs gRPC server at addr.
 func New(addr string, opts ...Option) (*client, error) {
 	cfg := &config{
 		dialOpts: []grpc.DialOption{
@@ -70,6 +70,7 @@ func (c *client) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult,
 	return &IngestResult{
 		IngestedCount:     int(resp.IngestedCount),
 		DeduplicatedCount: int(resp.DeduplicatedCount),
+		FilteredCount:     int(resp.FilteredCount),
 	}, nil
 }
 

@@ -87,6 +87,15 @@ spec:
             - name: otlp
               containerPort: {{ .Values.logs.service.otlpPort }}
               protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.logs.service.metricsPort }}
+              protocol: TCP
+          startupProbe:
+            {{- toYaml .Values.logs.startupProbe | nindent 12 }}
+          livenessProbe:
+            {{- toYaml .Values.logs.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.logs.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.logs.resources | nindent 12 }}
           volumeMounts:

@@ -31,9 +31,13 @@ var _ Store = (*qdrantStore)(nil)
 func NewQdrantClient(cfg *config.Config) (*qdrantStore, error) {
 	qc := cfg.VectorStore.Qdrant
 
-	conn, err := grpc.NewClient(qc.Address,
+	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	}
+	if qc.APIKey != "" {
+		dialOpts = append(dialOpts, grpc.WithPerRPCCredentials(apiKeyAuth{key: qc.APIKey}))
+	}
+	conn, err := grpc.NewClient(qc.Address, dialOpts...)
 	if err != nil {
 		return nil, fmt.Errorf("create qdrant client: %w", err)
 	}
@@ -251,4 +255,17 @@ func (s *qdrantStore) Close() error {
 		return s.conn.Close()
 	}
 	return nil
+}
+
+// apiKeyAuth implements grpc.PerRPCCredentials for Qdrant API key authentication.
+type apiKeyAuth struct {
+	key string
+}
+
+func (a apiKeyAuth) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
+	return map[string]string{"api-key": a.key}, nil
+}
+
+func (a apiKeyAuth) RequireTransportSecurity() bool {
+	return false
 }

@@ -1,4 +1,4 @@
-// Package ragclient provides a gRPC client for the MeerkatLogs service.
+// Package logsclient provides a gRPC client for the MeerkatLogs service.
 //
 // The client abstracts the underlying protobuf types and exposes domain-specific
 // types such as LogEntry, SearchResult, and SearchOptions.

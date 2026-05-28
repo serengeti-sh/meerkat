@@ -46,6 +46,10 @@ spec:
             - --config
             - /app/config/config.yaml
           env:
+            {{- if .Values.logs.enabled }}
+            - name: MEERKAT_LOGS_ADDRESS
+              value: {{ include "meerkat.fullname" . }}-logs:{{ .Values.logs.service.port }}
+            {{- end }}
             {{- if or .Values.secrets.embedder.apiKey .Values.secrets.embedder.existingSecret }}
             - name: EMBEDDER_API_KEY
               valueFrom:
@@ -84,6 +88,10 @@ spec:
             - name: grpc
               containerPort: 4317
               protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.collector.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.collector.readinessProbe | nindent 12 }}
           resources:
             {{- toYaml .Values.collector.resources | nindent 12 }}
           volumeMounts:

@@ -1,5 +1,5 @@
-// Package meerkatlogs implements the MeerkatLogs pipeline for
-// MeerkatLogs.
+// Package meerkatlogs implements the MeerkatLogs pipeline for log ingestion,
+// semantic search, and contextual retrieval.
 //
 // It provides log ingestion with template extraction (Drain algorithm), semantic
 // search via vector stores (Milvus, Qdrant), and contextual retrieval for
@@ -8,7 +8,7 @@
 //
 // This package is the core library used by the meerkatlogs server. Consumers
 // (analyzer, collector) should communicate with meerkatlogs via gRPC
-// (ragclient package) rather than using this package directly.
+// (logsclient package) rather than using this package directly.
 //
 // Entry points:
 //

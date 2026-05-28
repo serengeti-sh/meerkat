@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"sync"
@@ -69,6 +70,7 @@ func NewMilvusClient(cfg *config.Config) (*milvusStore, error) {
 			}
 			clientCfg.DialOptions = append(clientCfg.DialOptions, grpc.WithTransportCredentials(cred))
 		} else if mc.TLS.SkipVerify {
+			log.Printf("[milvus] WARNING: TLS skip_verify is enabled. This is insecure and should only be used for development.")
 			clientCfg.DialOptions = append(clientCfg.DialOptions, grpc.WithTransportCredentials(
 				credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})),
 			)

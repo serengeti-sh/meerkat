@@ -80,10 +80,10 @@ var _ Service = (*service)(nil)
 // NewService creates a Service with the given dependencies.
 func NewService(emb embedder.Model, vstore vectorstore.Store, opts ...ServiceOption) (*service, error) {
 	if emb == nil {
-		return nil, fmt.Errorf("rag: embedder is required")
+		return nil, fmt.Errorf("meerkatlogs: embedder is required")
 	}
 	if vstore == nil {
-		return nil, fmt.Errorf("rag: vectorStore is required")
+		return nil, fmt.Errorf("meerkatlogs: vectorStore is required")
 	}
 
 	s := &service{
@@ -150,6 +150,7 @@ func (s *service) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult
 		return &IngestResult{
 			IngestedCount:     ingested,
 			DeduplicatedCount: deduplicated,
+			FilteredCount:     filtered,
 		}, nil
 	}
 
@@ -182,6 +183,7 @@ func (s *service) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult
 	return &IngestResult{
 		IngestedCount:     ingested,
 		DeduplicatedCount: deduplicated,
+		FilteredCount:     filtered,
 	}, nil
 }
 

@@ -134,9 +134,17 @@ func (b *Batcher) flushAsync(entries []LogEntry) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultFlushTimeout)
 	defer cancel()
 
-	if err := b.flush(ctx, entries); err != nil {
-		log.Printf("[collector] flush failed: %v", err)
+	var err error
+	for attempt := 1; attempt <= 3; attempt++ {
+		if err = b.flush(ctx, entries); err == nil {
+			return
+		}
+		log.Printf("[collector] flush attempt %d failed: %v", attempt, err)
+		if attempt < 3 {
+			time.Sleep(time.Duration(attempt) * time.Second)
+		}
 	}
+	log.Printf("[collector] flush failed after 3 attempts: %v", err)
 }
 
 func (b *Batcher) flush(ctx context.Context, entries []LogEntry) error {

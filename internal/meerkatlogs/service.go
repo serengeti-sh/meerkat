@@ -31,6 +31,7 @@ type LogEntry struct {
 type IngestResult struct {
 	IngestedCount     int
 	DeduplicatedCount int
+	FilteredCount     int
 }
 
 // SearchResult represents a single matching log entry.

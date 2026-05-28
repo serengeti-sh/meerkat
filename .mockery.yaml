@@ -11,6 +11,6 @@ packages:
     config:
       all: true
       recursive: true
-  github.com/serengeti-sh/meerkat/internal/ragclient:
+  github.com/serengeti-sh/meerkat/internal/logsclient:
     config:
       all: true

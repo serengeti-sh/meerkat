@@ -1,6 +1,9 @@
 package logsclient
 
-import "google.golang.org/grpc"
+import (
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+)
 
 type config struct {
 	dialOpts []grpc.DialOption
@@ -13,5 +16,13 @@ type Option func(*config)
 func WithGRPCDialOpts(opts ...grpc.DialOption) Option {
 	return func(c *config) {
 		c.dialOpts = append(c.dialOpts, opts...)
+	}
+}
+
+// WithTransportCredentials sets TLS credentials for the gRPC connection.
+// Use this in production to secure traffic between services.
+func WithTransportCredentials(creds credentials.TransportCredentials) Option {
+	return func(c *config) {
+		c.dialOpts = append(c.dialOpts, grpc.WithTransportCredentials(creds))
 	}
 }

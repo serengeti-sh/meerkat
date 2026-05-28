@@ -128,7 +128,14 @@ config:
     dedup_window: 5m
 
   reporter:
-    channels: []
+    webhook_url: ""
+    min_severity: warning
+
+  meerkat_logs:
+    enabled: false
+    address: ":50051"
+    filter_mode: template
+    min_severity: info
 
 secrets:
   database:

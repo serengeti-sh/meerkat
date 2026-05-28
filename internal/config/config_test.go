@@ -80,6 +80,7 @@ func TestConfig_Validate(t *testing.T) {
 			name: "invalid filter_mode",
 			modify: func(c *Config) {
 				c.MeerkatLogs.Enabled = true
+				c.MeerkatLogs.Address = ":50051"
 				c.MeerkatLogs.FilterMode = "magic"
 			},
 			wantErr: "meerkat_logs.filter_mode",

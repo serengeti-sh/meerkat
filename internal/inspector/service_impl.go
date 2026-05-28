@@ -141,11 +141,11 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 	contextStr := fmt.Sprintf("Source: %s\nAlert: %s\nMessage: %s\nData: %s",
 		payload.Source, payload.Alert, payload.Message, string(payload.Data))
 
-	// Online Retrieval: fetch recent log context from RAG
+	// Online Retrieval: fetch recent log context from MeerkatLogs
 	if s.logsClient != nil {
-		ragCtx := s.fetchLogsContext(ctx, payload)
-		if ragCtx != "" {
-			contextStr += "\n\n=== Recent Log Context ===\n" + ragCtx
+		logsCtx := s.fetchLogsContext(ctx, payload)
+		if logsCtx != "" {
+			contextStr += "\n\n=== Recent Log Context ===\n" + logsCtx
 		}
 	}
 
@@ -153,7 +153,7 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 }
 
 // fetchLogsContext extracts a service name from the webhook payload and queries
-// the RAG index for recent log entries. Returns empty string on error.
+// the MeerkatLogs index for recent log entries. Returns empty string on error.
 func (s *service) fetchLogsContext(ctx context.Context, payload WebhookPayload) string {
 	service := extractServiceFromAlert(payload.Alert, payload.Message, payload.Data)
 	if service == "" {
@@ -163,7 +163,7 @@ func (s *service) fetchLogsContext(ctx context.Context, payload WebhookPayload) 
 	now := time.Now()
 	results, err := s.logsClient.GetContext(ctx, service, now.Add(-logsContextWindow), now, logsContextLimit)
 	if err != nil {
-		log.Printf("[inspector] failed to fetch RAG context for service %q: %v", service, err)
+		log.Printf("[inspector] failed to fetch log context for service %q: %v", service, err)
 		return ""
 	}
 	if len(results) == 0 {

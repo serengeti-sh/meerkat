@@ -55,29 +55,29 @@ func Run(cfgFile string, port int) error {
 		}
 	}()
 
-	// Create RAG service with configurable threshold and filtering.
-	ragOpts := []meerkatlogs.ServiceOption{
+	// Create MeerkatLogs service with configurable threshold and filtering.
+	logsOpts := []meerkatlogs.ServiceOption{
 		meerkatlogs.WithFilterMode(ml.FilterMode, ml.MinSeverity),
 	}
 	if ml.SimilarityThreshold > 0 {
-		ragOpts = append(ragOpts, meerkatlogs.WithSimilarityThreshold(ml.SimilarityThreshold))
+		logsOpts = append(logsOpts, meerkatlogs.WithSimilarityThreshold(ml.SimilarityThreshold))
 	}
 	if ml.IngestBatchSize > 0 {
-		ragOpts = append(ragOpts, meerkatlogs.WithBatchSize(ml.IngestBatchSize))
+		logsOpts = append(logsOpts, meerkatlogs.WithBatchSize(ml.IngestBatchSize))
 	}
-	ragSvc, err := meerkatlogs.NewService(emb, vstore, ragOpts...)
+	logsSvc, err := meerkatlogs.NewService(emb, vstore, logsOpts...)
 	if err != nil {
 		return fmt.Errorf("create MeerkatLogs service: %w", err)
 	}
 
 	// Start gRPC server for Search/Ingest/GetContext.
-	ragServer, err := meerkatlogs.NewGRPCServer(ragSvc)
+	logsServer, err := meerkatlogs.NewGRPCServer(logsSvc)
 	if err != nil {
-		return fmt.Errorf("create rag grpc server: %w", err)
+		return fmt.Errorf("create meerkatlogs grpc server: %w", err)
 	}
 
 	grpcServer := grpc.NewServer()
-	meerkatlogspb.RegisterServiceServer(grpcServer, ragServer)
+	meerkatlogspb.RegisterServiceServer(grpcServer, logsServer)
 
 	grpcAddr := ml.GetAddress()
 	lis, err := net.Listen("tcp", grpcAddr)
@@ -115,7 +115,7 @@ func Run(cfgFile string, port int) error {
 	// Start OTLP receiver for log ingestion.
 	var otlpServer *collector.GRPCServer
 	if ml.OTLPBindAddr != "" {
-		batcher := collector.NewBatcher(cfg).WithLogsService(ragSvc)
+		batcher := collector.NewBatcher(cfg).WithLogsService(logsSvc)
 		batcher.Start()
 		defer batcher.Stop(context.Background())
 

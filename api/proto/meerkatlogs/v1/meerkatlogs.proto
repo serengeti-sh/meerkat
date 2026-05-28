@@ -37,6 +37,7 @@ message IngestRequest {
 message IngestResponse {
   int32 ingested_count = 1;
   int32 deduplicated_count = 2;
+  int32 filtered_count = 3;
 }
 
 // SearchRequest contains the query parameters.

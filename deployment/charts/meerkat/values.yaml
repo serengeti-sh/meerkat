@@ -128,6 +128,22 @@ collector:
       cpu: 100m
       memory: 128Mi
 
+  livenessProbe:
+    tcpSocket:
+      port: grpc
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  readinessProbe:
+    tcpSocket:
+      port: grpc
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
 # MeerkatLogs ingestion and search server
 logs:
   enabled: false
@@ -137,6 +153,7 @@ logs:
     type: ClusterIP
     port: 50051
     otlpPort: 4317
+    metricsPort: 51051
 
   resources:
     limits:
@@ -145,6 +162,33 @@ logs:
     requests:
       cpu: 100m
       memory: 128Mi
+
+  startupProbe:
+    httpGet:
+      path: /healthz
+      port: metrics
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 30
+
+  livenessProbe:
+    httpGet:
+      path: /healthz
+      port: metrics
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /healthz
+      port: metrics
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
 
 # Node scheduling
 nodeSelector: {}

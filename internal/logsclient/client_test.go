@@ -114,13 +114,13 @@ func setupTestClient(t *testing.T) (logsclient.Client, func()) {
 
 	emb := &mockEmbedder{}
 	vs := &inMemoryVectorStore{}
-	ragSvc, err := meerkatlogs.NewService(emb, vs)
+	logsSvc, err := meerkatlogs.NewService(emb, vs)
 	require.NoError(t, err)
-	ragServer, err := meerkatlogs.NewGRPCServer(ragSvc)
+	logsServer, err := meerkatlogs.NewGRPCServer(logsSvc)
 	require.NoError(t, err)
 
 	grpcServer := grpc.NewServer()
-	meerkatlogspb.RegisterServiceServer(grpcServer, ragServer)
+	meerkatlogspb.RegisterServiceServer(grpcServer, logsServer)
 
 	listener := bufconn.Listen(1024 * 1024)
 	go func() {
