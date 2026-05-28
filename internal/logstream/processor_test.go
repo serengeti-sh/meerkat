@@ -8,30 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/serengeti-sh/meerkat/internal/logstream"
-	"github.com/serengeti-sh/meerkat/internal/rag"
 )
-
-// mockRAGService implements rag.Service for testing.
-type mockRAGService struct {
-	ingested []rag.LogEntry
-	err      error
-}
-
-func (m *mockRAGService) Ingest(ctx context.Context, entries []rag.LogEntry) (*rag.IngestResult, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-	m.ingested = append(m.ingested, entries...)
-	return &rag.IngestResult{IngestedCount: len(entries)}, nil
-}
-
-func (m *mockRAGService) Search(ctx context.Context, query string, opts rag.SearchOptions) ([]rag.SearchResult, error) {
-	return nil, nil
-}
-
-func (m *mockRAGService) GetContext(ctx context.Context, service string, start, end time.Time, limit int) ([]rag.SearchResult, error) {
-	return nil, nil
-}
 
 func TestProcessor_SlidingWindow(t *testing.T) {
 	window := logstream.NewSlidingWindow(5 * time.Second)

@@ -193,7 +193,9 @@ Respond with JSON only:
 		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
 		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
 	})
-	require.NoError(t, err)
+	if err != nil {
+		return fmt.Errorf("build analyzer service: %w", err)
+	}
 
 	// Reporter (no-op in tests)
 	reporterSvc := reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
@@ -204,14 +206,18 @@ Respond with JSON only:
 		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
 	}
 	inspectorSvc, err := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10)
-	require.NoError(t, err)
+	if err != nil {
+		return fmt.Errorf("create inspector service: %w", err)
+	}
 
 	// Scheduler (disabled)
 	sched := scheduler.NewService(inspectorSvc, cfg)
 
 	// HTTP handler
 	h, err := httphandler.New(inspectorSvc)
-	require.NoError(t, err)
+	if err != nil {
+		return fmt.Errorf("create http handler: %w", err)
+	}
 
 	// Start HTTP server on random port
 	mux := http.NewServeMux()

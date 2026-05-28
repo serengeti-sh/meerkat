@@ -13,8 +13,8 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
 	"github.com/serengeti-sh/meerkat/internal/rag"
-	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 	"github.com/serengeti-sh/meerkat/internal/ragpb"
+	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
 // Run starts the RAG gRPC server.

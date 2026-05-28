@@ -10,12 +10,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/serengeti-sh/meerkat/internal/rag"
-	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 	"github.com/serengeti-sh/meerkat/internal/ragclient"
 	"github.com/serengeti-sh/meerkat/internal/ragpb"
+	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
 func TestClient_Ingest(t *testing.T) {
@@ -133,7 +134,7 @@ func setupTestClient(t *testing.T) (ragclient.Client, func()) {
 			grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 				return listener.Dial()
 			}),
-			grpc.WithInsecure(),
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
 		),
 	)
 	require.NoError(t, err)

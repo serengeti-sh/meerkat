@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
-	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 	"github.com/serengeti-sh/meerkat/internal/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
 const defaultFlushTimeout = 30 * time.Second

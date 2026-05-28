@@ -12,8 +12,8 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/collector"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
-	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 	"github.com/serengeti-sh/meerkat/internal/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
 const shutdownTimeout = 30 * time.Second

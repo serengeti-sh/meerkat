@@ -13,10 +13,6 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/config"
 )
 
-const (
-	qdrantDefaultTimeout = 10 * time.Second
-)
-
 // qdrantStore implements VectorStore using Qdrant.
 type qdrantStore struct {
 	conn       *grpc.ClientConn

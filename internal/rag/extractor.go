@@ -32,10 +32,8 @@ var (
 
 // template represents a log template extracted by Extractor.
 type template struct {
-	tokens     []string
-	count      int
-	lastSeen   int64
-	parameters []string
+	tokens []string
+	count  int
 }
 
 // Extractor extracts log templates using a simplified Drain algorithm.

@@ -52,7 +52,7 @@ func (c *Connector) Subscribe(ctx context.Context, query string, handler func(ra
 	if err != nil {
 		return fmt.Errorf("connect to stream: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("stream returned status %d", resp.StatusCode)

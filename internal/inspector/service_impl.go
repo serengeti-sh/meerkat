@@ -191,8 +191,7 @@ func (s *service) enqueue(ctx context.Context, trigger report.TriggerType, query
 	}
 
 	triggerID := uuid.New().String()
-	rpt := report.NewReport(report.WithID(uuid.New().String()), report.WithTrigger(trigger), report.WithTriggerID(triggerID), report.WithStatus(report.StatusQueued), report.WithSeverity(report.SeverityInfo), report.WithQuery(query), report.WithCreatedAt(time.Now()),
-	)
+	rpt := report.NewReport(report.WithID(uuid.New().String()), report.WithTrigger(trigger), report.WithTriggerID(triggerID), report.WithStatus(report.StatusQueued), report.WithSeverity(report.SeverityInfo), report.WithQuery(query), report.WithCreatedAt(time.Now()))
 
 	if err := s.reportRepo.Create(ctx, rpt); err != nil {
 		return nil, apperrors.Wrap(apperrors.ErrInternal, "failed to create report", err)
