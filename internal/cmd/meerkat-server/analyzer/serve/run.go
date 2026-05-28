@@ -20,7 +20,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/reporter"
 	"github.com/serengeti-sh/meerkat/internal/scheduler"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
-	"github.com/serengeti-sh/meerkat/pkg/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/ragclient"
 )
 
 const (
@@ -122,7 +122,7 @@ func Run(cfgFile string, port int) error {
 	}
 
 	// 12. Inspector service
-	inspectorSvc := inspector.NewService(
+	inspectorSvc, err := inspector.NewService(
 		analyzerSvc,
 		reportRepo,
 		reporterSvc,
@@ -132,13 +132,19 @@ func Run(cfgFile string, port int) error {
 		cfg.Inspector.WorkerCount,
 		inspectorOpts...,
 	)
+	if err != nil {
+		return fmt.Errorf("create inspector service: %w", err)
+	}
 	defer inspectorSvc.Stop()
 
 	// 13. Scheduler
 	sched := scheduler.NewService(inspectorSvc, cfg)
 
 	// 14. HTTP handler
-	h := httphandler.New(inspectorSvc)
+	h, err := httphandler.New(inspectorSvc)
+	if err != nil {
+		return fmt.Errorf("create http handler: %w", err)
+	}
 
 	// 15. HTTP server
 	mux := http.NewServeMux()

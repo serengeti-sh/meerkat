@@ -7,6 +7,6 @@
 //
 // Entry points:
 //
-//	svc := rag.NewService(embedder, vectorStore)
-//	server := rag.NewGRPCServer(svc)
+//	svc, err := rag.NewService(embedder, vectorStore)
+//	server, err := rag.NewGRPCServer(svc)
 package rag

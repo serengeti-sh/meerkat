@@ -12,7 +12,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
 	"github.com/serengeti-sh/meerkat/internal/reporter"
-	"github.com/serengeti-sh/meerkat/pkg/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/ragclient"
 )
 
 const (
@@ -65,15 +65,15 @@ func NewService(
 	queueSize int,
 	workerCount int,
 	opts ...ServiceOption,
-) Service {
+) (*service, error) {
 	if analyzerSvc == nil {
-		panic("inspector: analyzerSvc is required")
+		return nil, fmt.Errorf("inspector: analyzerSvc is required")
 	}
 	if reportRepo == nil {
-		panic("inspector: reportRepo is required")
+		return nil, fmt.Errorf("inspector: reportRepo is required")
 	}
 	if dsRefs == nil {
-		panic("inspector: dsRefs is required")
+		return nil, fmt.Errorf("inspector: dsRefs is required")
 	}
 	if queueSize <= 0 {
 		queueSize = defaultQueueSize
@@ -105,11 +105,11 @@ func NewService(
 		go s.worker(i, ctx)
 	}
 
-	return s
+	return s, nil
 }
 
 // Inspect creates a queued report and submits it to the worker pool.
-func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, apperrors.Error) {
+func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, error) {
 	query := req.Query
 	if query == "" && req.MetricQuery != "" {
 		query = fmt.Sprintf("Check metrics: %s", req.MetricQuery)
@@ -122,7 +122,7 @@ func (s *service) Inspect(ctx context.Context, req InspectRequest) (*Report, app
 }
 
 // InspectByWebhook creates a queued report and submits it to the worker pool.
-func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) (*Report, apperrors.Error) {
+func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) (*Report, error) {
 	contextStr := fmt.Sprintf("Source: %s\nAlert: %s\nMessage: %s\nData: %s",
 		payload.Source, payload.Alert, payload.Message, string(payload.Data))
 
@@ -163,7 +163,7 @@ func (s *service) fetchRAGContext(ctx context.Context, payload WebhookPayload) s
 }
 
 // enqueue is the shared logic for Inspect and InspectByWebhook.
-func (s *service) enqueue(ctx context.Context, trigger TriggerType, query, contextStr string) (*Report, apperrors.Error) {
+func (s *service) enqueue(ctx context.Context, trigger TriggerType, query, contextStr string) (*Report, error) {
 	refs := s.dsRefs()
 	if len(refs) == 0 {
 		return nil, apperrors.New(apperrors.ErrInvalidInput, "no datasources configured")
@@ -232,7 +232,7 @@ func (s *service) enqueue(ctx context.Context, trigger TriggerType, query, conte
 	}
 }
 
-func (s *service) GetReport(ctx context.Context, id string) (*Report, apperrors.Error) {
+func (s *service) GetReport(ctx context.Context, id string) (*Report, error) {
 	report, err := s.reportRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, apperrors.Wrap(apperrors.ErrNotFound, "report not found", err)
@@ -240,7 +240,7 @@ func (s *service) GetReport(ctx context.Context, id string) (*Report, apperrors.
 	return report, nil
 }
 
-func (s *service) ListReports(ctx context.Context, limit int) ([]*Report, apperrors.Error) {
+func (s *service) ListReports(ctx context.Context, limit int) ([]*Report, error) {
 	reports, err := s.reportRepo.List(ctx, limit)
 	if err != nil {
 		return nil, apperrors.Wrap(apperrors.ErrInternal, "failed to list reports", err)

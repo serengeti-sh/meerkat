@@ -92,7 +92,10 @@ func buildToolRegistry(cfg *config.Config, emb embedder.Embedder, vstore vectors
 	}
 
 	if cfg.RAG.Enabled && vstore != nil {
-		ragSvc := rag.NewService(emb, vstore)
+		ragSvc, err := rag.NewService(emb, vstore)
+		if err != nil {
+			return nil, fmt.Errorf("create rag service: %w", err)
+		}
 		tools = append(tools, tool.NewSearchRAGTool(ragSvc))
 	}
 
@@ -110,13 +113,17 @@ func buildAnalyzerService(provider analyzer.LLMProvider, registry *tool.Registry
 		return nil, fmt.Errorf("load skills: %w", err)
 	}
 	prompt := analyzer.MergeSkillsIntoPrompt(systemPrompt, skills)
-	return analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:       cfg.Analyzer.MaxIterations,
 		SystemPrompt:        prompt,
 		MaxToolResultChars:  cfg.Analyzer.MaxToolResultChars,
 		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
 		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
-	}), nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create analyzer service: %w", err)
+	}
+	return svc, nil
 }
 
 // buildDatasourceRefs creates a function that returns configured datasource references.

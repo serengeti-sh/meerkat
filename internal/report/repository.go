@@ -1,4 +1,4 @@
-package inspector
+package report
 
 import (
 	"context"

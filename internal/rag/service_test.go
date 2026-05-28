@@ -104,7 +104,8 @@ func TestService_Ingest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			emb := &mockEmbedder{vectors: [][]float32{{0.1}, {0.2}}}
 			vs := &mockVectorStore{}
-			svc := rag.NewService(emb, vs)
+			svc, err := rag.NewService(emb, vs)
+			require.NoError(t, err)
 
 			result, err := svc.Ingest(context.Background(), tt.entries)
 			if tt.wantErr {
@@ -125,7 +126,8 @@ func TestService_Search(t *testing.T) {
 			{ID: "1", Body: "error: connection failed", Score: 0.95},
 		},
 	}
-	svc := rag.NewService(emb, vs)
+	svc, err := rag.NewService(emb, vs)
+	require.NoError(t, err)
 
 	t.Run("successful search", func(t *testing.T) {
 		results, err := svc.Search(context.Background(), "connection error", rag.SearchOptions{Limit: 5})
@@ -141,8 +143,9 @@ func TestService_Search(t *testing.T) {
 
 	t.Run("no results", func(t *testing.T) {
 		emptyVS := &mockVectorStore{results: nil}
-		emptySvc := rag.NewService(emb, emptyVS)
-		_, err := emptySvc.Search(context.Background(), "query", rag.SearchOptions{})
+		emptySvc, err := rag.NewService(emb, emptyVS)
+		require.NoError(t, err)
+		_, err = emptySvc.Search(context.Background(), "query", rag.SearchOptions{})
 		require.ErrorIs(t, err, rag.ErrNoResults)
 	})
 }
@@ -154,7 +157,8 @@ func TestService_GetContext(t *testing.T) {
 			{ID: "1", Body: "error: connection failed", Service: "api", Timestamp: time.Now()},
 		},
 	}
-	svc := rag.NewService(emb, vs)
+	svc, err := rag.NewService(emb, vs)
+	require.NoError(t, err)
 
 	t.Run("successful context retrieval", func(t *testing.T) {
 		now := time.Now()
@@ -175,12 +179,13 @@ func TestService_Ingest_ErrorCases(t *testing.T) {
 	t.Run("embedder error", func(t *testing.T) {
 		emb := &mockEmbedder{err: assert.AnError}
 		vs := &mockVectorStore{}
-		svc := rag.NewService(emb, vs)
+		svc, err := rag.NewService(emb, vs)
+		require.NoError(t, err)
 
 		entries := []rag.LogEntry{
 			{Body: "error message", Service: "api", Severity: "ERROR"},
 		}
-		_, err := svc.Ingest(context.Background(), entries)
+		_, err = svc.Ingest(context.Background(), entries)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "embed")
 	})
@@ -188,12 +193,13 @@ func TestService_Ingest_ErrorCases(t *testing.T) {
 	t.Run("vector store error", func(t *testing.T) {
 		emb := &mockEmbedder{vectors: [][]float32{{0.1}}}
 		vs := &mockVectorStore{err: assert.AnError}
-		svc := rag.NewService(emb, vs)
+		svc, err := rag.NewService(emb, vs)
+		require.NoError(t, err)
 
 		entries := []rag.LogEntry{
 			{Body: "error message", Service: "api", Severity: "ERROR"},
 		}
-		_, err := svc.Ingest(context.Background(), entries)
+		_, err = svc.Ingest(context.Background(), entries)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "insert")
 	})

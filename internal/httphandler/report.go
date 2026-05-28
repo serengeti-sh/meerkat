@@ -15,9 +15,9 @@ func (h *Handler) ListReports(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	reports, appErr := h.inspectorSvc.ListReports(r.Context(), limit)
-	if appErr != nil {
-		writeError(w, mapError(appErr), appErr.Error())
+	reports, err := h.inspectorSvc.ListReports(r.Context(), limit)
+	if err != nil {
+		writeError(w, mapError(err), err.Error())
 		return
 	}
 
@@ -32,9 +32,9 @@ func (h *Handler) ListReports(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetReport(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	report, appErr := h.inspectorSvc.GetReport(r.Context(), id)
-	if appErr != nil {
-		writeError(w, mapError(appErr), appErr.Error())
+	report, err := h.inspectorSvc.GetReport(r.Context(), id)
+	if err != nil {
+		writeError(w, mapError(err), err.Error())
 		return
 	}
 

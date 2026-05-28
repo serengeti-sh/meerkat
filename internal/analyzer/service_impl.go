@@ -28,12 +28,12 @@ type service struct {
 
 var _ Service = (*service)(nil)
 
-func NewService(provider LLMProvider, toolRegistry *tool.Registry, cfg ServiceConfig) Service {
+func NewService(provider LLMProvider, toolRegistry *tool.Registry, cfg ServiceConfig) (*service, error) {
 	if provider == nil {
-		panic("analyzer: provider is required")
+		return nil, fmt.Errorf("analyzer: provider is required")
 	}
 	if toolRegistry == nil {
-		panic("analyzer: toolRegistry is required")
+		return nil, fmt.Errorf("analyzer: toolRegistry is required")
 	}
 	if cfg.MaxToolResultChars == 0 {
 		cfg.MaxToolResultChars = defaultMaxToolResultChars
@@ -49,7 +49,7 @@ func NewService(provider LLMProvider, toolRegistry *tool.Registry, cfg ServiceCo
 		maxToolResult:  cfg.MaxToolResultChars,
 		summarize:      cfg.SummarizeOnOverflow,
 		maxContextMsgs: cfg.MaxContextMessages,
-	}
+	}, nil
 }
 
 // Analyze runs the agentic loop: call LLM, execute tools, repeat until done.

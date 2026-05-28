@@ -185,13 +185,14 @@ Respond with JSON only:
 	if err != nil {
 		return fmt.Errorf("load system prompt: %w", err)
 	}
-	analyzerSvc := analyzer.NewService(llmProvider, toolRegistry, analyzer.ServiceConfig{
+	analyzerSvc, err := analyzer.NewService(llmProvider, toolRegistry, analyzer.ServiceConfig{
 		MaxIterations:       cfg.Analyzer.MaxIterations,
 		SystemPrompt:        systemPrompt,
 		MaxToolResultChars:  cfg.Analyzer.MaxToolResultChars,
 		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
 		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
 	})
+	require.NoError(t, err)
 
 	// Reporter (no-op in tests)
 	reporterSvc := reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
@@ -201,13 +202,15 @@ Respond with JSON only:
 	dsRefs := func() []analyzer.DatasourceRef {
 		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
 	}
-	inspectorSvc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10)
+	inspectorSvc, err := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10)
+	require.NoError(t, err)
 
 	// Scheduler (disabled)
 	sched := scheduler.NewService(inspectorSvc, cfg)
 
 	// HTTP handler
-	h := httphandler.New(inspectorSvc)
+	h, err := httphandler.New(inspectorSvc)
+	require.NoError(t, err)
 
 	// Start HTTP server on random port
 	mux := http.NewServeMux()

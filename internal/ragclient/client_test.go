@@ -14,8 +14,8 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/rag"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
-	"github.com/serengeti-sh/meerkat/pkg/ragclient"
-	"github.com/serengeti-sh/meerkat/pkg/ragpb"
+	"github.com/serengeti-sh/meerkat/internal/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/ragpb"
 )
 
 func TestClient_Ingest(t *testing.T) {
@@ -113,8 +113,10 @@ func setupTestClient(t *testing.T) (ragclient.Client, func()) {
 
 	emb := &mockEmbedder{}
 	vs := &inMemoryVectorStore{}
-	ragSvc := rag.NewService(emb, vs)
-	ragServer := rag.NewGRPCServer(ragSvc)
+	ragSvc, err := rag.NewService(emb, vs)
+	require.NoError(t, err)
+	ragServer, err := rag.NewGRPCServer(ragSvc)
+	require.NoError(t, err)
 
 	grpcServer := grpc.NewServer()
 	ragpb.RegisterServiceServer(grpcServer, ragServer)

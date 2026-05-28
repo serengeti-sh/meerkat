@@ -575,7 +575,7 @@ const file_api_proto_rag_v1_rag_proto_rawDesc = "" +
 	"\x06Ingest\x12\x15.rag.v1.IngestRequest\x1a\x16.rag.v1.IngestResponse\x127\n" +
 	"\x06Search\x12\x15.rag.v1.SearchRequest\x1a\x16.rag.v1.SearchResponse\x12C\n" +
 	"\n" +
-	"GetContext\x12\x19.rag.v1.GetContextRequest\x1a\x1a.rag.v1.GetContextResponseB+Z)github.com/serengeti-sh/meerkat/pkg/ragpbb\x06proto3"
+	"GetContext\x12\x19.rag.v1.GetContextRequest\x1a\x1a.rag.v1.GetContextResponseB0Z.github.com/serengeti-sh/meerkat/internal/ragpbb\x06proto3"
 
 var (
 	file_api_proto_rag_v1_rag_proto_rawDescOnce sync.Once

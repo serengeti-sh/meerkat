@@ -2,9 +2,10 @@ package rag
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/pkg/ragpb"
+	"github.com/serengeti-sh/meerkat/internal/ragpb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -19,11 +20,11 @@ type GRPCServer struct {
 var _ ragpb.ServiceServer = (*GRPCServer)(nil)
 
 // NewGRPCServer creates a gRPC server for the RAG service.
-func NewGRPCServer(svc Service) *GRPCServer {
+func NewGRPCServer(svc Service) (*GRPCServer, error) {
 	if svc == nil {
-		panic("rag: svc is required")
+		return nil, fmt.Errorf("rag: svc is required")
 	}
-	return &GRPCServer{svc: svc}
+	return &GRPCServer{svc: svc}, nil
 }
 
 func toProto(r SearchResult) *ragpb.SearchResult {

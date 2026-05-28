@@ -26,7 +26,8 @@ func TestRAGEndToEnd(t *testing.T) {
 		},
 	}
 	vs := &inMemoryVectorStore{}
-	svc := rag.NewService(emb, vs)
+	svc, err := rag.NewService(emb, vs)
+	require.NoError(t, err)
 	ctx := context.Background()
 
 	// Step 1: Ingest log entries

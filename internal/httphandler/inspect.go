@@ -29,9 +29,9 @@ func (h *Handler) Inspect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	report, appErr := h.inspectorSvc.Inspect(r.Context(), req)
-	if appErr != nil {
-		writeError(w, mapError(appErr), appErr.Error())
+	report, err := h.inspectorSvc.Inspect(r.Context(), req)
+	if err != nil {
+		writeError(w, mapError(err), err.Error())
 		return
 	}
 

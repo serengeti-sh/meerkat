@@ -20,10 +20,11 @@ import (
 func TestService_Analyze_SingleResponse(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
 	registry := tool.NewRegistry()
-	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations: 5,
 		SystemPrompt:  "",
 	})
+	require.NoError(t, err)
 
 	provider.EXPECT().Complete(mock.Anything, mock.Anything).Return(&analyzer.CompletionResponse{
 		Content: `{"severity":"warning","summary":"error spike detected","detail":"error rate increased 300%"}`,
@@ -54,11 +55,12 @@ func TestService_Analyze_ToolCalls(t *testing.T) {
 	mockTool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
 
 	registry := tool.NewRegistry(mockTool)
-	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:       10,
 		MaxToolResultChars:  30000,
 		SummarizeOnOverflow: true,
 	})
+	require.NoError(t, err)
 
 	// Use RunAndReturn for Execute to handle multiple calls
 	execCount := 0
@@ -133,9 +135,10 @@ func TestService_Analyze_MaxIterations(t *testing.T) {
 	mockTool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
 
 	registry := tool.NewRegistry(mockTool)
-	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations: 2,
 	})
+	require.NoError(t, err)
 
 	mockTool.EXPECT().Execute(mock.Anything, mock.Anything).Return("ok", nil).Twice()
 
@@ -174,10 +177,11 @@ func TestService_Analyze_ToolResultTruncation(t *testing.T) {
 	mockTool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
 
 	registry := tool.NewRegistry(mockTool)
-	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:      5,
 		MaxToolResultChars: 100, // small limit for testing
 	})
+	require.NoError(t, err)
 
 	// Tool returns a very long result
 	longResult := strings.Repeat("x", 500)
@@ -230,10 +234,11 @@ func TestService_Analyze_ContextOverflowRecovery(t *testing.T) {
 	mockTool.EXPECT().Parameters().Return(json.RawMessage(`{"type":"object"}`))
 
 	registry := tool.NewRegistry(mockTool)
-	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:       10,
 		SummarizeOnOverflow: true,
 	})
+	require.NoError(t, err)
 
 	// Need 3+ tool calls to have enough exchanges for summarization to trim
 	mockTool.EXPECT().Execute(mock.Anything, mock.Anything).Return("ok", nil).Times(3)
@@ -279,15 +284,16 @@ func TestService_Analyze_ContextOverflowRecovery(t *testing.T) {
 func TestService_Analyze_ContextOverflowUnrecoverable(t *testing.T) {
 	provider := analyzerMocks.NewLLMProviderMock(t)
 	registry := tool.NewRegistry()
-	svc := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
+	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:       5,
 		SummarizeOnOverflow: true,
 	})
+	require.NoError(t, err)
 
 	// Immediately fail with context overflow — only system+user messages, nothing to trim
 	provider.EXPECT().Complete(mock.Anything, mock.Anything).Return(nil, fmt.Errorf("%w: prompt too long", analyzer.ErrContextOverflow))
 
-	_, err := svc.Analyze(context.Background(), &analyzer.AnalysisInput{
+	_, err = svc.Analyze(context.Background(), &analyzer.AnalysisInput{
 		Trigger:   "manual",
 		TriggerID: "test-unrecoverable",
 	})

@@ -14,9 +14,9 @@ func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	report, appErr := h.inspectorSvc.InspectByWebhook(r.Context(), payload)
-	if appErr != nil {
-		writeError(w, mapError(appErr), appErr.Error())
+	report, err := h.inspectorSvc.InspectByWebhook(r.Context(), payload)
+	if err != nil {
+		writeError(w, mapError(err), err.Error())
 		return
 	}
 

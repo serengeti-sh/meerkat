@@ -7,7 +7,6 @@ package inspectormocks
 import (
 	"context"
 
-	"github.com/serengeti-sh/meerkat/internal/apperrors"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -40,7 +39,7 @@ func (_m *ServiceMock) EXPECT() *ServiceMock_Expecter {
 }
 
 // GetReport provides a mock function for the type ServiceMock
-func (_mock *ServiceMock) GetReport(ctx context.Context, id string) (*inspector.Report, apperrors.Error) {
+func (_mock *ServiceMock) GetReport(ctx context.Context, id string) (*inspector.Report, error) {
 	ret := _mock.Called(ctx, id)
 
 	if len(ret) == 0 {
@@ -48,8 +47,8 @@ func (_mock *ServiceMock) GetReport(ctx context.Context, id string) (*inspector.
 	}
 
 	var r0 *inspector.Report
-	var r1 apperrors.Error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*inspector.Report, apperrors.Error)); ok {
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*inspector.Report, error)); ok {
 		return returnFunc(ctx, id)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *inspector.Report); ok {
@@ -59,12 +58,10 @@ func (_mock *ServiceMock) GetReport(ctx context.Context, id string) (*inspector.
 			r0 = ret.Get(0).(*inspector.Report)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) apperrors.Error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
 		r1 = returnFunc(ctx, id)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(apperrors.Error)
-		}
+		r1 = ret.Error(1)
 	}
 	return r0, r1
 }
@@ -99,18 +96,18 @@ func (_c *ServiceMock_GetReport_Call) Run(run func(ctx context.Context, id strin
 	return _c
 }
 
-func (_c *ServiceMock_GetReport_Call) Return(report *inspector.Report, error apperrors.Error) *ServiceMock_GetReport_Call {
-	_c.Call.Return(report, error)
+func (_c *ServiceMock_GetReport_Call) Return(report *inspector.Report, err error) *ServiceMock_GetReport_Call {
+	_c.Call.Return(report, err)
 	return _c
 }
 
-func (_c *ServiceMock_GetReport_Call) RunAndReturn(run func(ctx context.Context, id string) (*inspector.Report, apperrors.Error)) *ServiceMock_GetReport_Call {
+func (_c *ServiceMock_GetReport_Call) RunAndReturn(run func(ctx context.Context, id string) (*inspector.Report, error)) *ServiceMock_GetReport_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Inspect provides a mock function for the type ServiceMock
-func (_mock *ServiceMock) Inspect(ctx context.Context, req inspector.InspectRequest) (*inspector.Report, apperrors.Error) {
+func (_mock *ServiceMock) Inspect(ctx context.Context, req inspector.InspectRequest) (*inspector.Report, error) {
 	ret := _mock.Called(ctx, req)
 
 	if len(ret) == 0 {
@@ -118,8 +115,8 @@ func (_mock *ServiceMock) Inspect(ctx context.Context, req inspector.InspectRequ
 	}
 
 	var r0 *inspector.Report
-	var r1 apperrors.Error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.InspectRequest) (*inspector.Report, apperrors.Error)); ok {
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.InspectRequest) (*inspector.Report, error)); ok {
 		return returnFunc(ctx, req)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.InspectRequest) *inspector.Report); ok {
@@ -129,12 +126,10 @@ func (_mock *ServiceMock) Inspect(ctx context.Context, req inspector.InspectRequ
 			r0 = ret.Get(0).(*inspector.Report)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, inspector.InspectRequest) apperrors.Error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, inspector.InspectRequest) error); ok {
 		r1 = returnFunc(ctx, req)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(apperrors.Error)
-		}
+		r1 = ret.Error(1)
 	}
 	return r0, r1
 }
@@ -169,18 +164,18 @@ func (_c *ServiceMock_Inspect_Call) Run(run func(ctx context.Context, req inspec
 	return _c
 }
 
-func (_c *ServiceMock_Inspect_Call) Return(report *inspector.Report, error apperrors.Error) *ServiceMock_Inspect_Call {
-	_c.Call.Return(report, error)
+func (_c *ServiceMock_Inspect_Call) Return(report *inspector.Report, err error) *ServiceMock_Inspect_Call {
+	_c.Call.Return(report, err)
 	return _c
 }
 
-func (_c *ServiceMock_Inspect_Call) RunAndReturn(run func(ctx context.Context, req inspector.InspectRequest) (*inspector.Report, apperrors.Error)) *ServiceMock_Inspect_Call {
+func (_c *ServiceMock_Inspect_Call) RunAndReturn(run func(ctx context.Context, req inspector.InspectRequest) (*inspector.Report, error)) *ServiceMock_Inspect_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // InspectByWebhook provides a mock function for the type ServiceMock
-func (_mock *ServiceMock) InspectByWebhook(ctx context.Context, payload inspector.WebhookPayload) (*inspector.Report, apperrors.Error) {
+func (_mock *ServiceMock) InspectByWebhook(ctx context.Context, payload inspector.WebhookPayload) (*inspector.Report, error) {
 	ret := _mock.Called(ctx, payload)
 
 	if len(ret) == 0 {
@@ -188,8 +183,8 @@ func (_mock *ServiceMock) InspectByWebhook(ctx context.Context, payload inspecto
 	}
 
 	var r0 *inspector.Report
-	var r1 apperrors.Error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.WebhookPayload) (*inspector.Report, apperrors.Error)); ok {
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.WebhookPayload) (*inspector.Report, error)); ok {
 		return returnFunc(ctx, payload)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, inspector.WebhookPayload) *inspector.Report); ok {
@@ -199,12 +194,10 @@ func (_mock *ServiceMock) InspectByWebhook(ctx context.Context, payload inspecto
 			r0 = ret.Get(0).(*inspector.Report)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, inspector.WebhookPayload) apperrors.Error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, inspector.WebhookPayload) error); ok {
 		r1 = returnFunc(ctx, payload)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(apperrors.Error)
-		}
+		r1 = ret.Error(1)
 	}
 	return r0, r1
 }
@@ -239,18 +232,18 @@ func (_c *ServiceMock_InspectByWebhook_Call) Run(run func(ctx context.Context, p
 	return _c
 }
 
-func (_c *ServiceMock_InspectByWebhook_Call) Return(report *inspector.Report, error apperrors.Error) *ServiceMock_InspectByWebhook_Call {
-	_c.Call.Return(report, error)
+func (_c *ServiceMock_InspectByWebhook_Call) Return(report *inspector.Report, err error) *ServiceMock_InspectByWebhook_Call {
+	_c.Call.Return(report, err)
 	return _c
 }
 
-func (_c *ServiceMock_InspectByWebhook_Call) RunAndReturn(run func(ctx context.Context, payload inspector.WebhookPayload) (*inspector.Report, apperrors.Error)) *ServiceMock_InspectByWebhook_Call {
+func (_c *ServiceMock_InspectByWebhook_Call) RunAndReturn(run func(ctx context.Context, payload inspector.WebhookPayload) (*inspector.Report, error)) *ServiceMock_InspectByWebhook_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // ListReports provides a mock function for the type ServiceMock
-func (_mock *ServiceMock) ListReports(ctx context.Context, limit int) ([]*inspector.Report, apperrors.Error) {
+func (_mock *ServiceMock) ListReports(ctx context.Context, limit int) ([]*inspector.Report, error) {
 	ret := _mock.Called(ctx, limit)
 
 	if len(ret) == 0 {
@@ -258,8 +251,8 @@ func (_mock *ServiceMock) ListReports(ctx context.Context, limit int) ([]*inspec
 	}
 
 	var r0 []*inspector.Report
-	var r1 apperrors.Error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, int) ([]*inspector.Report, apperrors.Error)); ok {
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, int) ([]*inspector.Report, error)); ok {
 		return returnFunc(ctx, limit)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, int) []*inspector.Report); ok {
@@ -269,12 +262,10 @@ func (_mock *ServiceMock) ListReports(ctx context.Context, limit int) ([]*inspec
 			r0 = ret.Get(0).([]*inspector.Report)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, int) apperrors.Error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, int) error); ok {
 		r1 = returnFunc(ctx, limit)
 	} else {
-		if ret.Get(1) != nil {
-			r1 = ret.Get(1).(apperrors.Error)
-		}
+		r1 = ret.Error(1)
 	}
 	return r0, r1
 }
@@ -309,12 +300,12 @@ func (_c *ServiceMock_ListReports_Call) Run(run func(ctx context.Context, limit 
 	return _c
 }
 
-func (_c *ServiceMock_ListReports_Call) Return(reports []*inspector.Report, error apperrors.Error) *ServiceMock_ListReports_Call {
-	_c.Call.Return(reports, error)
+func (_c *ServiceMock_ListReports_Call) Return(reports []*inspector.Report, err error) *ServiceMock_ListReports_Call {
+	_c.Call.Return(reports, err)
 	return _c
 }
 
-func (_c *ServiceMock_ListReports_Call) RunAndReturn(run func(ctx context.Context, limit int) ([]*inspector.Report, apperrors.Error)) *ServiceMock_ListReports_Call {
+func (_c *ServiceMock_ListReports_Call) RunAndReturn(run func(ctx context.Context, limit int) ([]*inspector.Report, error)) *ServiceMock_ListReports_Call {
 	_c.Call.Return(run)
 	return _c
 }

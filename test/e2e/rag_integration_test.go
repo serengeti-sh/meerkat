@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/serengeti-sh/meerkat/pkg/ragpb"
+	"github.com/serengeti-sh/meerkat/internal/ragpb"
 )
 
 // mockRAGServer implements a minimal RAG gRPC server for E2E testing.

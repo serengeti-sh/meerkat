@@ -1,16 +1,12 @@
 package inspector
 
-import (
-	"context"
-
-	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
-)
+import "context"
 
 // Service orchestrates inspections.
 type Service interface {
-	Inspect(ctx context.Context, req InspectRequest) (*Report, apperrors.Error)
-	InspectByWebhook(ctx context.Context, payload WebhookPayload) (*Report, apperrors.Error)
-	GetReport(ctx context.Context, id string) (*Report, apperrors.Error)
-	ListReports(ctx context.Context, limit int) ([]*Report, apperrors.Error)
+	Inspect(ctx context.Context, req InspectRequest) (*Report, error)
+	InspectByWebhook(ctx context.Context, payload WebhookPayload) (*Report, error)
+	GetReport(ctx context.Context, id string) (*Report, error)
+	ListReports(ctx context.Context, limit int) ([]*Report, error)
 	Stop()
 }

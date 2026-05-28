@@ -26,12 +26,12 @@ type service struct {
 var _ Service = (*service)(nil)
 
 // NewService creates a Service with the given dependencies.
-func NewService(emb embedder.Embedder, vstore vectorstore.Store) Service {
+func NewService(emb embedder.Embedder, vstore vectorstore.Store) (*service, error) {
 	if emb == nil {
-		panic("rag: embedder is required")
+		return nil, fmt.Errorf("rag: embedder is required")
 	}
 	if vstore == nil {
-		panic("rag: vectorStore is required")
+		return nil, fmt.Errorf("rag: vectorStore is required")
 	}
 
 	return &service{
@@ -39,7 +39,7 @@ func NewService(emb embedder.Embedder, vstore vectorstore.Store) Service {
 		vectorStore: vstore,
 		extractor:   NewExtractor(),
 		batchSize:   defaultIngestBatchSize,
-	}
+	}, nil
 }
 
 func (s *service) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult, error) {

@@ -62,14 +62,14 @@ mock: ## Generate mocks
 
 .PHONY: proto
 proto: ## Generate Go code from protobuf definitions
-	@mkdir -p pkg/ragpb
+	@mkdir -p internal/ragpb
 	protoc \
 		--go_out=. \
 		--go_opt=paths=source_relative \
 		--go-grpc_out=. \
 		--go-grpc_opt=paths=source_relative \
 		api/proto/rag/v1/rag.proto
-	@mv api/proto/rag/v1/*.pb.go pkg/ragpb/
+	@mv api/proto/rag/v1/*.pb.go internal/ragpb/
 
 .PHONY: gen
 gen: ent-gen proto ogen mock ## Generate all code (ent, proto, ogen, mocks)

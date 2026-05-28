@@ -8,7 +8,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/pkg/ragclient"
+	"github.com/serengeti-sh/meerkat/internal/ragclient"
 	mock "github.com/stretchr/testify/mock"
 )
 

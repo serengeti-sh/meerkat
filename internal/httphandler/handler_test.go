@@ -19,7 +19,8 @@ import (
 
 func TestHandler_Health(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	h := httphandler.New(mockSvc)
+	h, err := httphandler.New(mockSvc)
+	require.NoError(t, err)
 
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
@@ -46,7 +47,8 @@ func TestHandler_Inspect(t *testing.T) {
 		nil,
 	)
 
-	h := httphandler.New(mockSvc)
+	h, err := httphandler.New(mockSvc)
+	require.NoError(t, err)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -66,7 +68,8 @@ func TestHandler_Inspect(t *testing.T) {
 
 func TestHandler_Inspect_InvalidBody(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	h := httphandler.New(mockSvc)
+	h, err := httphandler.New(mockSvc)
+	require.NoError(t, err)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -90,7 +93,8 @@ func TestHandler_Webhook(t *testing.T) {
 		nil,
 	)
 
-	h := httphandler.New(mockSvc)
+	h, err := httphandler.New(mockSvc)
+	require.NoError(t, err)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -110,7 +114,8 @@ func TestHandler_Webhook(t *testing.T) {
 
 func TestHandler_Webhook_InvalidBody(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	h := httphandler.New(mockSvc)
+	h, err := httphandler.New(mockSvc)
+	require.NoError(t, err)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -131,7 +136,8 @@ func TestHandler_ListReports(t *testing.T) {
 		nil,
 	)
 
-	h := httphandler.New(mockSvc)
+	h, err := httphandler.New(mockSvc)
+	require.NoError(t, err)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -154,7 +160,8 @@ func TestHandler_ListReports_WithLimit(t *testing.T) {
 		nil,
 	)
 
-	h := httphandler.New(mockSvc)
+	h, err := httphandler.New(mockSvc)
+	require.NoError(t, err)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
@@ -172,7 +179,8 @@ func TestHandler_GetReport(t *testing.T) {
 		nil,
 	)
 
-	h := httphandler.New(mockSvc)
+	h, err := httphandler.New(mockSvc)
+	require.NoError(t, err)
 	mux := http.NewServeMux()
 	h.RegisterRoutes(mux)
 
