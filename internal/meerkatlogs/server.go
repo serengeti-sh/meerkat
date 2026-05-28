@@ -10,16 +10,16 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/serengeti-sh/meerkat/internal/ragpb"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
 )
 
-// GRPCServer implements the ragpb.ServiceServer interface.
+// GRPCServer implements the meerkatlogspb.ServiceServer interface.
 type GRPCServer struct {
-	ragpb.UnimplementedServiceServer
+	meerkatlogspb.UnimplementedServiceServer
 	svc Service
 }
 
-var _ ragpb.ServiceServer = (*GRPCServer)(nil)
+var _ meerkatlogspb.ServiceServer = (*GRPCServer)(nil)
 
 // NewGRPCServer creates a gRPC server for the MeerkatLogs service.
 func NewGRPCServer(svc Service) (*GRPCServer, error) {
@@ -29,8 +29,8 @@ func NewGRPCServer(svc Service) (*GRPCServer, error) {
 	return &GRPCServer{svc: svc}, nil
 }
 
-func toProto(r SearchResult) *ragpb.SearchResult {
-	return &ragpb.SearchResult{
+func toProto(r SearchResult) *meerkatlogspb.SearchResult {
+	return &meerkatlogspb.SearchResult{
 		Id:        r.ID,
 		Score:     r.Score,
 		Body:      r.Body,
@@ -41,7 +41,7 @@ func toProto(r SearchResult) *ragpb.SearchResult {
 }
 
 // Ingest adds log entries to the vector store.
-func (s *GRPCServer) Ingest(ctx context.Context, req *ragpb.IngestRequest) (*ragpb.IngestResponse, error) {
+func (s *GRPCServer) Ingest(ctx context.Context, req *meerkatlogspb.IngestRequest) (*meerkatlogspb.IngestResponse, error) {
 	entries := make([]LogEntry, len(req.Entries))
 	for i, e := range req.Entries {
 		entries[i] = LogEntry{
@@ -59,14 +59,14 @@ func (s *GRPCServer) Ingest(ctx context.Context, req *ragpb.IngestRequest) (*rag
 		return nil, status.Errorf(codes.Internal, "ingest failed: %v", err)
 	}
 
-	return &ragpb.IngestResponse{
+	return &meerkatlogspb.IngestResponse{
 		IngestedCount:     int32(result.IngestedCount),
 		DeduplicatedCount: int32(result.DeduplicatedCount),
 	}, nil
 }
 
 // Search finds semantically similar log entries.
-func (s *GRPCServer) Search(ctx context.Context, req *ragpb.SearchRequest) (*ragpb.SearchResponse, error) {
+func (s *GRPCServer) Search(ctx context.Context, req *meerkatlogspb.SearchRequest) (*meerkatlogspb.SearchResponse, error) {
 	opts := SearchOptions{
 		Limit:     int(req.Limit),
 		TimeRange: time.Duration(req.TimeRangeSeconds) * time.Second,
@@ -80,21 +80,21 @@ func (s *GRPCServer) Search(ctx context.Context, req *ragpb.SearchRequest) (*rag
 			return nil, status.Errorf(codes.InvalidArgument, "empty query")
 		}
 		if errors.Is(err, ErrNoResults) {
-			return &ragpb.SearchResponse{}, nil
+			return &meerkatlogspb.SearchResponse{}, nil
 		}
 		return nil, status.Errorf(codes.Internal, "search failed: %v", err)
 	}
 
-	protoResults := make([]*ragpb.SearchResult, len(results))
+	protoResults := make([]*meerkatlogspb.SearchResult, len(results))
 	for i, r := range results {
 		protoResults[i] = toProto(r)
 	}
 
-	return &ragpb.SearchResponse{Results: protoResults}, nil
+	return &meerkatlogspb.SearchResponse{Results: protoResults}, nil
 }
 
 // GetContext retrieves relevant log context for a given service and time range.
-func (s *GRPCServer) GetContext(ctx context.Context, req *ragpb.GetContextRequest) (*ragpb.GetContextResponse, error) {
+func (s *GRPCServer) GetContext(ctx context.Context, req *meerkatlogspb.GetContextRequest) (*meerkatlogspb.GetContextResponse, error) {
 	results, err := s.svc.GetContext(
 		ctx,
 		req.Service,
@@ -109,10 +109,10 @@ func (s *GRPCServer) GetContext(ctx context.Context, req *ragpb.GetContextReques
 		return nil, status.Errorf(codes.Internal, "get context failed: %v", err)
 	}
 
-	protoResults := make([]*ragpb.SearchResult, len(results))
+	protoResults := make([]*meerkatlogspb.SearchResult, len(results))
 	for i, r := range results {
 		protoResults[i] = toProto(r)
 	}
 
-	return &ragpb.GetContextResponse{Results: protoResults}, nil
+	return &meerkatlogspb.GetContextResponse{Results: protoResults}, nil
 }

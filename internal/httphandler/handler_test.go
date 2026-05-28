@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/serengeti-sh/meerkat/internal/apperrors"
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspector"
 	inspectorMocks "github.com/serengeti-sh/meerkat/internal/inspector/mocks"
@@ -80,6 +81,29 @@ func TestHandler_Inspect_InvalidBody(t *testing.T) {
 	mux.ServeHTTP(rec, req)
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+func TestHandler_Inspect_ServiceError(t *testing.T) {
+	mockSvc := inspectorMocks.NewServiceMock(t)
+	mockSvc.On("Inspect", mock.Anything, inspector.InspectRequest{
+		Query: "check status",
+	}).Return(
+		nil,
+		apperrors.New(apperrors.ErrInternal, "database error"),
+	)
+
+	h, err := httphandler.New(mockSvc)
+	require.NoError(t, err)
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	body := `{"query": "check status"}`
+	req := httptest.NewRequest(http.MethodPost, "/v1/inspect", bytes.NewReader([]byte(body)))
+	req.Header.Set("Content-Type", "application/json")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 }
 
 func TestHandler_Webhook(t *testing.T) {
@@ -173,6 +197,25 @@ func TestHandler_ListReports_WithLimit(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
+func TestHandler_ListReports_ServiceError(t *testing.T) {
+	mockSvc := inspectorMocks.NewServiceMock(t)
+	mockSvc.On("ListReports", mock.Anything, 50).Return(
+		nil,
+		apperrors.New(apperrors.ErrInternal, "database error"),
+	)
+
+	h, err := httphandler.New(mockSvc)
+	require.NoError(t, err)
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/reports", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+}
+
 func TestHandler_GetReport(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("GetReport", mock.Anything, "r-1").Return(
@@ -196,4 +239,29 @@ func TestHandler_GetReport(t *testing.T) {
 	assert.Equal(t, "r-1", result["id"])
 	assert.Equal(t, "critical", result["severity"])
 	assert.Equal(t, float64(3), result["iterations"])
+}
+
+func TestHandler_GetReport_NotFound(t *testing.T) {
+	mockSvc := inspectorMocks.NewServiceMock(t)
+	mockSvc.On("GetReport", mock.Anything, "r-missing").Return(
+		nil,
+		apperrors.New(apperrors.ErrNotFound, "report not found"),
+	)
+
+	h, err := httphandler.New(mockSvc)
+	require.NoError(t, err)
+	mux := http.NewServeMux()
+	h.RegisterRoutes(mux)
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/reports/r-missing", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+func TestHandler_New_NilInspector(t *testing.T) {
+	_, err := httphandler.New(nil)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "inspectorSvc is required")
 }

@@ -19,7 +19,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embedder"
 	"github.com/serengeti-sh/meerkat/internal/meerkatlogs"
-	"github.com/serengeti-sh/meerkat/internal/ragpb"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
@@ -77,7 +77,7 @@ func Run(cfgFile string, port int) error {
 	}
 
 	grpcServer := grpc.NewServer()
-	ragpb.RegisterServiceServer(grpcServer, ragServer)
+	meerkatlogspb.RegisterServiceServer(grpcServer, ragServer)
 
 	grpcAddr := ml.GetAddress()
 	lis, err := net.Listen("tcp", grpcAddr)
@@ -115,7 +115,7 @@ func Run(cfgFile string, port int) error {
 	// Start OTLP receiver for log ingestion.
 	var otlpServer *collector.GRPCServer
 	if ml.OTLPBindAddr != "" {
-		batcher := collector.NewBatcher(cfg, emb, vstore).WithLogsService(ragSvc)
+		batcher := collector.NewBatcher(cfg).WithLogsService(ragSvc)
 		batcher.Start()
 		defer batcher.Stop(context.Background())
 

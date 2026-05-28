@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/serengeti-sh/meerkat/internal/ragpb"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
 )
 
 // Client is a gRPC client for the MeerkatLogs service.
@@ -22,7 +22,7 @@ type Client interface {
 
 type client struct {
 	conn *grpc.ClientConn
-	cli  ragpb.ServiceClient
+	cli  meerkatlogspb.ServiceClient
 }
 
 var _ Client = (*client)(nil)
@@ -45,14 +45,14 @@ func New(addr string, opts ...Option) (*client, error) {
 
 	return &client{
 		conn: conn,
-		cli:  ragpb.NewServiceClient(conn),
+		cli:  meerkatlogspb.NewServiceClient(conn),
 	}, nil
 }
 
 func (c *client) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult, error) {
-	reqEntries := make([]*ragpb.LogEntry, len(entries))
+	reqEntries := make([]*meerkatlogspb.LogEntry, len(entries))
 	for i, e := range entries {
-		reqEntries[i] = &ragpb.LogEntry{
+		reqEntries[i] = &meerkatlogspb.LogEntry{
 			Id:         e.ID,
 			Timestamp:  timestamppb.New(e.Timestamp),
 			Service:    e.Service,
@@ -62,7 +62,7 @@ func (c *client) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult,
 		}
 	}
 
-	resp, err := c.cli.Ingest(ctx, &ragpb.IngestRequest{Entries: reqEntries})
+	resp, err := c.cli.Ingest(ctx, &meerkatlogspb.IngestRequest{Entries: reqEntries})
 	if err != nil {
 		return nil, fmt.Errorf("ingest: %w", err)
 	}
@@ -74,7 +74,7 @@ func (c *client) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult,
 }
 
 func (c *client) Search(ctx context.Context, query string, opts SearchOptions) ([]SearchResult, error) {
-	req := &ragpb.SearchRequest{
+	req := &meerkatlogspb.SearchRequest{
 		Query:            query,
 		Limit:            int32(opts.Limit),
 		TimeRangeSeconds: int64(opts.TimeRange.Seconds()),
@@ -91,7 +91,7 @@ func (c *client) Search(ctx context.Context, query string, opts SearchOptions) (
 }
 
 func (c *client) GetContext(ctx context.Context, service string, start, end time.Time, limit int) ([]SearchResult, error) {
-	req := &ragpb.GetContextRequest{
+	req := &meerkatlogspb.GetContextRequest{
 		Service:   service,
 		StartTime: timestamppb.New(start),
 		EndTime:   timestamppb.New(end),
@@ -110,7 +110,7 @@ func (c *client) Close() error {
 	return c.conn.Close()
 }
 
-func fromProtoResults(results []*ragpb.SearchResult) []SearchResult {
+func fromProtoResults(results []*meerkatlogspb.SearchResult) []SearchResult {
 	out := make([]SearchResult, len(results))
 	for i, r := range results {
 		out[i] = SearchResult{

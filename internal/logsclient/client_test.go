@@ -15,7 +15,7 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/logsclient"
 	"github.com/serengeti-sh/meerkat/internal/meerkatlogs"
-	"github.com/serengeti-sh/meerkat/internal/ragpb"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
@@ -120,7 +120,7 @@ func setupTestClient(t *testing.T) (logsclient.Client, func()) {
 	require.NoError(t, err)
 
 	grpcServer := grpc.NewServer()
-	ragpb.RegisterServiceServer(grpcServer, ragServer)
+	meerkatlogspb.RegisterServiceServer(grpcServer, ragServer)
 
 	listener := bufconn.Listen(1024 * 1024)
 	go func() {

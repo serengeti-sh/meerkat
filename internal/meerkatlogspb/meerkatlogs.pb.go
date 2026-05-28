@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.1
-// source: api/proto/rag/v1/rag.proto
+// source: api/proto/meerkatlogs/v1/meerkatlogs.proto
 
-package ragpb
+package meerkatlogspb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -37,7 +37,7 @@ type LogEntry struct {
 
 func (x *LogEntry) Reset() {
 	*x = LogEntry{}
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[0]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -49,7 +49,7 @@ func (x *LogEntry) String() string {
 func (*LogEntry) ProtoMessage() {}
 
 func (x *LogEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[0]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +62,7 @@ func (x *LogEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogEntry.ProtoReflect.Descriptor instead.
 func (*LogEntry) Descriptor() ([]byte, []int) {
-	return file_api_proto_rag_v1_rag_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *LogEntry) GetId() string {
@@ -117,7 +117,7 @@ type IngestRequest struct {
 
 func (x *IngestRequest) Reset() {
 	*x = IngestRequest{}
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[1]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -129,7 +129,7 @@ func (x *IngestRequest) String() string {
 func (*IngestRequest) ProtoMessage() {}
 
 func (x *IngestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[1]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -142,7 +142,7 @@ func (x *IngestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IngestRequest.ProtoReflect.Descriptor instead.
 func (*IngestRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rag_v1_rag_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *IngestRequest) GetEntries() []*LogEntry {
@@ -163,7 +163,7 @@ type IngestResponse struct {
 
 func (x *IngestResponse) Reset() {
 	*x = IngestResponse{}
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[2]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +175,7 @@ func (x *IngestResponse) String() string {
 func (*IngestResponse) ProtoMessage() {}
 
 func (x *IngestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[2]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +188,7 @@ func (x *IngestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IngestResponse.ProtoReflect.Descriptor instead.
 func (*IngestResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rag_v1_rag_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *IngestResponse) GetIngestedCount() int32 {
@@ -219,7 +219,7 @@ type SearchRequest struct {
 
 func (x *SearchRequest) Reset() {
 	*x = SearchRequest{}
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[3]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -231,7 +231,7 @@ func (x *SearchRequest) String() string {
 func (*SearchRequest) ProtoMessage() {}
 
 func (x *SearchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[3]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -244,7 +244,7 @@ func (x *SearchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchRequest.ProtoReflect.Descriptor instead.
 func (*SearchRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rag_v1_rag_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *SearchRequest) GetQuery() string {
@@ -297,7 +297,7 @@ type SearchResult struct {
 
 func (x *SearchResult) Reset() {
 	*x = SearchResult{}
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[4]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -309,7 +309,7 @@ func (x *SearchResult) String() string {
 func (*SearchResult) ProtoMessage() {}
 
 func (x *SearchResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[4]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -322,7 +322,7 @@ func (x *SearchResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchResult.ProtoReflect.Descriptor instead.
 func (*SearchResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_rag_v1_rag_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SearchResult) GetId() string {
@@ -377,7 +377,7 @@ type SearchResponse struct {
 
 func (x *SearchResponse) Reset() {
 	*x = SearchResponse{}
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[5]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -389,7 +389,7 @@ func (x *SearchResponse) String() string {
 func (*SearchResponse) ProtoMessage() {}
 
 func (x *SearchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[5]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -402,7 +402,7 @@ func (x *SearchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchResponse.ProtoReflect.Descriptor instead.
 func (*SearchResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rag_v1_rag_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *SearchResponse) GetResults() []*SearchResult {
@@ -425,7 +425,7 @@ type GetContextRequest struct {
 
 func (x *GetContextRequest) Reset() {
 	*x = GetContextRequest{}
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[6]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -437,7 +437,7 @@ func (x *GetContextRequest) String() string {
 func (*GetContextRequest) ProtoMessage() {}
 
 func (x *GetContextRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[6]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -450,7 +450,7 @@ func (x *GetContextRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetContextRequest.ProtoReflect.Descriptor instead.
 func (*GetContextRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_rag_v1_rag_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetContextRequest) GetService() string {
@@ -491,7 +491,7 @@ type GetContextResponse struct {
 
 func (x *GetContextResponse) Reset() {
 	*x = GetContextResponse{}
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[7]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -503,7 +503,7 @@ func (x *GetContextResponse) String() string {
 func (*GetContextResponse) ProtoMessage() {}
 
 func (x *GetContextResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_rag_v1_rag_proto_msgTypes[7]
+	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -516,7 +516,7 @@ func (x *GetContextResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetContextResponse.ProtoReflect.Descriptor instead.
 func (*GetContextResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_rag_v1_rag_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *GetContextResponse) GetResults() []*SearchResult {
@@ -526,25 +526,25 @@ func (x *GetContextResponse) GetResults() []*SearchResult {
 	return nil
 }
 
-var File_api_proto_rag_v1_rag_proto protoreflect.FileDescriptor
+var File_api_proto_meerkatlogs_v1_meerkatlogs_proto protoreflect.FileDescriptor
 
-const file_api_proto_rag_v1_rag_proto_rawDesc = "" +
+const file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDesc = "" +
 	"\n" +
-	"\x1aapi/proto/rag/v1/rag.proto\x12\x06rag.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x9f\x02\n" +
+	"*api/proto/meerkatlogs/v1/meerkatlogs.proto\x12\x0emeerkatlogs.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa7\x02\n" +
 	"\bLogEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x128\n" +
 	"\ttimestamp\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12\x18\n" +
 	"\aservice\x18\x03 \x01(\tR\aservice\x12\x1a\n" +
 	"\bseverity\x18\x04 \x01(\tR\bseverity\x12\x12\n" +
-	"\x04body\x18\x05 \x01(\tR\x04body\x12@\n" +
+	"\x04body\x18\x05 \x01(\tR\x04body\x12H\n" +
 	"\n" +
-	"attributes\x18\x06 \x03(\v2 .rag.v1.LogEntry.AttributesEntryR\n" +
+	"attributes\x18\x06 \x03(\v2(.meerkatlogs.v1.LogEntry.AttributesEntryR\n" +
 	"attributes\x1a=\n" +
 	"\x0fAttributesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\";\n" +
-	"\rIngestRequest\x12*\n" +
-	"\aentries\x18\x01 \x03(\v2\x10.rag.v1.LogEntryR\aentries\"f\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"C\n" +
+	"\rIngestRequest\x122\n" +
+	"\aentries\x18\x01 \x03(\v2\x18.meerkatlogs.v1.LogEntryR\aentries\"f\n" +
 	"\x0eIngestResponse\x12%\n" +
 	"\x0eingested_count\x18\x01 \x01(\x05R\ringestedCount\x12-\n" +
 	"\x12deduplicated_count\x18\x02 \x01(\x05R\x11deduplicatedCount\"\x9f\x01\n" +
@@ -560,63 +560,63 @@ const file_api_proto_rag_v1_rag_proto_rawDesc = "" +
 	"\x04body\x18\x03 \x01(\tR\x04body\x12\x18\n" +
 	"\aservice\x18\x04 \x01(\tR\aservice\x12\x1a\n" +
 	"\bseverity\x18\x05 \x01(\tR\bseverity\x128\n" +
-	"\ttimestamp\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"@\n" +
-	"\x0eSearchResponse\x12.\n" +
-	"\aresults\x18\x01 \x03(\v2\x14.rag.v1.SearchResultR\aresults\"\xb5\x01\n" +
+	"\ttimestamp\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\"H\n" +
+	"\x0eSearchResponse\x126\n" +
+	"\aresults\x18\x01 \x03(\v2\x1c.meerkatlogs.v1.SearchResultR\aresults\"\xb5\x01\n" +
 	"\x11GetContextRequest\x12\x18\n" +
 	"\aservice\x18\x01 \x01(\tR\aservice\x129\n" +
 	"\n" +
 	"start_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x125\n" +
 	"\bend_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\x12\x14\n" +
-	"\x05limit\x18\x04 \x01(\x05R\x05limit\"D\n" +
-	"\x12GetContextResponse\x12.\n" +
-	"\aresults\x18\x01 \x03(\v2\x14.rag.v1.SearchResultR\aresults2\xc0\x01\n" +
-	"\aService\x127\n" +
-	"\x06Ingest\x12\x15.rag.v1.IngestRequest\x1a\x16.rag.v1.IngestResponse\x127\n" +
-	"\x06Search\x12\x15.rag.v1.SearchRequest\x1a\x16.rag.v1.SearchResponse\x12C\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limit\"L\n" +
+	"\x12GetContextResponse\x126\n" +
+	"\aresults\x18\x01 \x03(\v2\x1c.meerkatlogs.v1.SearchResultR\aresults2\xf0\x01\n" +
+	"\aService\x12G\n" +
+	"\x06Ingest\x12\x1d.meerkatlogs.v1.IngestRequest\x1a\x1e.meerkatlogs.v1.IngestResponse\x12G\n" +
+	"\x06Search\x12\x1d.meerkatlogs.v1.SearchRequest\x1a\x1e.meerkatlogs.v1.SearchResponse\x12S\n" +
 	"\n" +
-	"GetContext\x12\x19.rag.v1.GetContextRequest\x1a\x1a.rag.v1.GetContextResponseB0Z.github.com/serengeti-sh/meerkat/internal/ragpbb\x06proto3"
+	"GetContext\x12!.meerkatlogs.v1.GetContextRequest\x1a\".meerkatlogs.v1.GetContextResponseB8Z6github.com/serengeti-sh/meerkat/internal/meerkatlogspbb\x06proto3"
 
 var (
-	file_api_proto_rag_v1_rag_proto_rawDescOnce sync.Once
-	file_api_proto_rag_v1_rag_proto_rawDescData []byte
+	file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescOnce sync.Once
+	file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescData []byte
 )
 
-func file_api_proto_rag_v1_rag_proto_rawDescGZIP() []byte {
-	file_api_proto_rag_v1_rag_proto_rawDescOnce.Do(func() {
-		file_api_proto_rag_v1_rag_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_rag_v1_rag_proto_rawDesc), len(file_api_proto_rag_v1_rag_proto_rawDesc)))
+func file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP() []byte {
+	file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescOnce.Do(func() {
+		file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDesc), len(file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDesc)))
 	})
-	return file_api_proto_rag_v1_rag_proto_rawDescData
+	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescData
 }
 
-var file_api_proto_rag_v1_rag_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
-var file_api_proto_rag_v1_rag_proto_goTypes = []any{
-	(*LogEntry)(nil),              // 0: rag.v1.LogEntry
-	(*IngestRequest)(nil),         // 1: rag.v1.IngestRequest
-	(*IngestResponse)(nil),        // 2: rag.v1.IngestResponse
-	(*SearchRequest)(nil),         // 3: rag.v1.SearchRequest
-	(*SearchResult)(nil),          // 4: rag.v1.SearchResult
-	(*SearchResponse)(nil),        // 5: rag.v1.SearchResponse
-	(*GetContextRequest)(nil),     // 6: rag.v1.GetContextRequest
-	(*GetContextResponse)(nil),    // 7: rag.v1.GetContextResponse
-	nil,                           // 8: rag.v1.LogEntry.AttributesEntry
+var file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_api_proto_meerkatlogs_v1_meerkatlogs_proto_goTypes = []any{
+	(*LogEntry)(nil),              // 0: meerkatlogs.v1.LogEntry
+	(*IngestRequest)(nil),         // 1: meerkatlogs.v1.IngestRequest
+	(*IngestResponse)(nil),        // 2: meerkatlogs.v1.IngestResponse
+	(*SearchRequest)(nil),         // 3: meerkatlogs.v1.SearchRequest
+	(*SearchResult)(nil),          // 4: meerkatlogs.v1.SearchResult
+	(*SearchResponse)(nil),        // 5: meerkatlogs.v1.SearchResponse
+	(*GetContextRequest)(nil),     // 6: meerkatlogs.v1.GetContextRequest
+	(*GetContextResponse)(nil),    // 7: meerkatlogs.v1.GetContextResponse
+	nil,                           // 8: meerkatlogs.v1.LogEntry.AttributesEntry
 	(*timestamppb.Timestamp)(nil), // 9: google.protobuf.Timestamp
 }
-var file_api_proto_rag_v1_rag_proto_depIdxs = []int32{
-	9,  // 0: rag.v1.LogEntry.timestamp:type_name -> google.protobuf.Timestamp
-	8,  // 1: rag.v1.LogEntry.attributes:type_name -> rag.v1.LogEntry.AttributesEntry
-	0,  // 2: rag.v1.IngestRequest.entries:type_name -> rag.v1.LogEntry
-	9,  // 3: rag.v1.SearchResult.timestamp:type_name -> google.protobuf.Timestamp
-	4,  // 4: rag.v1.SearchResponse.results:type_name -> rag.v1.SearchResult
-	9,  // 5: rag.v1.GetContextRequest.start_time:type_name -> google.protobuf.Timestamp
-	9,  // 6: rag.v1.GetContextRequest.end_time:type_name -> google.protobuf.Timestamp
-	4,  // 7: rag.v1.GetContextResponse.results:type_name -> rag.v1.SearchResult
-	1,  // 8: rag.v1.Service.Ingest:input_type -> rag.v1.IngestRequest
-	3,  // 9: rag.v1.Service.Search:input_type -> rag.v1.SearchRequest
-	6,  // 10: rag.v1.Service.GetContext:input_type -> rag.v1.GetContextRequest
-	2,  // 11: rag.v1.Service.Ingest:output_type -> rag.v1.IngestResponse
-	5,  // 12: rag.v1.Service.Search:output_type -> rag.v1.SearchResponse
-	7,  // 13: rag.v1.Service.GetContext:output_type -> rag.v1.GetContextResponse
+var file_api_proto_meerkatlogs_v1_meerkatlogs_proto_depIdxs = []int32{
+	9,  // 0: meerkatlogs.v1.LogEntry.timestamp:type_name -> google.protobuf.Timestamp
+	8,  // 1: meerkatlogs.v1.LogEntry.attributes:type_name -> meerkatlogs.v1.LogEntry.AttributesEntry
+	0,  // 2: meerkatlogs.v1.IngestRequest.entries:type_name -> meerkatlogs.v1.LogEntry
+	9,  // 3: meerkatlogs.v1.SearchResult.timestamp:type_name -> google.protobuf.Timestamp
+	4,  // 4: meerkatlogs.v1.SearchResponse.results:type_name -> meerkatlogs.v1.SearchResult
+	9,  // 5: meerkatlogs.v1.GetContextRequest.start_time:type_name -> google.protobuf.Timestamp
+	9,  // 6: meerkatlogs.v1.GetContextRequest.end_time:type_name -> google.protobuf.Timestamp
+	4,  // 7: meerkatlogs.v1.GetContextResponse.results:type_name -> meerkatlogs.v1.SearchResult
+	1,  // 8: meerkatlogs.v1.Service.Ingest:input_type -> meerkatlogs.v1.IngestRequest
+	3,  // 9: meerkatlogs.v1.Service.Search:input_type -> meerkatlogs.v1.SearchRequest
+	6,  // 10: meerkatlogs.v1.Service.GetContext:input_type -> meerkatlogs.v1.GetContextRequest
+	2,  // 11: meerkatlogs.v1.Service.Ingest:output_type -> meerkatlogs.v1.IngestResponse
+	5,  // 12: meerkatlogs.v1.Service.Search:output_type -> meerkatlogs.v1.SearchResponse
+	7,  // 13: meerkatlogs.v1.Service.GetContext:output_type -> meerkatlogs.v1.GetContextResponse
 	11, // [11:14] is the sub-list for method output_type
 	8,  // [8:11] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
@@ -624,26 +624,26 @@ var file_api_proto_rag_v1_rag_proto_depIdxs = []int32{
 	0,  // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_api_proto_rag_v1_rag_proto_init() }
-func file_api_proto_rag_v1_rag_proto_init() {
-	if File_api_proto_rag_v1_rag_proto != nil {
+func init() { file_api_proto_meerkatlogs_v1_meerkatlogs_proto_init() }
+func file_api_proto_meerkatlogs_v1_meerkatlogs_proto_init() {
+	if File_api_proto_meerkatlogs_v1_meerkatlogs_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_rag_v1_rag_proto_rawDesc), len(file_api_proto_rag_v1_rag_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDesc), len(file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_api_proto_rag_v1_rag_proto_goTypes,
-		DependencyIndexes: file_api_proto_rag_v1_rag_proto_depIdxs,
-		MessageInfos:      file_api_proto_rag_v1_rag_proto_msgTypes,
+		GoTypes:           file_api_proto_meerkatlogs_v1_meerkatlogs_proto_goTypes,
+		DependencyIndexes: file_api_proto_meerkatlogs_v1_meerkatlogs_proto_depIdxs,
+		MessageInfos:      file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes,
 	}.Build()
-	File_api_proto_rag_v1_rag_proto = out.File
-	file_api_proto_rag_v1_rag_proto_goTypes = nil
-	file_api_proto_rag_v1_rag_proto_depIdxs = nil
+	File_api_proto_meerkatlogs_v1_meerkatlogs_proto = out.File
+	file_api_proto_meerkatlogs_v1_meerkatlogs_proto_goTypes = nil
+	file_api_proto_meerkatlogs_v1_meerkatlogs_proto_depIdxs = nil
 }

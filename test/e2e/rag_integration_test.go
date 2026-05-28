@@ -11,35 +11,35 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/serengeti-sh/meerkat/internal/ragpb"
+	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
 )
 
 // mockRAGServer implements a minimal RAG gRPC server for E2E testing.
 type mockRAGServer struct {
-	ragpb.UnimplementedServiceServer
-	entries []*ragpb.LogEntry
+	meerkatlogspb.UnimplementedServiceServer
+	entries []*meerkatlogspb.LogEntry
 }
 
-func (m *mockRAGServer) Ingest(ctx context.Context, req *ragpb.IngestRequest) (*ragpb.IngestResponse, error) {
+func (m *mockRAGServer) Ingest(ctx context.Context, req *meerkatlogspb.IngestRequest) (*meerkatlogspb.IngestResponse, error) {
 	m.entries = append(m.entries, req.Entries...)
-	return &ragpb.IngestResponse{
+	return &meerkatlogspb.IngestResponse{
 		IngestedCount:     int32(len(req.Entries)),
 		DeduplicatedCount: 0,
 	}, nil
 }
 
-func (m *mockRAGServer) Search(ctx context.Context, req *ragpb.SearchRequest) (*ragpb.SearchResponse, error) {
-	return &ragpb.SearchResponse{Results: m.toResults()}, nil
+func (m *mockRAGServer) Search(ctx context.Context, req *meerkatlogspb.SearchRequest) (*meerkatlogspb.SearchResponse, error) {
+	return &meerkatlogspb.SearchResponse{Results: m.toResults()}, nil
 }
 
-func (m *mockRAGServer) GetContext(ctx context.Context, req *ragpb.GetContextRequest) (*ragpb.GetContextResponse, error) {
-	return &ragpb.GetContextResponse{Results: m.toResults()}, nil
+func (m *mockRAGServer) GetContext(ctx context.Context, req *meerkatlogspb.GetContextRequest) (*meerkatlogspb.GetContextResponse, error) {
+	return &meerkatlogspb.GetContextResponse{Results: m.toResults()}, nil
 }
 
-func (m *mockRAGServer) toResults() []*ragpb.SearchResult {
-	results := make([]*ragpb.SearchResult, len(m.entries))
+func (m *mockRAGServer) toResults() []*meerkatlogspb.SearchResult {
+	results := make([]*meerkatlogspb.SearchResult, len(m.entries))
 	for i, e := range m.entries {
-		results[i] = &ragpb.SearchResult{
+		results[i] = &meerkatlogspb.SearchResult{
 			Id:        e.Id,
 			Score:     0.95,
 			Body:      e.Body,
@@ -67,7 +67,7 @@ func TestE2E_Webhook_WithRAGContext(t *testing.T) {
 
 	ragSvc := &mockRAGServer{}
 	ragGRPC := grpc.NewServer()
-	ragpb.RegisterServiceServer(ragGRPC, ragSvc)
+	meerkatlogspb.RegisterServiceServer(ragGRPC, ragSvc)
 
 	go func() {
 		if err := ragGRPC.Serve(lis); err != nil {
@@ -77,8 +77,8 @@ func TestE2E_Webhook_WithRAGContext(t *testing.T) {
 	defer ragGRPC.GracefulStop()
 
 	// 2. Pre-populate mock RAG with logs
-	_, err = ragSvc.Ingest(ctx, &ragpb.IngestRequest{
-		Entries: []*ragpb.LogEntry{
+	_, err = ragSvc.Ingest(ctx, &meerkatlogspb.IngestRequest{
+		Entries: []*meerkatlogspb.LogEntry{
 			{
 				Id:        "log-1",
 				Timestamp: timestamppb.New(time.Now().Add(-5 * time.Minute)),

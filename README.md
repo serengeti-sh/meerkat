@@ -4,29 +4,89 @@ AI-powered observability agent that watches your infrastructure like a meerkat o
 
 ## Architecture
 
+Meerkat consists of **three independently deployable services**:
+
 ```
-Request (manual / webhook / scheduled)
-    → Meerkat Service (creates pending report, spawns goroutine)
-        → Analyzer (agentic AI loop with tool calls)
-            → Datasources (Prometheus, Victoria Metrics, Loki, etc.)
-        → Reporter (Slack, webhook, etc.)
-    → Report (completed/failed)
+┌─────────────────────────────────────────────────────────────┐
+│                        Meerkat 시스템                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌──────────────┐     gRPC      ┌────────────────────────┐ │
+│  │   Analyzer   │◄─────────────►│     MeerkatLogs        │ │
+│  │   Server     │   Search/     │  ┌──────────────────┐  │ │
+│  │  (HTTP API)  │   GetContext  │  │  gRPC Server     │  │ │
+│  └──────────────┘               │  │  - search_logs   │  │ │
+│       │                         │  │  - Ingest        │  │ │
+│       │ AI Agent                │  │  - GetContext    │  │ │
+│       ▼                         │  └──────────────────┘  │ │
+│  ┌──────────────┐               │  ┌──────────────────┐  │ │
+│  │  LLM + Tools │               │  │  OTLP Receiver   │  │ │
+│  │              │               │  │  (Port :4317)    │  │ │
+│  │ search_logs  │               │  └──────────────────┘  │ │
+│  │  prometheus  │               │  ┌──────────────────┐  │ │
+│  │  loki        │               │  │  Smart Pipeline  │  │ │
+│  │  victorialogs│               │  │  - Filter (mode) │  │ │
+│  │  ...         │               │  │  - Drain Extract │  │ │
+│  └──────────────┘               │  │  - Embed         │  │ │
+│       │                         │  │  - VectorStore   │  │ │
+│       ▼                         │  └──────────────────┘  │ │
+│  ┌──────────────┐               └────────────────────────┘ │
+│  │  PostgreSQL  │                         ▲               │
+│  │  (Reports)   │                         │ OTLP / gRPC   │
+│  └──────────────┘                         │               │
+│                                           │               │
+│  ┌──────────────┐                  ┌──────────────────┐   │
+│  │   Collector  │──OTLP (Push)────►│  MeerkatLogs     │   │
+│  │   Server     │                  │  Server          │   │
+│  └──────────────┘                  └──────────────────┘   │
+│       ▲                                                    │
+│       │ OTLP                                               │
+│  ┌──────────────┐                                          │
+│  │  Apps / SDK  │                                          │
+│  └──────────────┘                                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Services
+
+| Service | Protocol | Responsibility |
+|---------|----------|----------------|
+| **Analyzer** | HTTP (REST) | AI analysis, report management, scheduling |
+| **MeerkatLogs** | gRPC + OTLP | Log ingestion, semantic search, vector storage |
+| **Collector** | OTLP (gRPC) | Log collection gateway to MeerkatLogs |
+
+### Log Ingestion Flow
+
+```
+App ──OTLP──→ Collector ──OTLP──→ MeerkatLogs ──embed──→ VectorStore (Milvus/Qdrant)
+```
+
+### Analysis Flow
+
+```
+Client ──HTTP──→ Analyzer ──gRPC──→ MeerkatLogs (search_logs)
+                     │
+                     └──→ LLM + Tools (prometheus, loki, victorialogs)
+                     │
+                     └──→ PostgreSQL (Reports)
 ```
 
 ## Quick Start
 
+### Prerequisites
+
+- PostgreSQL 14+
+- Milvus or Qdrant (vector store)
+- OpenAI API key (or compatible provider)
+
+### Configuration
+
 ```bash
-# Copy and edit config
+# Copy example config
 cp config.example.yaml config.yaml
 
-# Run migrations
-go run ./cmd/meerkat-server migrate apply
-
-# Start server
-go run ./cmd/meerkat-server serve
+# Edit config.yaml with your settings
 ```
-
-## Configuration
 
 ```yaml
 app:
@@ -39,22 +99,49 @@ http:
 
 store:
   driver: postgres
-  path: postgresql://localhost:5432/meerkat?sslmode=disable
+  host: localhost
+  port: 5432
+  name: meerkat
+  user: meerkat
+  password: meerkat
 
-datasources:
-  - name: vm
-    type: prometheus
-    url: http://localhost:8428
+meerkat_logs:
+  enabled: true
+  address: ":50051"
+  otlp_bind_addr: ":4317"
+  filter_mode: template  # all | severity | template
+  min_severity: info
+  retention: 72h
 
-analyzer:
+embedder:
   provider: openai
-  url: https://api.openai.com
   api_key: ${OPENAI_API_KEY}
-  model: gpt-4o
-  max_iterations: 10
+  model: text-embedding-3-small
+
+vector_store:
+  milvus:
+    address: localhost:19530
+    collection: logs
+    dimension: 1536
 ```
 
-## CLI
+### Running Services
+
+```bash
+# Run database migrations
+go run ./cmd/meerkat-server analyzer migrate apply
+
+# Start MeerkatLogs server (log ingestion + search)
+go run ./cmd/meerkat-server logs serve
+
+# Start Analyzer server (HTTP API + AI analysis)
+go run ./cmd/meerkat-server analyzer serve
+
+# Start Collector server (OTLP log collection) - optional
+go run ./cmd/meerkat-server collector serve
+```
+
+### CLI
 
 ```bash
 # Trigger manual inspection
@@ -65,25 +152,80 @@ meerkat report list
 
 # Get specific report
 meerkat report get <id>
-
-# List datasources
-meerkat datasource list
 ```
+
+## Configuration Validation
+
+All services validate configuration at startup:
+
+```go
+if err := cfg.Validate(); err != nil {
+    return fmt.Errorf("validate config: %w", err)
+}
+```
+
+Checks include:
+- Port ranges (0-65535)
+- Required database fields
+- Analyzer provider (openai | anthropic)
+- Vector store driver (milvus | qdrant)
+- Filter mode (all | severity | template)
+
+## Filtering Modes
+
+MeerkatLogs supports three log filtering modes during ingestion:
+
+| Mode | Behavior |
+|------|----------|
+| **all** | All logs are vectorized (no filtering) |
+| **severity** | Only logs with severity ≥ `min_severity` are vectorized |
+| **template** | Drain algorithm extracts templates, duplicates are deduplicated (default) |
+
+## Metrics
+
+MeerkatLogs exposes Prometheus metrics on `:9090/metrics`:
+
+- `meerkatlogs_ingest_total` — Total ingested logs
+- `meerkatlogs_ingest_deduplicated_total` — Total deduplicated logs
+- `meerkatlogs_search_duration_seconds` — Search latency histogram
+- `meerkatlogs_search_total` — Total search requests
 
 ## Development
 
 ```bash
-make gen        # Generate all code (ent, ogen, mocks)
-make build      # Build binaries
-make test       # Run unit tests
-make test-e2e   # Run e2e tests (requires Docker)
-make lint       # Run linter
+# Generate all code (ent, proto, ogen, mocks)
+make gen
+
+# Build binaries
+make build
+
+# Run unit tests
+make test
+
+# Run integration tests
+make test-integration
+
+# Run e2e tests (requires Docker)
+make test-e2e
+
+# Run linter
+make lint
 ```
 
-## Docker
+## Deployment
+
+### Docker
 
 ```bash
 docker build -f build/docker/server.Dockerfile -t meerkat-server .
+```
+
+### Kubernetes (Helm)
+
+```bash
+helm install meerkat ./deployment/charts/meerkat \
+  --set logs.enabled=true \
+  --set analyzer.enabled=true
 ```
 
 ## License

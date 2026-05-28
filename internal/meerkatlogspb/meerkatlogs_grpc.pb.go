@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.34.1
-// source: api/proto/rag/v1/rag.proto
+// source: api/proto/meerkatlogs/v1/meerkatlogs.proto
 
-package ragpb
+package meerkatlogspb
 
 import (
 	context "context"
@@ -19,9 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Service_Ingest_FullMethodName     = "/rag.v1.Service/Ingest"
-	Service_Search_FullMethodName     = "/rag.v1.Service/Search"
-	Service_GetContext_FullMethodName = "/rag.v1.Service/GetContext"
+	Service_Ingest_FullMethodName     = "/meerkatlogs.v1.Service/Ingest"
+	Service_Search_FullMethodName     = "/meerkatlogs.v1.Service/Search"
+	Service_GetContext_FullMethodName = "/meerkatlogs.v1.Service/GetContext"
 )
 
 // ServiceClient is the client API for Service service.
@@ -186,7 +186,7 @@ func _Service_GetContext_Handler(srv interface{}, ctx context.Context, dec func(
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Service_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "rag.v1.Service",
+	ServiceName: "meerkatlogs.v1.Service",
 	HandlerType: (*ServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -203,5 +203,5 @@ var Service_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/rag/v1/rag.proto",
+	Metadata: "api/proto/meerkatlogs/v1/meerkatlogs.proto",
 }

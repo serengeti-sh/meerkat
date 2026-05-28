@@ -11,9 +11,7 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/collector"
 	"github.com/serengeti-sh/meerkat/internal/config"
-	"github.com/serengeti-sh/meerkat/internal/embedder"
 	"github.com/serengeti-sh/meerkat/internal/logsclient"
-	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
 const shutdownTimeout = 30 * time.Second
@@ -29,24 +27,10 @@ func Run(cfgFile string) error {
 		return fmt.Errorf("validate config: %w", err)
 	}
 
-	// 2. Embedder
-	emb := embedder.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
+	// 2. Batcher
+	batcher := collector.NewBatcher(cfg)
 
-	// 3. Vector store (required as fallback even when using RAG)
-	vstore, err := vectorstore.New(cfg)
-	if err != nil {
-		return fmt.Errorf("create vector store: %w", err)
-	}
-	defer func() {
-		if err := vstore.Close(); err != nil {
-			log.Printf("failed to close vector store: %v", err)
-		}
-	}()
-
-	// 4. Batcher
-	batcher := collector.NewBatcher(cfg, emb, vstore)
-
-	// 5. Optional meerkatlogs client for deduplicated ingestion
+	// 3. MeerkatLogs client (required for ingestion)
 	if cfg.MeerkatLogs.Enabled && cfg.MeerkatLogs.Address != "" {
 		logsCli, err := logsclient.New(cfg.MeerkatLogs.Address)
 		if err != nil {
@@ -59,9 +43,11 @@ func Run(cfgFile string) error {
 		}()
 		batcher.WithLogsClient(logsCli)
 		log.Printf("[collector] connected to meerkatlogs server at %s", cfg.MeerkatLogs.Address)
+	} else {
+		return fmt.Errorf("meerkat_logs must be enabled with a valid address")
 	}
 
-	// 6. gRPC server
+	// 4. gRPC server
 	srv := collector.NewGRPCServer(cfg, batcher)
 
 	if err := srv.Start(); err != nil {
