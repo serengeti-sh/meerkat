@@ -17,7 +17,7 @@ require (
 	github.com/ogen-go/ogen v1.20.3
 	github.com/openai/openai-go/v3 v3.31.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/prometheus/common v0.66.1
+	github.com/prometheus/common v0.67.5
 	github.com/qdrant/go-client v1.18.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	github.com/spf13/cobra v1.10.2
