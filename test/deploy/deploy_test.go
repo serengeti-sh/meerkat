@@ -1,6 +1,7 @@
 package deploy
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -63,14 +64,14 @@ func TestDeploy(t *testing.T) {
 
 	// Step 5: Create namespace
 	t.Logf("Creating namespace: %s", namespace)
-	k8s.CreateNamespace(t, kubectlOptions, namespace)
-	defer k8s.DeleteNamespace(t, kubectlOptions, namespace)
+	k8s.CreateNamespaceContext(t, context.Background(), kubectlOptions, namespace)
+	defer k8s.DeleteNamespaceContext(t, context.Background(), kubectlOptions, namespace)
 
 	// Step 6: Install PostgreSQL
 	t.Log("Installing PostgreSQL")
 	installPostgres(t, kubectlOptions)
 	defer func() {
-		helm.Delete(t, &helm.Options{KubectlOptions: kubectlOptions}, "meerkat-postgres", true)
+		helm.DeleteContext(t, context.Background(), &helm.Options{KubectlOptions: kubectlOptions}, "meerkat-postgres", true)
 	}()
 
 	// Step 7: Install Meerkat chart
@@ -79,8 +80,8 @@ func TestDeploy(t *testing.T) {
 		KubectlOptions: kubectlOptions,
 		ValuesFiles:    []string{valuesFile},
 	}
-	helm.Install(t, helmOptions, chartDir, "meerkat")
-	defer helm.Delete(t, helmOptions, "meerkat", true)
+	helm.InstallContext(t, context.Background(), helmOptions, chartDir, "meerkat")
+	defer helm.DeleteContext(t, context.Background(), helmOptions, "meerkat", true)
 
 	// Step 8: Wait for deployments to be available
 	t.Log("Waiting for Meerkat deployments to be available")
@@ -95,7 +96,7 @@ func TestDeploy(t *testing.T) {
 
 func buildImage(t *testing.T, repoRoot string) {
 	t.Helper()
-	cmd := shell.Command{
+	cmd := &shell.Command{
 		Command: "docker",
 		Args: []string{
 			"build",
@@ -104,18 +105,18 @@ func buildImage(t *testing.T, repoRoot string) {
 			repoRoot,
 		},
 	}
-	shell.RunCommand(t, cmd)
+	shell.RunCommandContext(t, context.Background(), cmd)
 }
 
 func createKindCluster(t *testing.T, configPath string) {
 	t.Helper()
 	// Delete existing cluster if any
-	_ = shell.RunCommandE(t, shell.Command{
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
 		Command: "kind",
 		Args:    []string{"delete", "cluster", "--name", clusterName},
 	})
 
-	cmd := shell.Command{
+	cmd := &shell.Command{
 		Command: "kind",
 		Args: []string{
 			"create", "cluster",
@@ -124,23 +125,23 @@ func createKindCluster(t *testing.T, configPath string) {
 			"--wait", "120s",
 		},
 	}
-	shell.RunCommand(t, cmd)
+	shell.RunCommandContext(t, context.Background(), cmd)
 }
 
 func deleteKindCluster(t *testing.T) {
 	t.Helper()
 	t.Log("Deleting Kind cluster")
-	cmd := shell.Command{
+	cmd := &shell.Command{
 		Command: "kind",
 		Args:    []string{"delete", "cluster", "--name", clusterName},
 	}
 	// Best-effort cleanup
-	_ = shell.RunCommandE(t, cmd)
+	_ = shell.RunCommandContextE(t, context.Background(), cmd)
 }
 
 func loadImage(t *testing.T) {
 	t.Helper()
-	cmd := shell.Command{
+	cmd := &shell.Command{
 		Command: "kind",
 		Args: []string{
 			"load", "docker-image",
@@ -148,14 +149,14 @@ func loadImage(t *testing.T) {
 			"--name", clusterName,
 		},
 	}
-	shell.RunCommand(t, cmd)
+	shell.RunCommandContext(t, context.Background(), cmd)
 }
 
 func installPostgres(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	t.Helper()
 	// Add Bitnami repo
 	helmOptions := &helm.Options{KubectlOptions: kubectlOptions}
-	helm.AddRepo(t, helmOptions, "bitnami", "https://charts.bitnami.com/bitnami")
+	helm.AddRepoContext(t, context.Background(), helmOptions, "bitnami", "https://charts.bitnami.com/bitnami")
 
 	// Install PostgreSQL with --wait to ensure it's ready
 	pgOptions := &helm.Options{
@@ -174,7 +175,7 @@ func installPostgres(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 			"install": {"--wait", "--timeout", "120s"},
 		},
 	}
-	helm.Install(t, pgOptions, "bitnami/postgresql", "meerkat-postgres")
+	helm.InstallContext(t, context.Background(), pgOptions, "bitnami/postgresql", "meerkat-postgres")
 }
 
 func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
@@ -187,7 +188,7 @@ func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	for i := range maxRetries {
 		allReady := true
 		for _, name := range deployments {
-			deploy, err := k8s.GetDeploymentE(t, kubectlOptions, name)
+			deploy, err := k8s.GetDeploymentContextE(t, context.Background(), kubectlOptions, name)
 			if err != nil || !k8s.IsDeploymentAvailable(deploy) {
 				allReady = false
 				break
@@ -201,20 +202,20 @@ func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 		// Log diagnostics every 10 retries (50 seconds)
 		if i > 0 && i%10 == 0 {
 			t.Logf("=== Diagnostics at retry %d/%d ===", i, maxRetries)
-			_ = shell.RunCommandE(t, shell.Command{
+			_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
 				Command: "kubectl",
 				Args:    []string{"get", "pods", "-n", namespace, "-o", "wide"},
 			})
-			_ = shell.RunCommandE(t, shell.Command{
+			_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
 				Command: "kubectl",
 				Args:    []string{"get", "events", "-n", namespace, "--sort-by=.lastTimestamp"},
 			})
 			// Get pod logs (verbose)
-			pods := k8s.ListPods(t, kubectlOptions, metav1.ListOptions{})
+			pods := k8s.ListPodsContext(t, context.Background(), kubectlOptions, metav1.ListOptions{})
 			for _, pod := range pods {
 				if pod.Labels["app.kubernetes.io/name"] == "meerkat" {
 					t.Logf("--- Logs for pod %s (phase: %s) ---", pod.Name, pod.Status.Phase)
-					_ = shell.RunCommandE(t, shell.Command{
+					_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
 						Command: "kubectl",
 						Args:    []string{"logs", "-n", namespace, pod.Name, "--tail=200"},
 					})
@@ -222,7 +223,7 @@ func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 					for _, cs := range pod.Status.ContainerStatuses {
 						if cs.RestartCount > 0 {
 							t.Logf("--- Previous container logs for pod %s ---", pod.Name)
-							_ = shell.RunCommandE(t, shell.Command{
+							_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
 								Command: "kubectl",
 								Args:    []string{"logs", "-n", namespace, pod.Name, "--previous", "--tail=200"},
 							})
@@ -233,7 +234,7 @@ func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 			}
 			// Check rendered configmap
 			t.Log("--- ConfigMap data ---")
-			_ = shell.RunCommandE(t, shell.Command{
+			_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
 				Command: "kubectl",
 				Args:    []string{"get", "configmap", "-n", namespace, "meerkat", "-o", "yaml"},
 			})
@@ -263,8 +264,9 @@ func verifyHealthEndpoints(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 		_ = pfCmdAnalyzer.Wait()
 	}()
 
-	http_helper.HttpGetWithRetryWithCustomValidation(
+	http_helper.HTTPGetWithRetryWithCustomValidationContext(
 		t,
+		context.Background(),
 		"http://localhost:18080"+healthPath,
 		nil,
 		60,
@@ -288,8 +290,9 @@ func verifyHealthEndpoints(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 		_ = pfCmdLogs.Wait()
 	}()
 
-	http_helper.HttpGetWithRetryWithCustomValidation(
+	http_helper.HTTPGetWithRetryWithCustomValidationContext(
 		t,
+		context.Background(),
 		"http://localhost:19090/healthz",
 		nil,
 		60,
