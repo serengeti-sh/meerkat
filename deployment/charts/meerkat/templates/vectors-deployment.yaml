@@ -1,17 +1,17 @@
-{{- if .Values.collector.enabled }}
+{{- if .Values.vectors.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "meerkat.fullname" . }}-collector
+  name: {{ include "meerkat.fullname" . }}-vectors
   labels:
     {{- include "meerkat.labels" . | nindent 4 }}
-    app.kubernetes.io/component: collector
+    app.kubernetes.io/component: vectors
 spec:
-  replicas: {{ .Values.collector.replicaCount | default 1 }}
+  replicas: {{ .Values.vectors.replicaCount | default 1 }}
   selector:
     matchLabels:
       {{- include "meerkat.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: collector
+      app.kubernetes.io/component: vectors
   template:
     metadata:
       annotations:
@@ -21,7 +21,7 @@ spec:
         {{- end }}
       labels:
         {{- include "meerkat.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: collector
+        app.kubernetes.io/component: vectors
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -35,27 +35,23 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: collector
+        - name: vectors
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: {{ include "meerkat.image" . }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - collector
+            - vectors
             - serve
             - --config
             - /app/config/config.yaml
           env:
-            {{- if .Values.logs.enabled }}
-            - name: MEERKAT_LOGS_ADDRESS
-              value: {{ include "meerkat.fullname" . }}-logs:{{ .Values.logs.service.port }}
-            {{- end }}
-            {{- if or .Values.secrets.embedder.apiKey .Values.secrets.embedder.existingSecret }}
-            - name: EMBEDDER_API_KEY
+            {{- if or .Values.secrets.embed.apiKey .Values.secrets.embed.existingSecret }}
+            - name: EMBED_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.secrets.embedder.existingSecret | default (include "meerkat.fullname" .) }}
-                  key: {{ .Values.secrets.embedder.existingSecretKey | default "embedder-api-key" }}
+                  name: {{ .Values.secrets.embed.existingSecret | default (include "meerkat.fullname" .) }}
+                  key: {{ .Values.secrets.embed.existingSecretKey | default "embed-api-key" }}
             {{- end }}
             {{- if and .Values.secrets.milvus.existingSecret .Values.config.vector_store.milvus.auth.enabled }}
             {{- if .Values.config.vector_store.milvus.auth.token }}
@@ -86,14 +82,22 @@ spec:
           {{- end }}
           ports:
             - name: grpc
-              containerPort: 4317
+              containerPort: {{ .Values.vectors.service.port }}
               protocol: TCP
+            - name: otlp
+              containerPort: {{ .Values.vectors.service.otlpPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.vectors.service.metricsPort }}
+              protocol: TCP
+          startupProbe:
+            {{- toYaml .Values.vectors.startupProbe | nindent 12 }}
           livenessProbe:
-            {{- toYaml .Values.collector.livenessProbe | nindent 12 }}
+            {{- toYaml .Values.vectors.livenessProbe | nindent 12 }}
           readinessProbe:
-            {{- toYaml .Values.collector.readinessProbe | nindent 12 }}
+            {{- toYaml .Values.vectors.readinessProbe | nindent 12 }}
           resources:
-            {{- toYaml .Values.collector.resources | nindent 12 }}
+            {{- toYaml .Values.vectors.resources | nindent 12 }}
           volumeMounts:
             - name: config
               mountPath: /app/config

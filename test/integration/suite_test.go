@@ -151,10 +151,9 @@ Respond with JSON only:
 			Temperature:      0.3,
 			SystemPromptFile: s.systemPromptFile,
 		},
-		Scheduler: config.SchedulerConfig{
+		Schedule: config.ScheduleConfig{
 			Enabled: false,
 		},
-		Reporter: config.ReporterConfig{},
 	}
 
 	// 5. Wire up dependencies (same as server.go but without fx)
@@ -199,7 +198,7 @@ Respond with JSON only:
 	}
 
 	// Reporter (no-op in tests)
-	reporterSvc := notify.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
+	reporterSvc := notify.NewService(cfg.Notify.WebhookURL, cfg.Notify.MinSeverity, nil)
 
 	// Inspector service
 	reportRepo := report.NewEntReportRepository(entClient)

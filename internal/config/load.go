@@ -139,22 +139,18 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("inspect.queue_size", 1000)
 	v.SetDefault("inspect.worker_count", 10)
 
-	v.SetDefault("collector.otlp_bind_addr", ":4317")
-	v.SetDefault("collector.batch_size", 100)
-	v.SetDefault("collector.flush_interval", "5s")
-
-	v.SetDefault("embedder.provider", "openai")
-	v.SetDefault("embedder.model", "text-embedding-3-small")
+	v.SetDefault("embed.provider", "openai")
+	v.SetDefault("embed.model", "text-embedding-3-small")
 
 	v.SetDefault("vector_store.milvus.database", "")
 	v.SetDefault("vector_store.milvus.collection", "logs")
 	v.SetDefault("vector_store.milvus.dimension", 1536)
 	v.SetDefault("vector_store.milvus.retention", "72h")
 
-	v.SetDefault("meerkat_logs.enabled", false)
-	v.SetDefault("meerkat_logs.ingest_batch_size", 100)
-	v.SetDefault("meerkat_logs.similarity_threshold", 0.8)
-	v.SetDefault("meerkat_logs.max_context_logs", 50)
+	v.SetDefault("vectors.enabled", false)
+	v.SetDefault("vectors.ingest_batch_size", 100)
+	v.SetDefault("vectors.similarity_threshold", 0.8)
+	v.SetDefault("vectors.max_context_logs", 50)
 }
 
 func bindEnvVars(v *viper.Viper) {
@@ -175,5 +171,5 @@ func bindEnvVars(v *viper.Viper) {
 	_ = v.BindEnv("vector_store.milvus.auth.user", "MILVUS_USER")
 	_ = v.BindEnv("vector_store.milvus.auth.password", "MILVUS_PASSWORD")
 	_ = v.BindEnv("vector_store.milvus.auth.token", "MILVUS_TOKEN")
-	_ = v.BindEnv("meerkat_logs.address", "MEERKAT_LOGS_ADDRESS")
+	_ = v.BindEnv("vectors.address", "VECTORS_ADDRESS")
 }

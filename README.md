@@ -107,7 +107,7 @@ sequenceDiagram
 │   ├── errs/                     # Custom error types
 │   ├── httphandler/              # HTTP handlers (analyzer API)
 │   ├── inspect/                  # Report lifecycle & worker pool
-│   ├── logsclient/               # gRPC client for Vectors
+│   ├── vectorsclient/               # gRPC client for Vectors
 │   ├── meerkatlogspb/            # Generated protobuf code
 │   ├── notify/                   # Notification service (Slack)
 │   ├── report/                   # Report domain & repository
@@ -308,7 +308,7 @@ helm install meerkat ./deployment/charts/meerkat \
 ## Security
 
 - **TLS**: Analyzer HTTP server supports TLS via `http.tls.cert_file` and `http.tls.key_file`
-- **gRPC TLS**: `logsclient` supports `WithTransportCredentials()` for secure inter-service communication
+- **gRPC TLS**: `vectorsclient` supports `WithTransportCredentials()` for secure inter-service communication
 - **API Keys**: Embedder and LLM provider API keys are loaded from environment variables (never commit to VCS)
 - **Database**: PostgreSQL connection uses SSL mode configuration
 

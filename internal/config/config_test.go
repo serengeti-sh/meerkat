@@ -9,10 +9,9 @@ import (
 func TestConfig_Validate(t *testing.T) {
 	valid := func() *Config {
 		return &Config{
-			HTTP:      HTTPConfig{Port: 8080},
-			Store:     StoreConfig{Host: "localhost", Name: "meerkat", User: "meerkat"},
-			Analyzer:  AnalyzerConfig{Provider: "openai"},
-			Collector: CollectorConfig{BatchSize: 100},
+			HTTP:     HTTPConfig{Port: 8080},
+			Store:    StoreConfig{Host: "localhost", Name: "meerkat", User: "meerkat"},
+			Analyzer: AnalyzerConfig{Provider: "openai"},
 		}
 	}
 

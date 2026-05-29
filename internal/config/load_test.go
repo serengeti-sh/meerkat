@@ -63,20 +63,16 @@ app:
 	assert.Equal(t, 8080, cfg.HTTP.Port)
 	assert.Equal(t, "openai", cfg.Analyzer.Provider)
 	assert.Equal(t, "gpt-4o", cfg.Analyzer.Model)
-	assert.Equal(t, ":4317", cfg.Collector.OTLPBindAddr)
-	assert.Equal(t, 100, cfg.Collector.BatchSize)
+	assert.Equal(t, false, cfg.Vectors.Enabled)
+	assert.Equal(t, 100, cfg.Vectors.IngestBatchSize)
 }
 
-func TestLoadFromPath_CollectorConfig(t *testing.T) {
+func TestLoadFromPath_(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
 
 	content := `
-collector:
-  otlp_bind_addr: ":9999"
-  batch_size: 50
-  flush_interval: 10s
-embedder:
+embed:
   provider: openai
   model: text-embedding-3-large
 vector_store:
@@ -91,9 +87,7 @@ vector_store:
 	cfg, err := config.LoadFromPath(path)
 	require.NoError(t, err)
 
-	assert.Equal(t, ":9999", cfg.Collector.OTLPBindAddr)
-	assert.Equal(t, 50, cfg.Collector.BatchSize)
-	assert.Equal(t, "text-embedding-3-large", cfg.Embedder.Model)
+	assert.Equal(t, "text-embedding-3-large", cfg.Embed.Model)
 	assert.Equal(t, "milvus:19530", cfg.VectorStore.Milvus.Address)
 	assert.Equal(t, "test-logs", cfg.VectorStore.Milvus.Collection)
 	assert.Equal(t, 768, cfg.VectorStore.Milvus.Dimension)
@@ -142,7 +136,7 @@ func TestConfig_DSN(t *testing.T) {
 	assert.NotContains(t, redacted, ":pass@")
 }
 
-func TestInspectorConfig_GetDedupWindow(t *testing.T) {
+func TestInspectConfig_GetDedupWindow(t *testing.T) {
 	tests := []struct {
 		input    string
 		expected int
@@ -157,7 +151,7 @@ func TestInspectorConfig_GetDedupWindow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.input, func(t *testing.T) {
-			ic := config.InspectorConfig{DedupWindow: tt.input}
+			ic := config.InspectConfig{DedupWindow: tt.input}
 			assert.Equal(t, tt.expected, int(ic.GetDedupWindow().Minutes()))
 		})
 	}

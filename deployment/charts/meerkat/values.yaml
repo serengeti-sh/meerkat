@@ -111,41 +111,8 @@ analyzer:
       existingSecret: ""
       mountPath: /app/tls
 
-# Log collector server
-collector:
-  enabled: false
-  replicaCount: 1
-
-  service:
-    type: ClusterIP
-    port: 4317
-
-  resources:
-    limits:
-      cpu: 500m
-      memory: 256Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
-
-  livenessProbe:
-    tcpSocket:
-      port: grpc
-    initialDelaySeconds: 10
-    periodSeconds: 10
-    timeoutSeconds: 3
-    failureThreshold: 3
-
-  readinessProbe:
-    tcpSocket:
-      port: grpc
-    initialDelaySeconds: 10
-    periodSeconds: 10
-    timeoutSeconds: 3
-    failureThreshold: 3
-
-# MeerkatLogs ingestion and search server
-logs:
+# Vectors ingestion and search server (gRPC + OTLP)
+vectors:
   enabled: false
   replicaCount: 1
 
@@ -153,7 +120,7 @@ logs:
     type: ClusterIP
     port: 50051
     otlpPort: 4317
-    metricsPort: 51051
+    metricsPort: 9090
 
   resources:
     limits:
@@ -237,23 +204,18 @@ config:
     system_prompt_file: /app/config/system_prompt.txt
     skills_file: /app/config/skills.yaml
 
-  scheduler:
+  schedule:
     enabled: false
     jobs: []
 
-  inspector:
+  inspect:
     dedup_window: 5m
 
-  reporter:
+  notify:
     webhook_url: ""
     min_severity: warning
 
-  collector:
-    otlp_bind_addr: ":4317"
-    batch_size: 100
-    flush_interval: 5s
-
-  meerkat_logs:
+  vectors:
     enabled: false
     address: ":50051"
     otlp_bind_addr: ":4317"
@@ -265,7 +227,7 @@ config:
     deduplicate_by_template: true
     retention: 72h
 
-  embedder:
+  embed:
     provider: openai
     model: text-embedding-3-small
 
@@ -296,14 +258,14 @@ secrets:
     apiKey: ""
     existingSecret: ""
     existingSecretKey: analyzer-api-key
-  reporter:
+  notify:
     webhookURL: ""
     existingSecret: ""
-    existingSecretKey: reporter-webhook-url
-  embedder:
+    existingSecretKey: notify-webhook-url
+  embed:
     apiKey: ""
     existingSecret: ""
-    existingSecretKey: embedder-api-key
+    existingSecretKey: embed-api-key
   milvus:
     user: ""
     password: ""
@@ -327,14 +289,14 @@ systemPrompt: |
   ## Log Context
 
   When the analysis context includes a "=== Recent Log Context ===" section,
-  these are semantically similar log entries retrieved from the MeerkatLogs vector index.
+  these are semantically similar log entries retrieved from the Vectors index.
   Use this context to:
   - Identify recurring error patterns and their frequency
   - Correlate log anomalies with metric alerts
   - Formulate more precise root cause hypotheses
   - Prioritize issues based on log severity distribution
 
-  Do NOT treat MeerkatLogs context as a replacement for live datasource queries.
+  Do NOT treat Vectors context as a replacement for live datasource queries.
   Use it as supplementary evidence alongside current metrics and logs.
 
   ## Tool Usage Rules

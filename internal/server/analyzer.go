@@ -1,6 +1,6 @@
 // Package server assembles and runs the Meerkat services.
 //
-// Each exported function (NewAnalyzer, NewCollector, NewLogs) encapsulates
+// Each exported function (e.g. NewAnalyzer) encapsulates
 // the dependency wiring for its respective service. This keeps cmd/ thin and
 // focused on CLI concerns (flags, config paths, signals).
 package server
@@ -62,7 +62,7 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 	reportRepo := report.NewEntReportRepository(client)
 
 	// Embedder
-	emb := embed.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
+	emb := embed.New(cfg.Embed.APIKey, cfg.Embed.BaseURL, cfg.Embed.Model)
 
 	// MeerkatLogs client
 	logsClient, err := newLogsClient(cfg)
@@ -96,7 +96,7 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 	}
 
 	// Reporter
-	reporterSvc := notify.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
+	reporterSvc := notify.NewService(cfg.Notify.WebhookURL, cfg.Notify.MinSeverity, nil)
 
 	// Inspector
 	var inspectorOpts []inspect.ServiceOption
@@ -109,9 +109,9 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 		reportRepo,
 		reporterSvc,
 		buildDatasourceRefs(cfg),
-		cfg.Inspector.GetDedupWindow(),
-		cfg.Inspector.QueueSize,
-		cfg.Inspector.WorkerCount,
+		cfg.Inspect.GetDedupWindow(),
+		cfg.Inspect.QueueSize,
+		cfg.Inspect.WorkerCount,
 		inspectorOpts...,
 	)
 	if err != nil {
@@ -181,7 +181,7 @@ func (a *Analyzer) Run() error {
 
 	go func() { _ = a.server.Serve(ln) }()
 
-	if a.cfg.Scheduler.Enabled {
+	if a.cfg.Schedule.Enabled {
 		log.Println("Starting scheduler...")
 		if err := a.sched.Start(context.Background()); err != nil {
 			log.Printf("Scheduler error: %v", err)
