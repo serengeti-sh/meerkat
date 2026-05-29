@@ -24,7 +24,7 @@ var _ meerkatlogspb.ServiceServer = (*GRPCServer)(nil)
 // NewGRPCServer creates a gRPC server for the MeerkatLogs service.
 func NewGRPCServer(svc Service) (*GRPCServer, error) {
 	if svc == nil {
-		return nil, fmt.Errorf("meerkatlogs: svc is required")
+		return nil, fmt.Errorf("vectors: svc is required")
 	}
 	return &GRPCServer{svc: svc}, nil
 }

@@ -8,7 +8,7 @@ Thank you for your interest in contributing to Meerkat! This document provides g
 
 - **Go**: 1.26 or later
 - **PostgreSQL**: 14 or later (for local development)
-- **Vector Store**: Milvus or Qdrant (for MeerkatLogs functionality)
+- **Vector Store**: Milvus or Qdrant (for Vectors functionality)
 - **Protocol Buffers Compiler**: `protoc` 3.21+ (for code generation)
 - **Node.js**: 18+ (for OpenAPI bundling)
 - **Docker**: For e2e and deployment tests
@@ -139,7 +139,7 @@ make fmt
 
 ### Naming
 
-- **Packages**: Short, lowercase, no underscores (`meerkatlogs`, `logsclient`)
+- **Packages**: Short, lowercase, no underscores (`vectors`, `logsclient`, `inspect`)
 - **Interfaces**: Noun describing capability (`Service`, `Store`, `Client`)
 - **Implementations**: Descriptive (`service`, `milvusStore`)
 - **Error messages**: Lowercase, no punctuation at end
@@ -169,13 +169,13 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 ### Examples
 
 ```text
-feat(meerkatlogs): add severity-based filtering
+feat(vectors): add severity-based filtering
 
-fix(collector): retry failed flushes up to 3 times
+fix(vectors): retry failed embed calls up to 3 times
 
 docs(readme): update architecture diagram with mermaid
 
-refactor(config): rename rag package to meerkatlogs
+refactor(config): rename meerkatlogs package to vectors
 ```
 
 ## Pull Request Process
@@ -212,8 +212,8 @@ refactor(config): rename rag package to meerkatlogs
 ### Package Boundaries
 
 - **`internal/`**: Private implementation details
-  - Domain packages (`analyzer`, `inspector`, `meerkatlogs`)
-  - Infrastructure (`embedder`, `vectorstore`, `collector`)
+  - Domain packages (`analyzer`, `inspect`, `vectors`)
+  - Infrastructure (`embed`, `vectorstore`, `discovery`)
   - Transport (`httphandler`, `logsclient`)
 - **`pkg/api/`**: Generated public API code
 - **`cmd/`**: Executable entry points
@@ -222,21 +222,18 @@ refactor(config): rename rag package to meerkatlogs
 
 ```text
 Analyzer -> logsclient -> meerkatlogspb
-         -> inspector -> analyzer, report, reporter
-         -> scheduler -> inspector
+         -> inspect -> analyzer, report, notify
+         -> schedule -> inspect
 
-Collector -> logsclient -> meerkatlogspb
-          -> collector (OTLP handler, batcher)
-
-MeerkatLogs -> meerkatlogs (domain service)
-            -> embedder, vectorstore
+Vectors -> vectors (domain service)
+        -> embed, vectorstore
 ```
 
 ### Key Design Principles
 
 1. **Push-only ingestion**: OTLP push model; no log pulling
 2. **Service separation**: Analyzer never accesses vectorstore directly
-3. **gRPC for inter-service**: All analyzer->meerkatlogs communication via gRPC
+3. **gRPC for inter-service**: All analyzer->vectors communication via gRPC
 4. **Config validation**: All services validate config on startup
 5. **Explicit lifecycle**: `Start()`/`Stop()` methods for background services
 

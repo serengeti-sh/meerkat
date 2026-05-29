@@ -105,11 +105,6 @@ reporter:
   webhook_url: ""
   min_severity: warning
 
-collector:
-  otlp_bind_addr: ":4317"
-  batch_size: 100
-  flush_interval: 5s
-
 embedder:
   provider: openai
   api_key: ""
@@ -133,7 +128,7 @@ vector_store:
       # ca_file: ""
       # skip_verify: false
 
-meerkat_logs:
+vectors:
   enabled: true
   address: ":50051"
   otlp_bind_addr: ":4317"

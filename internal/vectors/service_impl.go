@@ -79,10 +79,10 @@ var _ Service = (*service)(nil)
 // NewService creates a Service with the given dependencies.
 func NewService(emb embed.Model, vstore vectorstore.Store, opts ...ServiceOption) (*service, error) {
 	if emb == nil {
-		return nil, fmt.Errorf("meerkatlogs: embedder is required")
+		return nil, fmt.Errorf("vectors: embedder is required")
 	}
 	if vstore == nil {
-		return nil, fmt.Errorf("meerkatlogs: vectorStore is required")
+		return nil, fmt.Errorf("vectors: vectorStore is required")
 	}
 
 	s := &service{

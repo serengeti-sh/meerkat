@@ -2,7 +2,7 @@
 // github.com/vektra/mockery
 // template: testify
 
-package meerkatlogsmocks
+package vectorsmocks
 
 import (
 	"context"

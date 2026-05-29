@@ -4,11 +4,10 @@ AI-powered observability agent that watches your infrastructure like a meerkat o
 
 ## Overview
 
-Meerkat is an AI-driven observability platform consisting of **three independently deployable services**:
+Meerkat is an AI-driven observability platform consisting of **two independently deployable services**:
 
 - **Analyzer**: HTTP API server that orchestrates AI analysis, report management, and scheduling
-- **MeerkatLogs**: gRPC + OTLP server for log ingestion, semantic search, and vector storage
-- **Collector**: OTLP gateway that receives log exports and forwards them to MeerkatLogs
+- **Vectors**: gRPC + OTLP server for log ingestion, semantic search, and vector storage
 
 ## Architecture
 
@@ -19,8 +18,7 @@ graph TB
     end
 
     subgraph "Meerkat Platform"
-        Collector[Collector<br/>OTLP Receiver :4317]
-        MeerkatLogs[MeerkatLogs<br/>gRPC :50051 / OTLP :4317]
+        Vectors[Vectors<br/>gRPC :50051 / OTLP :4317]
         Analyzer[Analyzer<br/>HTTP API :8080]
         PostgreSQL[(PostgreSQL<br/>Reports)]
         VectorStore[(Vector Store<br/>Milvus / Qdrant)]
@@ -31,10 +29,9 @@ graph TB
         Tools[Tools<br/>Prometheus / Loki / VictoriaLogs]
     end
 
-    App -->|OTLP Push| Collector
-    Collector -->|OTLP / gRPC| MeerkatLogs
-    MeerkatLogs -->|Embed & Store| VectorStore
-    Analyzer -->|gRPC Search| MeerkatLogs
+    App -->|OTLP Push| Vectors
+    Vectors -->|Embed & Store| VectorStore
+    Analyzer -->|gRPC Search| Vectors
     Analyzer -->|SQL| PostgreSQL
     Analyzer -->|HTTP| LLM
     Analyzer -->|Query| Tools
@@ -45,18 +42,15 @@ graph TB
 ```mermaid
 sequenceDiagram
     participant App as Application
-    participant Collector as Collector (:4317)
-    participant ML as MeerkatLogs (:50051)
+    participant Vectors as Vectors (:50051/:4317)
     participant VS as Vector Store
 
-    App->>Collector: OTLP Log Export
-    Collector->>Collector: Batch & Buffer
-    Collector->>ML: gRPC Ingest()
-    ML->>ML: Filter (severity/template)
-    ML->>ML: Extract Template (Drain)
-    ML->>ML: Embed (OpenAI)
-    ML->>VS: Store Vector + Metadata
-    ML-->>Collector: IngestResult
+    App->>Vectors: OTLP Log Export
+    Vectors->>Vectors: Filter (severity/template)
+    Vectors->>Vectors: Extract Template (Drain)
+    Vectors->>Vectors: Embed (OpenAI)
+    Vectors->>VS: Store Vector + Metadata
+    Vectors-->>App: ExportResponse
 ```
 
 ### Analysis Flow
@@ -65,13 +59,13 @@ sequenceDiagram
 sequenceDiagram
     participant Client as Client / Webhook
     participant Analyzer as Analyzer (:8080)
-    participant ML as MeerkatLogs (:50051)
+    participant Vectors as Vectors (:50051)
     participant LLM as LLM Provider
     participant DB as PostgreSQL
 
     Client->>Analyzer: POST /v1/inspect or /v1/webhook
-    Analyzer->>ML: gRPC GetContext(service, time range)
-    ML-->>Analyzer: Log Context
+    Analyzer->>Vectors: gRPC GetContext(service, time range)
+    Vectors-->>Analyzer: Log Context
     Analyzer->>LLM: Analysis Prompt + Tools + Context
     LLM-->>Analyzer: Analysis Result
     Analyzer->>DB: Persist Report
@@ -83,8 +77,7 @@ sequenceDiagram
 | Service | Protocol | Default Port | Responsibility |
 |---------|----------|--------------|----------------|
 | **Analyzer** | HTTP (REST) | 8080 | AI analysis, report management, scheduling, webhook reception |
-| **MeerkatLogs** | gRPC + OTLP | 50051 (gRPC), 4317 (OTLP), 51051 (metrics) | Log ingestion, template extraction, semantic search, vector storage |
-| **Collector** | OTLP (gRPC) | 4317 | Log collection gateway, batching, forwarding to MeerkatLogs |
+| **Vectors** | gRPC + OTLP | 50051 (gRPC), 4317 (OTLP), 9090 (metrics) | Log ingestion, template extraction, semantic search, vector storage |
 
 ## Project Structure
 
@@ -100,29 +93,28 @@ sequenceDiagram
 │   ├── meerkat/                  # CLI client
 │   └── meerkat-server/           # Server binaries
 │       ├── analyzer/             # Analyzer server commands
-│       ├── collector/            # Collector server commands
-│       └── logs/                 # MeerkatLogs server commands
+│       └── vectors/              # Vectors server commands
 ├── deployment/
 │   └── charts/meerkat/           # Helm chart
 │       ├── templates/            # K8s manifests
 │       └── values.yaml           # Default configuration
 ├── internal/                     # Private packages
 │   ├── analyzer/                 # AI analysis engine
-│   ├── collector/                # OTLP receiver & batcher
 │   ├── config/                   # Configuration loading & validation
-│   ├── embedder/                 # Text embedding (OpenAI)
+│   ├── discovery/                # Auto-discovery (K8s, Docker, Static)
+│   ├── embed/                    # Text embedding (OpenAI)
 │   ├── ent/                      # Ent ORM generated code
+│   ├── errs/                     # Custom error types
 │   ├── httphandler/              # HTTP handlers (analyzer API)
-│   ├── inspector/                # Report lifecycle & worker pool
-│   ├── logsclient/               # gRPC client for MeerkatLogs
-│   ├── logstream/                # Streaming log processor
-│   ├── meerkatlogs/              # Log ingestion pipeline
+│   ├── inspect/                  # Report lifecycle & worker pool
+│   ├── logsclient/               # gRPC client for Vectors
 │   ├── meerkatlogspb/            # Generated protobuf code
-│   ├── metrics/                  # Prometheus metrics
+│   ├── notify/                   # Notification service (Slack)
 │   ├── report/                   # Report domain & repository
-│   ├── reporter/                 # Notification service (Slack)
-│   ├── scheduler/                # Scheduled analysis jobs
+│   ├── schedule/                 # Scheduled analysis jobs
+│   ├── server/                   # Server DI assembly
 │   ├── tool/                     # Observability tool integrations
+│   ├── vectors/                  # Log ingestion pipeline
 │   └── vectorstore/              # Vector store clients (Milvus, Qdrant)
 ├── pkg/api/                      # Generated OpenAPI client/server
 ├── test/
@@ -170,7 +162,7 @@ store:
   user: meerkat
   password: meerkat
 
-meerkat_logs:
+vectors:
   enabled: true
   address: ":50051"
   otlp_bind_addr: ":4317"
@@ -196,14 +188,11 @@ vector_store:
 # Run database migrations
 go run ./cmd/meerkat-server analyzer migrate apply
 
-# Start MeerkatLogs server (log ingestion + search)
-go run ./cmd/meerkat-server logs serve
+# Start Vectors server (log ingestion + search + OTLP)
+go run ./cmd/meerkat-server vectors serve
 
 # Start Analyzer server (HTTP API + AI analysis)
 go run ./cmd/meerkat-server analyzer serve
-
-# Start Collector server (OTLP log collection) - optional
-go run ./cmd/meerkat-server collector serve
 ```
 
 ### CLI
@@ -239,11 +228,11 @@ Checks include:
 - Analyzer provider (`openai` | `anthropic`)
 - Vector store driver (`milvus` | `qdrant`)
 - Filter mode (`all` | `severity` | `template`)
-- MeerkatLogs address when enabled
+- Vectors address when enabled
 
 ## Filtering Modes
 
-MeerkatLogs supports three log filtering modes during ingestion:
+Vectors supports three log filtering modes during ingestion:
 
 | Mode | Behavior |
 |------|----------|
@@ -253,13 +242,13 @@ MeerkatLogs supports three log filtering modes during ingestion:
 
 ## Metrics
 
-MeerkatLogs exposes Prometheus metrics on `:51051/metrics`:
+Vectors exposes Prometheus metrics on `:9090/metrics`:
 
-- `meerkatlogs_ingest_total` — Total ingested logs
-- `meerkatlogs_ingest_deduplicated_total` — Total deduplicated logs
-- `meerkatlogs_search_duration_seconds` — Search latency histogram
-- `meerkatlogs_search_total` — Total search requests
-- `meerkatlogs_embed_duration_seconds` — Embedding latency histogram
+- `vectors_ingest_total` — Total ingested logs
+- `vectors_ingest_deduplicated_total` — Total deduplicated logs
+- `vectors_search_duration_seconds` — Search latency histogram
+- `vectors_search_total` — Total search requests
+- `vectors_embed_duration_seconds` — Embedding latency histogram
 
 ## Development
 
@@ -299,7 +288,7 @@ docker build -f build/docker/server.Dockerfile -t meerkat-server .
 ```bash
 # Install with default values
 helm install meerkat ./deployment/charts/meerkat \
-  --set logs.enabled=true \
+  --set vectors.enabled=true \
   --set analyzer.enabled=true
 
 # Install with custom values
@@ -312,10 +301,9 @@ helm install meerkat ./deployment/charts/meerkat \
 | Service | Port | Protocol | Purpose |
 |---------|------|----------|---------|
 | Analyzer | 8080 | HTTP | REST API |
-| MeerkatLogs | 50051 | gRPC | Search/Ingest/GetContext |
-| MeerkatLogs | 4317 | OTLP/gRPC | Log ingestion |
-| MeerkatLogs | 51051 | HTTP | Metrics & Health |
-| Collector | 4317 | OTLP/gRPC | Log collection |
+| Vectors | 50051 | gRPC | Search/Ingest/GetContext |
+| Vectors | 4317 | OTLP/gRPC | Log ingestion |
+| Vectors | 9090 | HTTP | Metrics & Health |
 
 ## Security
 

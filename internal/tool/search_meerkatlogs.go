@@ -9,12 +9,12 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/logsclient"
 )
 
-// searchLogsTool searches the MeerkatLogs pipeline for semantically similar log entries.
+// searchLogsTool searches the Vectors pipeline for semantically similar log entries.
 type searchLogsTool struct {
 	client logsclient.Client
 }
 
-// NewSearchLogsTool creates a tool that searches the MeerkatLogs index via gRPC.
+// NewSearchLogsTool creates a tool that searches the Vectors index via gRPC.
 func NewSearchLogsTool(client logsclient.Client) *searchLogsTool {
 	return &searchLogsTool{client: client}
 }
@@ -99,7 +99,7 @@ func (t *searchLogsTool) Execute(ctx context.Context, args json.RawMessage) (str
 
 	results, err := t.client.Search(ctx, params.Query, opts)
 	if err != nil {
-		return "", fmt.Errorf("search meerkatlogs: %w", err)
+		return "", fmt.Errorf("search vectors: %w", err)
 	}
 
 	out, err := json.Marshal(results)
