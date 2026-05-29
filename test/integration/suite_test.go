@@ -151,10 +151,9 @@ Respond with JSON only:
 			Temperature:      0.3,
 			SystemPromptFile: s.systemPromptFile,
 		},
-		Scheduler: config.SchedulerConfig{
+		Schedule: config.ScheduleConfig{
 			Enabled: false,
 		},
-		Reporter: config.ReporterConfig{},
 	}
 
 	// 5. Wire up dependencies (same as server.go but without fx)
