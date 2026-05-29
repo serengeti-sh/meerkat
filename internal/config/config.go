@@ -58,6 +58,9 @@ type ToolConfig struct {
 	VictoriaLogs                []VictoriaLogsToolConfig `mapstructure:"victoria_logs"`
 	VictoriaLogsDescription     string                   `mapstructure:"victoria_logs_description"`
 	VictoriaLogsParamSchemaFile string                   `mapstructure:"victoria_logs_param_schema_file"`
+	Loki                        []LokiToolConfig         `mapstructure:"loki"`
+	LokiDescription             string                   `mapstructure:"loki_description"`
+	LokiParamSchemaFile         string                   `mapstructure:"loki_param_schema_file"`
 }
 
 type PrometheusToolConfig struct {
@@ -67,6 +70,12 @@ type PrometheusToolConfig struct {
 }
 
 type VictoriaLogsToolConfig struct {
+	Name   string `mapstructure:"name"`
+	URL    string `mapstructure:"url"`
+	CAFile string `mapstructure:"ca_file"`
+}
+
+type LokiToolConfig struct {
 	Name   string `mapstructure:"name"`
 	URL    string `mapstructure:"url"`
 	CAFile string `mapstructure:"ca_file"`

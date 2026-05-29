@@ -272,6 +272,26 @@ func buildToolRegistry(cfg *config.Config, emb embed.Model, logsClient vectorscl
 		tools = append(tools, t)
 	}
 
+	for _, lc := range cfg.Tools.Loki {
+		httpClient, err := tool.NewHTTPClient(lc.CAFile)
+		if err != nil {
+			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
+		}
+		description := cfg.Tools.LokiDescription
+		if description == "" {
+			description = "Query logs using LogQL. Returns log entries with timestamps and labels."
+		}
+		schemaFile := cfg.Tools.LokiParamSchemaFile
+		if schemaFile == "" {
+			schemaFile = "internal/tool/schemas/loki.json"
+		}
+		t, err := tool.NewLokiTool(lc.Name, description, schemaFile, lc.URL, httpClient)
+		if err != nil {
+			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
+		}
+		tools = append(tools, t)
+	}
+
 	if logsClient != nil {
 		tools = append(tools, tool.NewSearchLogsTool(logsClient))
 	}
@@ -310,6 +330,9 @@ func buildDatasourceRefs(cfg *config.Config) func() []analyzer.DatasourceRef {
 		}
 		for _, vc := range cfg.Tools.VictoriaLogs {
 			refs = append(refs, analyzer.DatasourceRef{Name: vc.Name, Type: "victoria-logs"})
+		}
+		for _, lc := range cfg.Tools.Loki {
+			refs = append(refs, analyzer.DatasourceRef{Name: lc.Name, Type: "loki"})
 		}
 		return refs
 	}
