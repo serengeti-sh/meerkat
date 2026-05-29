@@ -39,8 +39,8 @@ func newBaseTool(name, description, schemaFile string) (baseTool, error) {
 	}, nil
 }
 
-func (b baseTool) Name() string               { return b.name }
-func (b baseTool) Description() string        { return b.description }
+func (b baseTool) Name() string                { return b.name }
+func (b baseTool) Description() string         { return b.description }
 func (b baseTool) Parameters() json.RawMessage { return b.params }
 
 func (b baseTool) validateArgs(args json.RawMessage) error {

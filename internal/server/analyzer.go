@@ -22,11 +22,11 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/embed"
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
-	"github.com/serengeti-sh/meerkat/internal/vectorsclient"
 	"github.com/serengeti-sh/meerkat/internal/notify"
 	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/schedule"
 	"github.com/serengeti-sh/meerkat/internal/tool"
+	"github.com/serengeti-sh/meerkat/internal/vectorsclient"
 )
 
 const (

@@ -265,5 +265,3 @@ func TestHandler_New_NilInspector(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "inspectorSvc is required")
 }
-
-

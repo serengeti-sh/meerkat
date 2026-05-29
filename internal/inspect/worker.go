@@ -6,8 +6,8 @@ import (
 	"log"
 
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
-	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/notify"
+	"github.com/serengeti-sh/meerkat/internal/report"
 )
 
 func (s *service) worker(id int, ctx context.Context) {

@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"time"
-
 )
 
 // CustomTool calls an arbitrary HTTP endpoint configured by the user.

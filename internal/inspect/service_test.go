@@ -13,9 +13,9 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	analyzerMocks "github.com/serengeti-sh/meerkat/internal/analyzer/mocks"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
+	reporterMocks "github.com/serengeti-sh/meerkat/internal/notify/mocks"
 	"github.com/serengeti-sh/meerkat/internal/report"
 	reportMocks "github.com/serengeti-sh/meerkat/internal/report/mocks"
-	reporterMocks "github.com/serengeti-sh/meerkat/internal/notify/mocks"
 )
 
 func testRefs() inspect.DatasourceRefs {
@@ -257,4 +257,3 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 		return true
 	}, 300*time.Millisecond, 10*time.Millisecond)
 }
-

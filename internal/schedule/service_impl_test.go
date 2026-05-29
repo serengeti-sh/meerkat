@@ -89,4 +89,3 @@ func TestCronScheduler_StartStop_NoJobs(t *testing.T) {
 	assert.NoError(t, err)
 	s.Stop()
 }
-

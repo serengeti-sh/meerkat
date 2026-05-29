@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strconv"
 	"time"
-
 )
 
 // VictoriaLogsTool queries logs from a single Victoria Logs endpoint.

@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strconv"
 	"time"
-
 )
 
 // LokiTool queries logs from a single Grafana Loki endpoint.

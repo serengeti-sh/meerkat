@@ -19,7 +19,7 @@ type Config struct {
 	Collector   CollectorConfig   `mapstructure:"collector"`
 	Embedder    EmbedderConfig    `mapstructure:"embedder"`
 	VectorStore VectorStoreConfig `mapstructure:"vector_store"`
-	Vectors VectorsConfig `mapstructure:"vectors"`
+	Vectors     VectorsConfig     `mapstructure:"vectors"`
 }
 
 type AppConfig struct {

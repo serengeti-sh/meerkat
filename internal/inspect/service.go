@@ -13,9 +13,9 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/ent"
 	errs "github.com/serengeti-sh/meerkat/internal/errs"
-	"github.com/serengeti-sh/meerkat/internal/vectorsclient"
 	"github.com/serengeti-sh/meerkat/internal/notify"
 	"github.com/serengeti-sh/meerkat/internal/report"
+	"github.com/serengeti-sh/meerkat/internal/vectorsclient"
 )
 
 // Service orchestrates inspections.
