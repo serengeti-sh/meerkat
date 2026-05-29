@@ -139,8 +139,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("inspect.queue_size", 1000)
 	v.SetDefault("inspect.worker_count", 10)
 
-	v.SetDefault("embedder.provider", "openai")
-	v.SetDefault("embedder.model", "text-embedding-3-small")
+	v.SetDefault("embed.provider", "openai")
+	v.SetDefault("embed.model", "text-embedding-3-small")
 
 	v.SetDefault("vector_store.milvus.database", "")
 	v.SetDefault("vector_store.milvus.collection", "logs")

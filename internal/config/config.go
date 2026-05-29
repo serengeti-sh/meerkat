@@ -13,11 +13,10 @@ type Config struct {
 	Store       StoreConfig       `mapstructure:"store"`
 	Tools       ToolConfig        `mapstructure:"tools"`
 	Analyzer    AnalyzerConfig    `mapstructure:"analyzer"`
-	Scheduler   SchedulerConfig   `mapstructure:"scheduler"`
-	Inspector   InspectorConfig   `mapstructure:"inspector"`
-	Reporter    ReporterConfig    `mapstructure:"reporter"`
-	Collector   CollectorConfig   `mapstructure:"collector"`
-	Embedder    EmbedderConfig    `mapstructure:"embedder"`
+	Schedule    ScheduleConfig    `mapstructure:"schedule"`
+	Inspect     InspectConfig     `mapstructure:"inspect"`
+	Notify      NotifyConfig      `mapstructure:"notify"`
+	Embed       EmbedConfig       `mapstructure:"embed"`
 	VectorStore VectorStoreConfig `mapstructure:"vector_store"`
 	Vectors     VectorsConfig     `mapstructure:"vectors"`
 }
@@ -116,17 +115,17 @@ type SchedulerJobConfig struct {
 	LogQuery    string `mapstructure:"log_query"`
 }
 
-type SchedulerConfig struct {
+type ScheduleConfig struct {
 	Enabled bool                 `mapstructure:"enabled"`
 	Jobs    []SchedulerJobConfig `mapstructure:"jobs"`
 }
 
-type ReporterConfig struct {
+type NotifyConfig struct {
 	WebhookURL  string `mapstructure:"webhook_url"`
 	MinSeverity string `mapstructure:"min_severity"` // info, warning, critical
 }
 
-type InspectorConfig struct {
+type InspectConfig struct {
 	DedupWindow string `mapstructure:"dedup_window"` // e.g. "5m", "30m"
 	QueueSize   int    `mapstructure:"queue_size"`   // max queued analyses before rejecting
 	WorkerCount int    `mapstructure:"worker_count"` // concurrent analysis workers
@@ -161,7 +160,7 @@ func (c *Config) RedactedDSN() string {
 }
 
 // GetDedupWindow parses the dedup window duration, falling back to 5m.
-func (c InspectorConfig) GetDedupWindow() time.Duration {
+func (c InspectConfig) GetDedupWindow() time.Duration {
 	if c.DedupWindow == "" {
 		return 5 * time.Minute
 	}
@@ -172,13 +171,7 @@ func (c InspectorConfig) GetDedupWindow() time.Duration {
 	return d
 }
 
-type CollectorConfig struct {
-	OTLPBindAddr  string        `mapstructure:"otlp_bind_addr"`
-	BatchSize     int           `mapstructure:"batch_size"`
-	FlushInterval time.Duration `mapstructure:"flush_interval"`
-}
-
-type EmbedderConfig struct {
+type EmbedConfig struct {
 	Provider string `mapstructure:"provider"`
 	Model    string `mapstructure:"model"`
 	APIKey   string `mapstructure:"api_key"`
@@ -302,12 +295,6 @@ func (c *Config) Validate() error {
 			default:
 				return fmt.Errorf("vectors.filter_mode must be 'all', 'severity', or 'template', got %q", c.Vectors.FilterMode)
 			}
-		}
-	}
-
-	if c.Collector.OTLPBindAddr != "" {
-		if c.Collector.BatchSize <= 0 {
-			return fmt.Errorf("collector.batch_size must be > 0")
 		}
 	}
 

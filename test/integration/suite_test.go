@@ -199,7 +199,7 @@ Respond with JSON only:
 	}
 
 	// Reporter (no-op in tests)
-	reporterSvc := notify.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
+	reporterSvc := notify.NewService(cfg.Notify.WebhookURL, cfg.Notify.MinSeverity, nil)
 
 	// Inspector service
 	reportRepo := report.NewEntReportRepository(entClient)

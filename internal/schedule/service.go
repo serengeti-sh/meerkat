@@ -44,7 +44,7 @@ var _ Service = (*service)(nil)
 // NewService creates a scheduler from configuration.
 func NewService(inspectorSvc Inspector, cfg *config.Config) *service {
 	var jobs []Job
-	for _, j := range cfg.Scheduler.Jobs {
+	for _, j := range cfg.Schedule.Jobs {
 		d, err := time.ParseDuration(j.Interval)
 		if err != nil {
 			log.Printf("[scheduler] skipping job %q: invalid interval %q: %v", j.Name, j.Interval, err)

@@ -12,7 +12,6 @@ func TestConfig_Validate(t *testing.T) {
 			HTTP:      HTTPConfig{Port: 8080},
 			Store:     StoreConfig{Host: "localhost", Name: "meerkat", User: "meerkat"},
 			Analyzer:  AnalyzerConfig{Provider: "openai"},
-			Collector: CollectorConfig{BatchSize: 100},
 		}
 	}
 

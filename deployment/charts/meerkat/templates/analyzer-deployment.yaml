@@ -45,9 +45,9 @@ spec:
             - --config
             - /app/config/config.yaml
           env:
-            {{- if .Values.logs.enabled }}
-            - name: MEERKAT_LOGS_ADDRESS
-              value: {{ include "meerkat.fullname" . }}-logs:{{ .Values.logs.service.port }}
+            {{- if .Values.vectors.enabled }}
+            - name: VECTORS_ADDRESS
+              value: {{ include "meerkat.fullname" . }}-logs:{{ .Values.vectors.service.port }}
             {{- end }}
             {{- if or .Values.secrets.database.password .Values.secrets.database.existingSecret }}
             - name: DATABASE_PASSWORD
@@ -63,12 +63,12 @@ spec:
                   name: {{ .Values.secrets.analyzer.existingSecret | default (include "meerkat.fullname" .) }}
                   key: {{ .Values.secrets.analyzer.existingSecretKey | default "analyzer-api-key" }}
             {{- end }}
-            {{- if or .Values.secrets.reporter.webhookURL .Values.secrets.reporter.existingSecret }}
-            - name: REPORTER_WEBHOOK_URL
+            {{- if or .Values.secrets.notify.webhookURL .Values.secrets.notify.existingSecret }}
+            - name: NOTIFY_WEBHOOK_URL
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.secrets.reporter.existingSecret | default (include "meerkat.fullname" .) }}
-                  key: {{ .Values.secrets.reporter.existingSecretKey | default "reporter-webhook-url" }}
+                  name: {{ .Values.secrets.notify.existingSecret | default (include "meerkat.fullname" .) }}
+                  key: {{ .Values.secrets.notify.existingSecretKey | default "notify-webhook-url" }}
             {{- end }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}

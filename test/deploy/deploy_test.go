@@ -182,7 +182,7 @@ func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	maxRetries := 60
 	retrySleep := 5 * time.Second
 
-	deployments := []string{"meerkat-analyzer", "meerkat-logs", "meerkat-collector"}
+	deployments := []string{"meerkat-analyzer", "meerkat-vectors"}
 
 	for i := range maxRetries {
 		allReady := true
@@ -274,11 +274,11 @@ func verifyHealthEndpoints(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 		},
 	)
 
-	// Verify logs health endpoint (metrics server)
-	t.Log("Verifying logs health endpoint")
+	// Verify vectors health endpoint (metrics server)
+	t.Log("Verifying vectors health endpoint")
 	pfCmdLogs := exec.Command("kubectl", "port-forward",
 		"-n", namespace,
-		"svc/meerkat-logs", "19090:51051",
+		"svc/meerkat-vectors", "19090:9090",
 	)
 	pfCmdLogs.Stdout = os.Stderr
 	pfCmdLogs.Stderr = os.Stderr

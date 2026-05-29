@@ -43,7 +43,7 @@ func Run(cfgFile string, port int) error {
 		cfg.VectorStore.Milvus.Retention = ml.Retention
 	}
 
-	emb := embed.New(cfg.Embedder.APIKey, cfg.Embedder.BaseURL, cfg.Embedder.Model)
+	emb := embed.New(cfg.Embed.APIKey, cfg.Embed.BaseURL, cfg.Embed.Model)
 
 	vstore, err := vectorstore.New(cfg)
 	if err != nil {

@@ -1,23 +1,23 @@
-{{- if .Values.logs.enabled }}
+{{- if .Values.vectors.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "meerkat.fullname" . }}-logs
+  name: {{ include "meerkat.fullname" . }}-vectors
   labels:
     {{- include "meerkat.labels" . | nindent 4 }}
-    app.kubernetes.io/component: logs
+    app.kubernetes.io/component: vectors
 spec:
-  type: {{ .Values.logs.service.type }}
+  type: {{ .Values.vectors.service.type }}
   ports:
-    - port: {{ .Values.logs.service.port }}
+    - port: {{ .Values.vectors.service.port }}
       targetPort: grpc
       protocol: TCP
       name: grpc
-    - port: {{ .Values.logs.service.otlpPort }}
+    - port: {{ .Values.vectors.service.otlpPort }}
       targetPort: otlp
       protocol: TCP
       name: otlp
   selector:
     {{- include "meerkat.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: logs
+    app.kubernetes.io/component: vectors
 {{- end }}

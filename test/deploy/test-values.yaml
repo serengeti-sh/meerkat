@@ -47,10 +47,7 @@ analyzer:
   autoscaling:
     enabled: false
 
-collector:
-  enabled: true
-
-logs:
+vectors:
   enabled: true
 
 image:
@@ -123,18 +120,18 @@ config:
     system_prompt_file: /app/config/system_prompt.txt
     skills_file: /app/config/skills.yaml
 
-  scheduler:
+  schedule:
     enabled: false
     jobs: []
 
-  inspector:
+  inspect:
     dedup_window: 5m
 
-  reporter:
+  notify:
     webhook_url: ""
     min_severity: warning
 
-  meerkat_logs:
+  vectors:
     enabled: true
     address: ":50051"
     filter_mode: template
@@ -149,8 +146,8 @@ secrets:
     apiKey: "test-analyzer-key"
     existingSecret: ""
     existingSecretKey: analyzer-api-key
-  reporter:
-    slackWebhookURL: ""
+  notify:
+    webhookURL: ""
     existingSecret: ""
 
 extraEnv: []

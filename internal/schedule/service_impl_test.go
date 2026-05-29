@@ -18,7 +18,7 @@ import (
 func TestNewService_InvalidInterval(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	cfg := &config.Config{
-		Scheduler: config.SchedulerConfig{
+		Schedule: config.ScheduleConfig{
 			Enabled: false,
 			Jobs: []config.SchedulerJobConfig{
 				{Name: "bad-job", Interval: "invalid", MetricQuery: "up"},
@@ -49,7 +49,7 @@ func TestCronScheduler_StartStop(t *testing.T) {
 	)
 
 	cfg := &config.Config{
-		Scheduler: config.SchedulerConfig{
+		Schedule: config.ScheduleConfig{
 			Enabled: false,
 			Jobs: []config.SchedulerJobConfig{
 				{Name: "test-job", Interval: "100ms", MetricQuery: "up"},
@@ -74,7 +74,7 @@ func TestCronScheduler_StartStop(t *testing.T) {
 func TestCronScheduler_StartStop_NoJobs(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	cfg := &config.Config{
-		Scheduler: config.SchedulerConfig{
+		Schedule: config.ScheduleConfig{
 			Enabled: false,
 			Jobs:    []config.SchedulerJobConfig{},
 		},
