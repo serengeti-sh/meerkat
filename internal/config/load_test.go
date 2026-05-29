@@ -63,8 +63,8 @@ app:
 	assert.Equal(t, 8080, cfg.HTTP.Port)
 	assert.Equal(t, "openai", cfg.Analyzer.Provider)
 	assert.Equal(t, "gpt-4o", cfg.Analyzer.Model)
-	assert.Equal(t, ":4317", cfg.Collector.OTLPBindAddr)
-	assert.Equal(t, 100, cfg.Collector.BatchSize)
+	assert.Equal(t, false, cfg.Vectors.Enabled)
+	assert.Equal(t, 100, cfg.Vectors.IngestBatchSize)
 }
 
 func TestLoadFromPath_CollectorConfig(t *testing.T) {

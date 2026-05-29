@@ -139,7 +139,7 @@ make fmt
 
 ### Naming
 
-- **Packages**: Short, lowercase, no underscores (`vectors`, `logsclient`, `inspect`)
+- **Packages**: Short, lowercase, no underscores (`vectors`, `vectorsclient`, `inspect`)
 - **Interfaces**: Noun describing capability (`Service`, `Store`, `Client`)
 - **Implementations**: Descriptive (`service`, `milvusStore`)
 - **Error messages**: Lowercase, no punctuation at end
@@ -214,14 +214,14 @@ refactor(config): rename meerkatlogs package to vectors
 - **`internal/`**: Private implementation details
   - Domain packages (`analyzer`, `inspect`, `vectors`)
   - Infrastructure (`embed`, `vectorstore`, `discovery`)
-  - Transport (`httphandler`, `logsclient`)
+  - Transport (`httphandler`, `vectorsclient`)
 - **`pkg/api/`**: Generated public API code
 - **`cmd/`**: Executable entry points
 
 ### Dependency Direction
 
 ```text
-Analyzer -> logsclient -> meerkatlogspb
+Analyzer -> vectorsclient -> meerkatlogspb
          -> inspect -> analyzer, report, notify
          -> schedule -> inspect
 

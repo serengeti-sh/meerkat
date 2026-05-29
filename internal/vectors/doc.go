@@ -7,8 +7,8 @@
 // GRPCServer transport adapter.
 //
 // This package is the core library used by the vectors server. Consumers
-// (analyzer, collector) should communicate with vectors via gRPC
-// (logsclient package) rather than using this package directly.
+// (analyzer) should communicate with vectors via gRPC
+// (vectorsclient package) rather than using this package directly.
 //
 // Entry points:
 //

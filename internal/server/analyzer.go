@@ -1,6 +1,6 @@
 // Package server assembles and runs the Meerkat services.
 //
-// Each exported function (NewAnalyzer, NewCollector, NewLogs) encapsulates
+// Each exported function (e.g. NewAnalyzer) encapsulates
 // the dependency wiring for its respective service. This keeps cmd/ thin and
 // focused on CLI concerns (flags, config paths, signals).
 package server

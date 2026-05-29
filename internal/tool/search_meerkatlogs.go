@@ -24,7 +24,7 @@ func (t *searchLogsTool) Name() string {
 }
 
 func (t *searchLogsTool) Description() string {
-	return "Search semantically similar log entries from the MeerkatLogs vector index. Returns log entries with timestamps, service names, severity levels, and raw body text."
+	return "Search semantically similar log entries from the Vectors index. Returns log entries with timestamps, service names, severity levels, and raw body text."
 }
 
 func (t *searchLogsTool) Parameters() json.RawMessage {

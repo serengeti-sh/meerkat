@@ -48,10 +48,29 @@ func WithLogsClient(client vectorsclient.Client) ServiceOption {
 // DatasourceRefs provides the current list of datasource references for analysis.
 type DatasourceRefs func() []analyzer.DatasourceRef
 
+// analyzerSvc defines what inspect needs from an analysis engine.
+type analyzerSvc interface {
+	Analyze(ctx context.Context, input *analyzer.AnalysisInput) (*analyzer.AnalysisResult, error)
+}
+
+// reporterSvc defines what inspect needs from a notification service.
+type reporterSvc interface {
+	Report(ctx context.Context, report *notify.ReportData) error
+}
+
+// reportRepo defines what inspect needs from report storage.
+type reportRepo interface {
+	Create(ctx context.Context, rpt *report.Report) error
+	GetByID(ctx context.Context, id string) (*report.Report, error)
+	List(ctx context.Context, limit int) ([]*report.Report, error)
+	FindActiveByQuery(ctx context.Context, trigger, query string, since time.Time) (*report.Report, error)
+	Update(ctx context.Context, rpt *report.Report) error
+}
+
 type service struct {
-	analyzerSvc analyzer.Service
-	reportRepo  report.Repository
-	reporterSvc notify.Service
+	analyzerSvc analyzerSvc
+	reportRepo  reportRepo
+	reporterSvc reporterSvc
 	logsClient  vectorsclient.Client
 	dsRefs      DatasourceRefs
 	dedupWindow time.Duration
@@ -71,9 +90,9 @@ type analysisJob struct {
 }
 
 func NewService(
-	analyzerSvc analyzer.Service,
-	reportRepo report.Repository,
-	reporterSvc notify.Service,
+	analyzerSvc analyzerSvc,
+	reportRepo reportRepo,
+	reporterSvc reporterSvc,
 	dsRefs DatasourceRefs,
 	dedupWindow time.Duration,
 	queueSize int,
