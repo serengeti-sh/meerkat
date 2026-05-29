@@ -19,7 +19,6 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
-	"github.com/serengeti-sh/meerkat/internal/embed"
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
 	"github.com/serengeti-sh/meerkat/internal/notify"
@@ -61,15 +60,6 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 	// Repository
 	reportRepo := report.NewEntReportRepository(client)
 
-	// Embedder
-	emb := embed.New(cfg.Embed.APIKey, cfg.Embed.BaseURL, cfg.Embed.Model)
-
-	// Embedder health check
-	ctx := context.Background()
-	if err := emb.HealthCheck(ctx); err != nil {
-		return nil, fmt.Errorf("embedder health check failed: %w", err)
-	}
-
 	// MeerkatLogs client
 	logsClient, err := newLogsClient(cfg)
 	if err != nil {
@@ -77,7 +67,7 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 	}
 
 	// Tool registry
-	toolRegistry, err := buildToolRegistry(cfg, emb, logsClient)
+	toolRegistry, err := buildToolRegistry(cfg, logsClient)
 	if err != nil {
 		return nil, fmt.Errorf("build tool registry: %w", err)
 	}
@@ -96,7 +86,7 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 		},
 	})
 
-	if err := provider.HealthCheck(ctx); err != nil {
+	if err := provider.HealthCheck(context.Background()); err != nil {
 		return nil, fmt.Errorf("llm provider health check failed: %w", err)
 	}
 
@@ -229,7 +219,7 @@ func newLogsClient(cfg *config.Config) (vectorsclient.Client, error) {
 	return client, nil
 }
 
-func buildToolRegistry(cfg *config.Config, emb embed.Model, logsClient vectorsclient.Client) (*tool.Registry, error) {
+func buildToolRegistry(cfg *config.Config, logsClient vectorsclient.Client) (*tool.Registry, error) {
 	var tools []tool.Plugin
 
 	for _, pc := range cfg.Tools.Prometheus {
