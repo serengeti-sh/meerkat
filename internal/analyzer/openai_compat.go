@@ -42,6 +42,21 @@ func newOpenAICompatProvider(cfg ProviderConfig) LLMProvider {
 	}
 }
 
+func (p *openaiCompatProvider) HealthCheck(ctx context.Context) error {
+	// Perform a minimal completion call to verify connectivity.
+	_, err := p.Complete(ctx, &CompletionRequest{
+		Messages: []Message{{Role: RoleUser, Content: "hi"}},
+	})
+	if err != nil {
+		// Ignore auth errors during health check (connection is fine, just bad key)
+		if errors.Is(err, ErrAuthError) {
+			return nil
+		}
+		return fmt.Errorf("openai provider health check failed: %w", err)
+	}
+	return nil
+}
+
 func (p *openaiCompatProvider) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
 	return retryWithBackoff(ctx, p.retryCfg, func() (*CompletionResponse, error) {
 		messages := make([]openai.ChatCompletionMessageParamUnion, 0, len(req.Messages))

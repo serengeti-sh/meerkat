@@ -333,6 +333,14 @@ func joinQuoted(ids []string) string {
 	return strings.Join(quoted, ", ")
 }
 
+func (s *milvusStore) Ping(ctx context.Context) error {
+	_, err := s.client.ListCollections(ctx)
+	if err != nil {
+		return fmt.Errorf("milvus ping failed: %w", err)
+	}
+	return nil
+}
+
 func (s *milvusStore) Close() error {
 	return s.client.Close()
 }

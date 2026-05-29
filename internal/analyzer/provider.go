@@ -5,6 +5,9 @@ import "context"
 // LLMProvider is the interface for LLM API calls.
 type LLMProvider interface {
 	Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error)
+
+	// HealthCheck verifies connectivity to the LLM provider.
+	HealthCheck(ctx context.Context) error
 }
 
 type ProviderConfig struct {

@@ -18,6 +18,8 @@ type mockEmbedder struct {
 	err     error
 }
 
+func (m *mockEmbedder) HealthCheck(ctx context.Context) error { return nil }
+
 func (m *mockEmbedder) Embed(ctx context.Context, texts []string) ([][]float32, error) {
 	if m.err != nil {
 		return nil, m.err
@@ -56,6 +58,7 @@ func (m *mockVectorStore) Search(ctx context.Context, vector []float32, opts vec
 }
 
 func (m *mockVectorStore) Delete(ctx context.Context, ids []string) error { return nil }
+func (m *mockVectorStore) Ping(ctx context.Context) error                 { return nil }
 func (m *mockVectorStore) Close() error                                   { return nil }
 
 func TestService_Ingest(t *testing.T) {

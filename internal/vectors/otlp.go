@@ -2,9 +2,13 @@ package vectors
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"net"
 	"strconv"
 	"time"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -14,20 +18,67 @@ import (
 	resourcev1 "go.opentelemetry.io/proto/otlp/resource/v1"
 )
 
-// OTLPServer implements the OTLP LogsServiceServer.
-// It receives OTLP logs and forwards them to the vectors Service.
-type OTLPServer struct {
+// OTLPIngestor receives logs via OTLP/gRPC and forwards them to the vectors Service.
+type OTLPIngestor struct {
+	addr       string
+	grpcServer *grpc.Server
+	listener   net.Listener
+}
+
+// NewOTLPIngestor creates an OTLP ingestor that will listen on the given address.
+func NewOTLPIngestor(addr string) *OTLPIngestor {
+	return &OTLPIngestor{addr: addr}
+}
+
+// Name returns the ingestor identifier.
+func (o *OTLPIngestor) Name() string {
+	return "otlp"
+}
+
+// Start begins the OTLP gRPC server and registers the logs receiver.
+func (o *OTLPIngestor) Start(ctx context.Context, svc Service) error {
+	lis, err := net.Listen("tcp", o.addr)
+	if err != nil {
+		return fmt.Errorf("listen otlp: %w", err)
+	}
+	o.listener = lis
+
+	o.grpcServer = grpc.NewServer()
+	logsv1.RegisterLogsServiceServer(o.grpcServer, &otlpLogsServer{svc: svc})
+
+	go func() {
+		log.Printf("OTLP ingestor listening on %s", o.addr)
+		if err := o.grpcServer.Serve(lis); err != nil {
+			log.Printf("OTLP server error: %v", err)
+		}
+	}()
+
+	return nil
+}
+
+// Stop gracefully shuts down the OTLP gRPC server.
+func (o *OTLPIngestor) Stop(ctx context.Context) error {
+	done := make(chan struct{})
+	go func() {
+		o.grpcServer.GracefulStop()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-ctx.Done():
+		o.grpcServer.Stop()
+	}
+	return nil
+}
+
+// otlpLogsServer implements the OTLP LogsServiceServer.
+type otlpLogsServer struct {
 	logsv1.UnimplementedLogsServiceServer
 	svc Service
 }
 
-// NewOTLPServer creates an OTLP server that forwards to the given service.
-func NewOTLPServer(svc Service) *OTLPServer {
-	return &OTLPServer{svc: svc}
-}
-
 // Export handles OTLP ExportLogsServiceRequest.
-func (s *OTLPServer) Export(ctx context.Context, req *logsv1.ExportLogsServiceRequest) (*logsv1.ExportLogsServiceResponse, error) {
+func (s *otlpLogsServer) Export(ctx context.Context, req *logsv1.ExportLogsServiceRequest) (*logsv1.ExportLogsServiceResponse, error) {
 	var entries []Entry
 
 	for _, rl := range req.ResourceLogs {

@@ -265,6 +265,15 @@ func (s *qdrantStore) Delete(ctx context.Context, ids []string) error {
 	return nil
 }
 
+func (s *qdrantStore) Ping(ctx context.Context) error {
+	collectionsClient := qdrant.NewCollectionsClient(s.conn)
+	_, err := collectionsClient.List(ctx, &qdrant.ListCollectionsRequest{})
+	if err != nil {
+		return fmt.Errorf("qdrant ping failed: %w", err)
+	}
+	return nil
+}
+
 func (s *qdrantStore) Close() error {
 	if s.conn != nil {
 		return s.conn.Close()

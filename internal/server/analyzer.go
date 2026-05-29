@@ -19,7 +19,6 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
-	"github.com/serengeti-sh/meerkat/internal/embed"
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
 	"github.com/serengeti-sh/meerkat/internal/notify"
@@ -61,9 +60,6 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 	// Repository
 	reportRepo := report.NewEntReportRepository(client)
 
-	// Embedder
-	emb := embed.New(cfg.Embed.APIKey, cfg.Embed.BaseURL, cfg.Embed.Model)
-
 	// MeerkatLogs client
 	logsClient, err := newLogsClient(cfg)
 	if err != nil {
@@ -71,7 +67,7 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 	}
 
 	// Tool registry
-	toolRegistry, err := buildToolRegistry(cfg, emb, logsClient)
+	toolRegistry, err := buildToolRegistry(cfg, logsClient)
 	if err != nil {
 		return nil, fmt.Errorf("build tool registry: %w", err)
 	}
@@ -89,6 +85,10 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 			BaseDelay:  time.Duration(cfg.Analyzer.RetryBaseMs) * time.Millisecond,
 		},
 	})
+
+	if err := provider.HealthCheck(context.Background()); err != nil {
+		return nil, fmt.Errorf("llm provider health check failed: %w", err)
+	}
 
 	analyzerSvc, err := buildAnalyzerService(provider, toolRegistry, cfg)
 	if err != nil {
@@ -219,7 +219,7 @@ func newLogsClient(cfg *config.Config) (vectorsclient.Client, error) {
 	return client, nil
 }
 
-func buildToolRegistry(cfg *config.Config, emb embed.Model, logsClient vectorsclient.Client) (*tool.Registry, error) {
+func buildToolRegistry(cfg *config.Config, logsClient vectorsclient.Client) (*tool.Registry, error) {
 	var tools []tool.Plugin
 
 	for _, pc := range cfg.Tools.Prometheus {
@@ -238,26 +238,6 @@ func buildToolRegistry(cfg *config.Config, emb embed.Model, logsClient vectorscl
 		t, err := tool.NewPrometheusTool(pc.Name, description, schemaFile, pc.URL, httpClient)
 		if err != nil {
 			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
-		}
-		tools = append(tools, t)
-	}
-
-	for _, lc := range cfg.Tools.Loki {
-		httpClient, err := tool.NewHTTPClient(lc.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
-		}
-		description := cfg.Tools.LokiDescription
-		if description == "" {
-			description = "Query logs using LogQL. Returns log entries with timestamps and labels."
-		}
-		schemaFile := cfg.Tools.LokiParamSchemaFile
-		if schemaFile == "" {
-			schemaFile = "internal/tool/schemas/loki.json"
-		}
-		t, err := tool.NewLokiTool(lc.Name, description, schemaFile, lc.URL, httpClient)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
 		}
 		tools = append(tools, t)
 	}
@@ -282,14 +262,22 @@ func buildToolRegistry(cfg *config.Config, emb embed.Model, logsClient vectorscl
 		tools = append(tools, t)
 	}
 
-	for _, cc := range cfg.Tools.Custom {
-		httpClient, err := tool.NewHTTPClient(cc.CAFile)
+	for _, lc := range cfg.Tools.Loki {
+		httpClient, err := tool.NewHTTPClient(lc.CAFile)
 		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", cc.Name, err)
+			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
 		}
-		t, err := tool.NewCustomTool(cc.Name, cc.Description, cc.Method, cc.URL, cc.ParamSchemaFile, httpClient)
+		description := cfg.Tools.LokiDescription
+		if description == "" {
+			description = "Query logs using LogQL. Returns log entries with timestamps and labels."
+		}
+		schemaFile := cfg.Tools.LokiParamSchemaFile
+		if schemaFile == "" {
+			schemaFile = "internal/tool/schemas/loki.json"
+		}
+		t, err := tool.NewLokiTool(lc.Name, description, schemaFile, lc.URL, httpClient)
 		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", cc.Name, err)
+			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
 		}
 		tools = append(tools, t)
 	}
@@ -330,14 +318,11 @@ func buildDatasourceRefs(cfg *config.Config) func() []analyzer.DatasourceRef {
 		for _, pc := range cfg.Tools.Prometheus {
 			refs = append(refs, analyzer.DatasourceRef{Name: pc.Name, Type: "prometheus"})
 		}
-		for _, lc := range cfg.Tools.Loki {
-			refs = append(refs, analyzer.DatasourceRef{Name: lc.Name, Type: "loki"})
-		}
 		for _, vc := range cfg.Tools.VictoriaLogs {
 			refs = append(refs, analyzer.DatasourceRef{Name: vc.Name, Type: "victoria-logs"})
 		}
-		for _, cc := range cfg.Tools.Custom {
-			refs = append(refs, analyzer.DatasourceRef{Name: cc.Name, Type: "custom"})
+		for _, lc := range cfg.Tools.Loki {
+			refs = append(refs, analyzer.DatasourceRef{Name: lc.Name, Type: "loki"})
 		}
 		return refs
 	}

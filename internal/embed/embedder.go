@@ -7,6 +7,9 @@ type Model interface {
 	// Embed generates embeddings for the given texts.
 	// Returns a slice of vectors, one per input text.
 	Embed(ctx context.Context, texts []string) ([][]float32, error)
+
+	// HealthCheck verifies connectivity to the embedding provider.
+	HealthCheck(ctx context.Context) error
 }
 
 // New creates a Model based on the provider configuration.

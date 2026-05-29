@@ -17,38 +17,15 @@ import (
 // mockMeerkatLogsServer implements a minimal MeerkatLogs gRPC server for E2E testing.
 type mockMeerkatLogsServer struct {
 	meerkatlogspb.UnimplementedServiceServer
-	entries []*meerkatlogspb.LogEntry
-}
-
-func (m *mockMeerkatLogsServer) Ingest(ctx context.Context, req *meerkatlogspb.IngestRequest) (*meerkatlogspb.IngestResponse, error) {
-	m.entries = append(m.entries, req.Entries...)
-	return &meerkatlogspb.IngestResponse{
-		IngestedCount:     int32(len(req.Entries)),
-		DeduplicatedCount: 0,
-	}, nil
+	entries []*meerkatlogspb.SearchResult
 }
 
 func (m *mockMeerkatLogsServer) Search(ctx context.Context, req *meerkatlogspb.SearchRequest) (*meerkatlogspb.SearchResponse, error) {
-	return &meerkatlogspb.SearchResponse{Results: m.toResults()}, nil
+	return &meerkatlogspb.SearchResponse{Results: m.entries}, nil
 }
 
 func (m *mockMeerkatLogsServer) GetContext(ctx context.Context, req *meerkatlogspb.GetContextRequest) (*meerkatlogspb.GetContextResponse, error) {
-	return &meerkatlogspb.GetContextResponse{Results: m.toResults()}, nil
-}
-
-func (m *mockMeerkatLogsServer) toResults() []*meerkatlogspb.SearchResult {
-	results := make([]*meerkatlogspb.SearchResult, len(m.entries))
-	for i, e := range m.entries {
-		results[i] = &meerkatlogspb.SearchResult{
-			Id:        e.Id,
-			Score:     0.95,
-			Body:      e.Body,
-			Service:   e.Service,
-			Severity:  e.Severity,
-			Timestamp: e.Timestamp,
-		}
-	}
-	return results
+	return &meerkatlogspb.GetContextResponse{Results: m.entries}, nil
 }
 
 // TestE2E_Webhook_WithLogContext verifies that when a webhook is received
@@ -58,27 +35,13 @@ func TestE2E_Webhook_WithLogContext(t *testing.T) {
 		t.Skip("Skipping e2e test in short mode")
 	}
 
-	ctx := context.Background()
-
 	// 1. Start mock MeerkatLogs gRPC server
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	logsPort := lis.Addr().(*net.TCPAddr).Port
 
-	logsSvc := &mockMeerkatLogsServer{}
-	logsGRPC := grpc.NewServer()
-	meerkatlogspb.RegisterServiceServer(logsGRPC, logsSvc)
-
-	go func() {
-		if err := logsGRPC.Serve(lis); err != nil {
-			t.Logf("mock MeerkatLogs server error: %v", err)
-		}
-	}()
-	defer logsGRPC.GracefulStop()
-
-	// 2. Pre-populate mock MeerkatLogs with logs
-	_, err = logsSvc.Ingest(ctx, &meerkatlogspb.IngestRequest{
-		Entries: []*meerkatlogspb.LogEntry{
+	logsSvc := &mockMeerkatLogsServer{
+		entries: []*meerkatlogspb.SearchResult{
 			{
 				Id:        "log-1",
 				Timestamp: timestamppb.New(time.Now().Add(-5 * time.Minute)),
@@ -94,13 +57,21 @@ func TestE2E_Webhook_WithLogContext(t *testing.T) {
 				Body:      "timeout calling upstream payment processor",
 			},
 		},
-	})
-	require.NoError(t, err)
+	}
+	logsGRPC := grpc.NewServer()
+	meerkatlogspb.RegisterServiceServer(logsGRPC, logsSvc)
 
-	// 3. Start e2e suite with MeerkatLogs server configured
+	go func() {
+		if err := logsGRPC.Serve(lis); err != nil {
+			t.Logf("mock MeerkatLogs server error: %v", err)
+		}
+	}()
+	defer logsGRPC.GracefulStop()
+
+	// 2. Start e2e suite with MeerkatLogs server configured
 	suite := SetupSuiteWithLogs(t, logsPort)
 
-	// 4. Send webhook referencing the service
+	// 3. Send webhook referencing the service
 	payload := map[string]any{
 		"alert":   "PaymentErrorsHigh",
 		"message": "service=payment-api error rate > 5%",
@@ -118,7 +89,7 @@ func TestE2E_Webhook_WithLogContext(t *testing.T) {
 	require.NoError(t, suite.ReadJSON(resp, &createResult))
 	reportID := createResult["id"].(string)
 
-	// 5. Wait for analysis
+	// 4. Wait for analysis
 	report, err := suite.WaitForReportStatus(reportID, "completed", 20*time.Second)
 	require.NoError(t, err)
 
