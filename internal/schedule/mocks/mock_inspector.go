@@ -40,7 +40,7 @@ func (_m *InspectorMock) EXPECT() *InspectorMock_Expecter {
 }
 
 // Inspect provides a mock function for the type InspectorMock
-func (_mock *InspectorMock) Inspect(ctx context.Context, req inspect.InspectRequest) (*report.Report, error) {
+func (_mock *InspectorMock) Inspect(ctx context.Context, req inspect.Request) (*report.Report, error) {
 	ret := _mock.Called(ctx, req)
 
 	if len(ret) == 0 {
@@ -49,17 +49,17 @@ func (_mock *InspectorMock) Inspect(ctx context.Context, req inspect.InspectRequ
 
 	var r0 *report.Report
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, inspect.InspectRequest) (*report.Report, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, inspect.Request) (*report.Report, error)); ok {
 		return returnFunc(ctx, req)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, inspect.InspectRequest) *report.Report); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, inspect.Request) *report.Report); ok {
 		r0 = returnFunc(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*report.Report)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, inspect.InspectRequest) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, inspect.Request) error); ok {
 		r1 = returnFunc(ctx, req)
 	} else {
 		r1 = ret.Error(1)
@@ -74,20 +74,20 @@ type InspectorMock_Inspect_Call struct {
 
 // Inspect is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req inspect.InspectRequest
+//   - req inspect.Request
 func (_e *InspectorMock_Expecter) Inspect(ctx interface{}, req interface{}) *InspectorMock_Inspect_Call {
 	return &InspectorMock_Inspect_Call{Call: _e.mock.On("Inspect", ctx, req)}
 }
 
-func (_c *InspectorMock_Inspect_Call) Run(run func(ctx context.Context, req inspect.InspectRequest)) *InspectorMock_Inspect_Call {
+func (_c *InspectorMock_Inspect_Call) Run(run func(ctx context.Context, req inspect.Request)) *InspectorMock_Inspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 inspect.InspectRequest
+		var arg1 inspect.Request
 		if args[1] != nil {
-			arg1 = args[1].(inspect.InspectRequest)
+			arg1 = args[1].(inspect.Request)
 		}
 		run(
 			arg0,
@@ -102,7 +102,7 @@ func (_c *InspectorMock_Inspect_Call) Return(report1 *report.Report, err error) 
 	return _c
 }
 
-func (_c *InspectorMock_Inspect_Call) RunAndReturn(run func(ctx context.Context, req inspect.InspectRequest) (*report.Report, error)) *InspectorMock_Inspect_Call {
+func (_c *InspectorMock_Inspect_Call) RunAndReturn(run func(ctx context.Context, req inspect.Request) (*report.Report, error)) *InspectorMock_Inspect_Call {
 	_c.Call.Return(run)
 	return _c
 }

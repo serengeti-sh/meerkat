@@ -22,7 +22,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/embed"
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
-	"github.com/serengeti-sh/meerkat/internal/logsclient"
+	"github.com/serengeti-sh/meerkat/internal/vectorsclient"
 	"github.com/serengeti-sh/meerkat/internal/notify"
 	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/schedule"
@@ -208,18 +208,18 @@ func (a *Analyzer) Run() error {
 	return nil
 }
 
-func newLogsClient(cfg *config.Config) (logsclient.Client, error) {
+func newLogsClient(cfg *config.Config) (vectorsclient.Client, error) {
 	if !cfg.Vectors.Enabled || cfg.Vectors.Address == "" {
 		return nil, nil
 	}
-	client, err := logsclient.New(cfg.Vectors.Address)
+	client, err := vectorsclient.New(cfg.Vectors.Address)
 	if err != nil {
 		return nil, fmt.Errorf("create vectors client: %w", err)
 	}
 	return client, nil
 }
 
-func buildToolRegistry(cfg *config.Config, emb embed.Model, logsClient logsclient.Client) (*tool.Registry, error) {
+func buildToolRegistry(cfg *config.Config, emb embed.Model, logsClient vectorsclient.Client) (*tool.Registry, error) {
 	var tools []tool.Plugin
 
 	for _, pc := range cfg.Tools.Prometheus {

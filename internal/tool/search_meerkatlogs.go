@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/internal/logsclient"
+	"github.com/serengeti-sh/meerkat/internal/vectorsclient"
 )
 
 // searchLogsTool searches the Vectors pipeline for semantically similar log entries.
 type searchLogsTool struct {
-	client logsclient.Client
+	client vectorsclient.Client
 }
 
 // NewSearchLogsTool creates a tool that searches the Vectors index via gRPC.
-func NewSearchLogsTool(client logsclient.Client) *searchLogsTool {
+func NewSearchLogsTool(client vectorsclient.Client) *searchLogsTool {
 	return &searchLogsTool{client: client}
 }
 
@@ -90,7 +90,7 @@ func (t *searchLogsTool) Execute(ctx context.Context, args json.RawMessage) (str
 		timeRange = time.Hour
 	}
 
-	opts := logsclient.SearchOptions{
+	opts := vectorsclient.SearchOptions{
 		Limit:     params.Limit,
 		TimeRange: timeRange,
 		Service:   params.Service,

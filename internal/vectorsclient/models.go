@@ -1,4 +1,4 @@
-package logsclient
+package vectorsclient
 
 import "time"
 

@@ -1,4 +1,4 @@
-package logsclient_test
+package vectorsclient_test
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
-	"github.com/serengeti-sh/meerkat/internal/logsclient"
+	"github.com/serengeti-sh/meerkat/internal/vectorsclient"
 	"github.com/serengeti-sh/meerkat/internal/vectors"
 	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
@@ -24,7 +24,7 @@ func TestClient_Ingest(t *testing.T) {
 	client, cleanup := setupTestClient(t)
 	defer cleanup()
 
-	entries := []logsclient.Entry{
+	entries := []vectorsclient.Entry{
 		{ID: "1", Body: "error: connection failed", Service: "api", Severity: "ERROR"},
 		{ID: "2", Body: "error: timeout", Service: "api", Severity: "ERROR"},
 	}
@@ -40,12 +40,12 @@ func TestClient_Search(t *testing.T) {
 	defer cleanup()
 
 	// First ingest some data
-	_, err := client.Ingest(ctx, []logsclient.Entry{
+	_, err := client.Ingest(ctx, []vectorsclient.Entry{
 		{ID: "1", Body: "database connection error", Service: "db", Severity: "ERROR"},
 	})
 	require.NoError(t, err)
 
-	results, err := client.Search(ctx, "database error", logsclient.SearchOptions{
+	results, err := client.Search(ctx, "database error", vectorsclient.SearchOptions{
 		Limit:     10,
 		TimeRange: time.Hour,
 	})
@@ -109,7 +109,7 @@ func (m *inMemoryVectorStore) Search(ctx context.Context, v []float32, opts vect
 func (m *inMemoryVectorStore) Delete(ctx context.Context, ids []string) error { return nil }
 func (m *inMemoryVectorStore) Close() error                                   { return nil }
 
-func setupTestClient(t *testing.T) (logsclient.Client, func()) {
+func setupTestClient(t *testing.T) (vectorsclient.Client, func()) {
 	t.Helper()
 
 	emb := &mockEmbedder{}
@@ -129,8 +129,8 @@ func setupTestClient(t *testing.T) (logsclient.Client, func()) {
 		}
 	}()
 
-	client, err := logsclient.New("passthrough:///bufnet",
-		logsclient.WithGRPCDialOpts(
+	client, err := vectorsclient.New("passthrough:///bufnet",
+		vectorsclient.WithGRPCDialOpts(
 			grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 				return listener.Dial()
 			}),

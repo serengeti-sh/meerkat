@@ -108,7 +108,7 @@ func (_c *ServiceMock_GetReport_Call) RunAndReturn(run func(ctx context.Context,
 }
 
 // Inspect provides a mock function for the type ServiceMock
-func (_mock *ServiceMock) Inspect(ctx context.Context, req inspect.InspectRequest) (*report.Report, error) {
+func (_mock *ServiceMock) Inspect(ctx context.Context, req inspect.Request) (*report.Report, error) {
 	ret := _mock.Called(ctx, req)
 
 	if len(ret) == 0 {
@@ -117,17 +117,17 @@ func (_mock *ServiceMock) Inspect(ctx context.Context, req inspect.InspectReques
 
 	var r0 *report.Report
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, inspect.InspectRequest) (*report.Report, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, inspect.Request) (*report.Report, error)); ok {
 		return returnFunc(ctx, req)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, inspect.InspectRequest) *report.Report); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, inspect.Request) *report.Report); ok {
 		r0 = returnFunc(ctx, req)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*report.Report)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, inspect.InspectRequest) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, inspect.Request) error); ok {
 		r1 = returnFunc(ctx, req)
 	} else {
 		r1 = ret.Error(1)
@@ -142,20 +142,20 @@ type ServiceMock_Inspect_Call struct {
 
 // Inspect is a helper method to define mock.On call
 //   - ctx context.Context
-//   - req inspect.InspectRequest
+//   - req inspect.Request
 func (_e *ServiceMock_Expecter) Inspect(ctx interface{}, req interface{}) *ServiceMock_Inspect_Call {
 	return &ServiceMock_Inspect_Call{Call: _e.mock.On("Inspect", ctx, req)}
 }
 
-func (_c *ServiceMock_Inspect_Call) Run(run func(ctx context.Context, req inspect.InspectRequest)) *ServiceMock_Inspect_Call {
+func (_c *ServiceMock_Inspect_Call) Run(run func(ctx context.Context, req inspect.Request)) *ServiceMock_Inspect_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 inspect.InspectRequest
+		var arg1 inspect.Request
 		if args[1] != nil {
-			arg1 = args[1].(inspect.InspectRequest)
+			arg1 = args[1].(inspect.Request)
 		}
 		run(
 			arg0,
@@ -170,7 +170,7 @@ func (_c *ServiceMock_Inspect_Call) Return(report1 *report.Report, err error) *S
 	return _c
 }
 
-func (_c *ServiceMock_Inspect_Call) RunAndReturn(run func(ctx context.Context, req inspect.InspectRequest) (*report.Report, error)) *ServiceMock_Inspect_Call {
+func (_c *ServiceMock_Inspect_Call) RunAndReturn(run func(ctx context.Context, req inspect.Request) (*report.Report, error)) *ServiceMock_Inspect_Call {
 	_c.Call.Return(run)
 	return _c
 }

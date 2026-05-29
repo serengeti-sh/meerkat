@@ -39,7 +39,7 @@ func TestNewService_InvalidInterval(t *testing.T) {
 
 func TestCronScheduler_StartStop(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	mockSvc.On("Inspect", mock.Anything, inspect.InspectRequest{
+	mockSvc.On("Inspect", mock.Anything, inspect.Request{
 		MetricQuery: "up",
 		LogQuery:    "",
 		Query:       "Scheduled inspection: test-job",

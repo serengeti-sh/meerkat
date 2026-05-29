@@ -47,7 +47,7 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 	}, nil)
 	reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
 
-	rpt, err := svc.Inspect(context.Background(), inspect.InspectRequest{
+	rpt, err := svc.Inspect(context.Background(), inspect.Request{
 		Query: "check for errors",
 	})
 
@@ -106,7 +106,7 @@ func TestService_Inspect_NoDatasources(t *testing.T) {
 	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, emptyRefs, 5*time.Minute, 100, 2)
 	require.NoError(t, err)
 
-	_, err = svc.Inspect(context.Background(), inspect.InspectRequest{Query: "test"})
+	_, err = svc.Inspect(context.Background(), inspect.Request{Query: "test"})
 
 	assert.Error(t, err)
 }
@@ -173,7 +173,7 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running
 
-	rpt1, err := svc.Inspect(context.Background(), inspect.InspectRequest{Query: "query-1"})
+	rpt1, err := svc.Inspect(context.Background(), inspect.Request{Query: "query-1"})
 	require.NoError(t, err)
 	assert.Equal(t, report.StatusQueued, rpt1.Status)
 
@@ -184,7 +184,7 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "query-2", mock.Anything).Return(nil, nil)
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 
-	rpt2, err := svc.Inspect(context.Background(), inspect.InspectRequest{Query: "query-2"})
+	rpt2, err := svc.Inspect(context.Background(), inspect.Request{Query: "query-2"})
 	require.NoError(t, err)
 	assert.Equal(t, report.StatusQueued, rpt2.Status)
 
@@ -193,7 +193,7 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // failed status update
 
-	_, err = svc.Inspect(context.Background(), inspect.InspectRequest{Query: "query-3"})
+	_, err = svc.Inspect(context.Background(), inspect.Request{Query: "query-3"})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "queue is full")
 
@@ -240,7 +240,7 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 
 	reports := make([]*report.Report, 3)
 	for i := range 3 {
-		rpt, err := svc.Inspect(context.Background(), inspect.InspectRequest{
+		rpt, err := svc.Inspect(context.Background(), inspect.Request{
 			Query: fmt.Sprintf("query-%d", i),
 		})
 		require.NoError(t, err)

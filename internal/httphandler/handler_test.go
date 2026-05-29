@@ -40,7 +40,7 @@ func TestHandler_Health(t *testing.T) {
 
 func TestHandler_Inspect(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	mockSvc.On("Inspect", mock.Anything, inspect.InspectRequest{
+	mockSvc.On("Inspect", mock.Anything, inspect.Request{
 		MetricQuery: "up",
 		LogQuery:    "",
 		Query:       "check status",
@@ -85,7 +85,7 @@ func TestHandler_Inspect_InvalidBody(t *testing.T) {
 
 func TestHandler_Inspect_ServiceError(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	mockSvc.On("Inspect", mock.Anything, inspect.InspectRequest{
+	mockSvc.On("Inspect", mock.Anything, inspect.Request{
 		Query: "check status",
 	}).Return(
 		nil,

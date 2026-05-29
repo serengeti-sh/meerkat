@@ -1,4 +1,4 @@
-package logsclient
+package vectorsclient
 
 import (
 	"google.golang.org/grpc"

@@ -16,7 +16,7 @@ import (
 // Inspector is the subset of inspect.Service that Handler requires.
 // Defined locally so Handler depends only on what it uses.
 type Inspector interface {
-	Inspect(ctx context.Context, req inspect.InspectRequest) (*report.Report, error)
+	Inspect(ctx context.Context, req inspect.Request) (*report.Report, error)
 	InspectByWebhook(ctx context.Context, payload inspect.WebhookPayload) (*report.Report, error)
 	GetReport(ctx context.Context, id string) (*report.Report, error)
 	ListReports(ctx context.Context, limit int) ([]*report.Report, error)

@@ -24,7 +24,7 @@ type reportResponse struct {
 }
 
 func (h *Handler) Inspect(w http.ResponseWriter, r *http.Request) {
-	var req inspect.InspectRequest
+	var req inspect.Request
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return

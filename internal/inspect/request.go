@@ -2,8 +2,8 @@ package inspect
 
 import "encoding/json"
 
-// InspectRequest is the input for a manual inspection.
-type InspectRequest struct {
+// Request is the input for a manual inspection.
+type Request struct {
 	MetricQuery string `json:"metric_query,omitempty"`
 	LogQuery    string `json:"log_query,omitempty"`
 	Query       string `json:"query,omitempty"` // natural language query
