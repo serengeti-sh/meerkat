@@ -176,12 +176,12 @@ reporter:
 	return nil
 }
 
-// StartWithLogs initializes the e2e suite with a MeerkatLogs server configured.
-func (s *Suite) StartWithLogs(ctx context.Context, logsPort int) error {
+// StartWithVectors initializes the e2e suite with a Vectors server configured.
+func (s *Suite) StartWithVectors(ctx context.Context, vectorsPort int) error {
 	if err := s.Start(ctx); err != nil {
 		return err
 	}
-	// Restart the server with MEERKAT_LOGS_ADDRESS env var
+	// Restart the server with VECTORS_ADDRESS env var
 	if s.serverCmd != nil && s.serverCmd.Process != nil {
 		_ = s.serverCmd.Process.Kill()
 		_ = s.serverCmd.Wait()
@@ -194,10 +194,10 @@ func (s *Suite) StartWithLogs(ctx context.Context, logsPort int) error {
 	s.serverCmd.Dir = s.tmpDir
 	s.serverCmd.Stdout = os.Stdout
 	s.serverCmd.Stderr = os.Stderr
-	s.serverCmd.Env = append(s.serverCmd.Environ(), fmt.Sprintf("MEERKAT_LOGS_ADDRESS=127.0.0.1:%d", logsPort))
+	s.serverCmd.Env = append(s.serverCmd.Environ(), fmt.Sprintf("VECTORS_ADDRESS=127.0.0.1:%d", vectorsPort))
 
 	if err := s.serverCmd.Start(); err != nil {
-		return fmt.Errorf("start meerkat-server with MeerkatLogs: %w", err)
+		return fmt.Errorf("start meerkat-server with Vectors: %w", err)
 	}
 
 	s.BaseURL = s.waitForServer(ctx, 30*time.Second)

@@ -175,7 +175,7 @@ fix(vectors): retry failed embed calls up to 3 times
 
 docs(readme): update architecture diagram with mermaid
 
-refactor(config): rename meerkatlogs package to vectors
+refactor(config): rename vectors package to vectors
 ```
 
 ## Pull Request Process
@@ -221,7 +221,7 @@ refactor(config): rename meerkatlogs package to vectors
 ### Dependency Direction
 
 ```text
-Analyzer -> vectorsclient -> meerkatlogspb
+Analyzer -> vectorsclient -> vectorspb
          -> inspect -> analyzer, report, notify
          -> schedule -> inspect
 

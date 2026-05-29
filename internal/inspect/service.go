@@ -38,10 +38,10 @@ const (
 // ServiceOption configures the inspector service.
 type ServiceOption func(*service)
 
-// WithLogsClient sets the vectors client for online log retrieval.
-func WithLogsClient(client vectorsclient.Client) ServiceOption {
+// WithVectorsClient sets the vectors client for online log retrieval.
+func WithVectorsClient(client vectorsclient.Client) ServiceOption {
 	return func(s *service) {
-		s.logsClient = client
+		s.vectorsClient = client
 	}
 }
 
@@ -68,18 +68,18 @@ type reportRepo interface {
 }
 
 type service struct {
-	analyzerSvc analyzerSvc
-	reportRepo  reportRepo
-	reporterSvc reporterSvc
-	logsClient  vectorsclient.Client
-	dsRefs      DatasourceRefs
-	dedupWindow time.Duration
-	queueSize   int
-	workerCount int
-	queue       chan *analysisJob
-	wg          sync.WaitGroup
-	cancel      context.CancelFunc
-	startOnce   sync.Once
+	analyzerSvc   analyzerSvc
+	reportRepo    reportRepo
+	reporterSvc   reporterSvc
+	vectorsClient vectorsclient.Client
+	dsRefs        DatasourceRefs
+	dedupWindow   time.Duration
+	queueSize     int
+	workerCount   int
+	queue         chan *analysisJob
+	wg            sync.WaitGroup
+	cancel        context.CancelFunc
+	startOnce     sync.Once
 }
 
 var _ Service = (*service)(nil)
@@ -171,7 +171,7 @@ func (s *service) InspectByWebhook(ctx context.Context, payload WebhookPayload) 
 		payload.Source, payload.Alert, payload.Message, string(payload.Data))
 
 	// Online Retrieval: fetch recent log context from vectors
-	if s.logsClient != nil {
+	if s.vectorsClient != nil {
 		logsCtx := s.fetchLogsContext(ctx, payload)
 		if logsCtx != "" {
 			contextStr += "\n\n=== Recent Log Context ===\n" + logsCtx
@@ -190,7 +190,7 @@ func (s *service) fetchLogsContext(ctx context.Context, payload WebhookPayload) 
 	}
 
 	now := time.Now()
-	results, err := s.logsClient.GetContext(ctx, service, now.Add(-logsContextWindow), now, logsContextLimit)
+	results, err := s.vectorsClient.GetContext(ctx, service, now.Add(-logsContextWindow), now, logsContextLimit)
 	if err != nil {
 		log.Printf("[inspector] failed to fetch log context for service %q: %v", service, err)
 		return ""

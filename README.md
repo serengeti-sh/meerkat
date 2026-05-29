@@ -87,7 +87,7 @@ sequenceDiagram
 │   ├── openapi.yaml              # OpenAPI 3.0 spec
 │   ├── paths/                    # OpenAPI path definitions
 │   ├── schemas/                  # OpenAPI schema definitions
-│   └── proto/meerkatlogs/v1/     # Protobuf service definitions
+│   └── proto/vectors/v1/     # Protobuf service definitions
 ├── build/docker/                 # Dockerfiles
 ├── cmd/                          # Entry points
 │   ├── meerkat/                  # CLI client
@@ -108,7 +108,7 @@ sequenceDiagram
 │   ├── httphandler/              # HTTP handlers (analyzer API)
 │   ├── inspect/                  # Report lifecycle & worker pool
 │   ├── vectorsclient/               # gRPC client for Vectors
-│   ├── meerkatlogspb/            # Generated protobuf code
+│   ├── vectorspb/            # Generated protobuf code
 │   ├── notify/                   # Notification service (Slack)
 │   ├── report/                   # Report domain & repository
 │   ├── schedule/                 # Scheduled analysis jobs

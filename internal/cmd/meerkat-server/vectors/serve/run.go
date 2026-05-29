@@ -17,8 +17,8 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/embed"
-	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
 	"github.com/serengeti-sh/meerkat/internal/vectors"
+	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
@@ -64,16 +64,16 @@ func Run(cfgFile string, port int) error {
 	}
 
 	// Create Vectors service with configurable threshold and filtering.
-	logsOpts := []vectors.ServiceOption{
+	vectorsOpts := []vectors.ServiceOption{
 		vectors.WithFilterMode(ml.FilterMode, ml.MinSeverity),
 	}
 	if ml.SimilarityThreshold > 0 {
-		logsOpts = append(logsOpts, vectors.WithSimilarityThreshold(ml.SimilarityThreshold))
+		vectorsOpts = append(vectorsOpts, vectors.WithSimilarityThreshold(ml.SimilarityThreshold))
 	}
 	if ml.IngestBatchSize > 0 {
-		logsOpts = append(logsOpts, vectors.WithBatchSize(ml.IngestBatchSize))
+		vectorsOpts = append(vectorsOpts, vectors.WithBatchSize(ml.IngestBatchSize))
 	}
-	logsSvc, err := vectors.NewService(emb, vstore, logsOpts...)
+	vectorsSvc, err := vectors.NewService(emb, vstore, vectorsOpts...)
 	if err != nil {
 		return fmt.Errorf("create vectors service: %w", err)
 	}
@@ -83,19 +83,19 @@ func Run(cfgFile string, port int) error {
 		vectors.NewOTLPIngestor(ml.GetAddress()),
 	}
 	for _, ing := range ingestors {
-		if err := ing.Start(context.Background(), logsSvc); err != nil {
+		if err := ing.Start(context.Background(), vectorsSvc); err != nil {
 			return fmt.Errorf("start ingestor %q: %w", ing.Name(), err)
 		}
 	}
 
 	// Start gRPC server for Search/GetContext.
-	logsServer, err := vectors.NewGRPCServer(logsSvc)
+	vectorsServer, err := vectors.NewGRPCServer(vectorsSvc)
 	if err != nil {
 		return fmt.Errorf("create vectors grpc server: %w", err)
 	}
 
 	grpcServer := grpc.NewServer()
-	meerkatlogspb.RegisterServiceServer(grpcServer, logsServer)
+	vectorspb.RegisterServiceServer(grpcServer, vectorsServer)
 
 	grpcAddr := ml.GetAddress()
 	lis, err := net.Listen("tcp", grpcAddr)

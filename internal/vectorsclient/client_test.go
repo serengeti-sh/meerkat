@@ -13,9 +13,9 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
-	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
 	"github.com/serengeti-sh/meerkat/internal/vectors"
 	"github.com/serengeti-sh/meerkat/internal/vectorsclient"
+	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
@@ -96,13 +96,13 @@ func setupTestClient(t *testing.T) (vectorsclient.Client, func()) {
 
 	emb := &mockEmbedder{}
 	vs := &inMemoryVectorStore{}
-	logsSvc, err := vectors.NewService(emb, vs)
+	vectorsSvc, err := vectors.NewService(emb, vs)
 	require.NoError(t, err)
-	logsServer, err := vectors.NewGRPCServer(logsSvc)
+	vectorsServer, err := vectors.NewGRPCServer(vectorsSvc)
 	require.NoError(t, err)
 
 	grpcServer := grpc.NewServer()
-	meerkatlogspb.RegisterServiceServer(grpcServer, logsServer)
+	vectorspb.RegisterServiceServer(grpcServer, vectorsServer)
 
 	listener := bufconn.Listen(1024 * 1024)
 	go func() {

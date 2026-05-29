@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package meerkatlogs.v1;
+package vectors.v1;
 
-option go_package = "github.com/serengeti-sh/meerkat/internal/meerkatlogspb";
+option go_package = "github.com/serengeti-sh/meerkat/internal/vectorspb";
 
 import "google/protobuf/timestamp.proto";
 

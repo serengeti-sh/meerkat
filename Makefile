@@ -62,14 +62,14 @@ mock: ## Generate mocks
 
 .PHONY: proto
 proto: ## Generate Go code from protobuf definitions
-	@mkdir -p internal/meerkatlogspb
+	@mkdir -p internal/vectorspb
 	protoc \
 		--go_out=. \
 		--go_opt=paths=source_relative \
 		--go-grpc_out=. \
 		--go-grpc_opt=paths=source_relative \
-		api/proto/meerkatlogs/v1/meerkatlogs.proto
-	@mv api/proto/meerkatlogs/v1/*.pb.go internal/meerkatlogspb/
+		api/proto/vectors/v1/vectors.proto
+	@mv api/proto/vectors/v1/*.pb.go internal/vectorspb/
 
 .PHONY: gen
 gen: ent-gen proto ogen mock ## Generate all code (ent, proto, ogen, mocks)
@@ -77,7 +77,7 @@ gen: ent-gen proto ogen mock ## Generate all code (ent, proto, ogen, mocks)
 # Testing
 .PHONY: test
 test: ## Run unit tests
-	go test -v $$(go list ./... | grep -v -e /mocks -e /test/integration -e /test/e2e -e /test/deploy) --coverprofile cover-unit.out
+	go test -v $$(go list ./... | grep -v -e /mocks -e /test/integration -e /test/e2e -e /test/kind) --coverprofile cover-unit.out
 
 .PHONY: test-integration
 test-integration: ## Run integration tests (uses in-memory DI, not real binary)
@@ -87,9 +87,9 @@ test-integration: ## Run integration tests (uses in-memory DI, not real binary)
 test-e2e: ## Run end-to-end tests (uses real built binary)
 	go test -v ./test/e2e/... -timeout 10m --coverprofile cover-e2e.out
 
-.PHONY: test-deploy
-test-deploy: ## Run deployment integration test (requires Docker + Kind)
-	go test -v ./test/deploy/... -timeout 15m
+.PHONY: test-kind
+test-kind: ## Run Kind cluster integration test (requires Docker + Kind)
+	go test -v ./test/kind/... -timeout 15m
 
 # Building
 .PHONY: build
