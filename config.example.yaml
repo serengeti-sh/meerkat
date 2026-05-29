@@ -18,23 +18,23 @@ store:
 
 tools:
   # Descriptions and schema files are optional — sensible defaults are built in.
-  # The Docker image includes default schemas at /app/resources/schemas/.
+  # The Docker image includes default schemas at /app/internal/tool/schemas/.
   # Uncomment and modify to override defaults or use custom schemas.
   #
   # prometheus_description: "Query metrics using PromQL. Returns time series data."
-  # prometheus_param_schema_file: resources/schemas/prometheus.json
+  # prometheus_param_schema_file: internal/tool/schemas/prometheus.json
   prometheus:
     - name: vm
       url: http://localhost:8428
 
   # victoria_logs_description: "Query logs using LogsQL. Returns log entries."
-  # victoria_logs_param_schema_file: resources/schemas/victorialogs.json
+  # victoria_logs_param_schema_file: internal/tool/schemas/victorialogs.json
   victoria_logs:
     - name: vl
       url: http://localhost:9428
 
   # loki_description: "Query logs using LogQL. Returns log entries with timestamps and labels."
-  # loki_param_schema_file: resources/schemas/loki.json
+  # loki_param_schema_file: internal/tool/schemas/loki.json
   # loki:
   #   - name: loki
   #     url: http://localhost:3100
@@ -105,11 +105,6 @@ reporter:
   webhook_url: ""
   min_severity: warning
 
-collector:
-  otlp_bind_addr: ":4317"
-  batch_size: 100
-  flush_interval: 5s
-
 embedder:
   provider: openai
   api_key: ""
@@ -132,3 +127,20 @@ vector_store:
       enabled: false
       # ca_file: ""
       # skip_verify: false
+
+vectors:
+  enabled: true
+  address: ":50051"
+  otlp_bind_addr: ":4317"
+  ingest_batch_size: 100
+  similarity_threshold: 0.7
+  max_context_logs: 20
+
+  # Filtering mode: "all" (no filtering), "severity" (filter by min_severity),
+  # or "template" (deduplicate by template)
+  filter_mode: template
+  min_severity: info
+  deduplicate_by_template: true
+
+  # Vector store retention (overrides vector_store.milvus.retention)
+  retention: 72h

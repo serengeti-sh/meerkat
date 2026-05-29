@@ -48,7 +48,10 @@ analyzer:
     enabled: false
 
 collector:
-  enabled: false
+  enabled: true
+
+logs:
+  enabled: true
 
 image:
   repository: meerkat-server
@@ -128,7 +131,14 @@ config:
     dedup_window: 5m
 
   reporter:
-    channels: []
+    webhook_url: ""
+    min_severity: warning
+
+  meerkat_logs:
+    enabled: true
+    address: ":50051"
+    filter_mode: template
+    min_severity: info
 
 secrets:
   database:

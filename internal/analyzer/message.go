@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/serengeti-sh/meerkat/internal/tool"
 )
 
 const (
@@ -12,13 +14,23 @@ const (
 	resultPreviewLen   = 150
 )
 
+// MessageRole represents the role of a message in the LLM conversation.
+type MessageRole string
+
+const (
+	RoleSystem    MessageRole = "system"
+	RoleUser      MessageRole = "user"
+	RoleAssistant MessageRole = "assistant"
+	RoleTool      MessageRole = "tool"
+)
+
 // Message represents a message in the LLM conversation.
 type Message struct {
-	Role       string     `json:"role"` // system, user, assistant, tool
-	Content    string     `json:"content"`
-	ToolCalls  []ToolCall `json:"tool_calls,omitempty"` // assistant messages with tool calls
-	ToolCallID string     `json:"tool_call_id,omitempty"`
-	ToolName   string     `json:"tool_name,omitempty"`
+	Role       MessageRole `json:"role"` // system, user, assistant, tool
+	Content    string      `json:"content"`
+	ToolCalls  []ToolCall  `json:"tool_calls,omitempty"` // assistant messages with tool calls
+	ToolCallID string      `json:"tool_call_id,omitempty"`
+	ToolName   string      `json:"tool_name,omitempty"`
 }
 
 // ToolCall represents an LLM request to use a tool.
@@ -30,8 +42,8 @@ type ToolCall struct {
 
 // CompletionRequest is sent to the LLM provider.
 type CompletionRequest struct {
-	Messages []Message `json:"messages"`
-	Tools    []ToolDef `json:"tools,omitempty"`
+	Messages []Message  `json:"messages"`
+	Tools    []tool.Def `json:"tools,omitempty"`
 }
 
 // CompletionResponse is returned from the LLM provider.
@@ -59,8 +71,8 @@ func (s *service) buildInitialMessages(input *AnalysisInput) []Message {
 	}
 
 	return []Message{
-		{Role: "system", Content: s.systemPrompt},
-		{Role: "user", Content: userMsg},
+		{Role: RoleSystem, Content: s.systemPrompt},
+		{Role: RoleUser, Content: userMsg},
 	}
 }
 
@@ -121,7 +133,7 @@ func (s *service) tryRecoverContext(messages *[]Message) bool {
 	newMsgs := make([]Message, 0, len(msgs))
 	newMsgs = append(newMsgs, msgs[0]) // system prompt
 	newMsgs = append(newMsgs, Message{
-		Role:    "user",
+		Role:    RoleUser,
 		Content: summaryMsg.String(),
 	})
 
@@ -143,7 +155,7 @@ func groupExchanges(msgs []Message) []exchange {
 	var current *exchange
 
 	for _, m := range msgs {
-		if m.Role == "assistant" {
+		if m.Role == RoleAssistant {
 			if current != nil {
 				exchanges = append(exchanges, *current)
 			}
@@ -163,14 +175,14 @@ func summarizeExchange(ex exchange) string {
 	var parts []string
 	for _, m := range ex.messages {
 		switch m.Role {
-		case "assistant":
+		case RoleAssistant:
 			if m.Content != "" {
 				parts = append(parts, "Assistant: "+truncate(m.Content, summaryTruncateLen))
 			}
 			for _, tc := range m.ToolCalls {
 				parts = append(parts, fmt.Sprintf("Called tool %q", tc.Name))
 			}
-		case "tool":
+		case RoleTool:
 			result := m.Content
 			if len(result) > resultPreviewLen {
 				result = result[:resultPreviewLen] + "..."

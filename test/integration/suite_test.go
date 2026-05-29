@@ -1,4 +1,4 @@
-package e2e
+package integration
 
 import (
 	"bytes"
@@ -22,12 +22,11 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/ent"
-	"github.com/serengeti-sh/meerkat/internal/handler"
-	"github.com/serengeti-sh/meerkat/internal/inspector"
-	insprepo "github.com/serengeti-sh/meerkat/internal/inspector/repository"
-	"github.com/serengeti-sh/meerkat/internal/reporter"
-	"github.com/serengeti-sh/meerkat/internal/scheduler"
-	"github.com/serengeti-sh/meerkat/internal/store"
+	"github.com/serengeti-sh/meerkat/internal/httphandler"
+	"github.com/serengeti-sh/meerkat/internal/inspect"
+	"github.com/serengeti-sh/meerkat/internal/notify"
+	"github.com/serengeti-sh/meerkat/internal/report"
+	"github.com/serengeti-sh/meerkat/internal/schedule"
 	"github.com/serengeti-sh/meerkat/internal/tool"
 	"github.com/serengeti-sh/meerkat/test/integration/mock"
 
@@ -49,6 +48,7 @@ type Suite struct {
 	// Internal
 	server           *http.Server
 	systemPromptFile string
+	inspectorSvc     inspect.Service
 }
 
 // NewSuite creates a new e2e test suite.
@@ -109,7 +109,7 @@ Respond with JSON only:
 	if err != nil {
 		return fmt.Errorf("get postgres port: %w", err)
 	}
-	pgPort := pgPortNat.Int()
+	pgPort := pgPortNat.Num()
 
 	// 2. Start mock Prometheus
 	s.MockPrometheus = mock.NewMockPrometheus()
@@ -130,7 +130,7 @@ Respond with JSON only:
 		Store: config.StoreConfig{
 			Driver:   "postgres",
 			Host:     pgHost,
-			Port:     pgPort,
+			Port:     int(pgPort),
 			Name:     "meerkat_test",
 			User:     "meerkat",
 			Password: "meerkat",
@@ -158,21 +158,21 @@ Respond with JSON only:
 	}
 
 	// 5. Wire up dependencies (same as server.go but without fx)
-	entClient, err := store.NewEntClient(cfg)
+	entClient, err := inspect.NewEntClient(cfg)
 	if err != nil {
 		return fmt.Errorf("connect to database: %w", err)
 	}
-	if err := store.Migrate(ctx, entClient); err != nil {
+	if err := inspect.Migrate(ctx, entClient); err != nil {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	s.Client = entClient
 
 	// Tool registry
-	promTool, err := tool.NewPrometheusTool("test-vm", "test prometheus", filepath.Join("..", "..", "resources", "schemas", "prometheus.json"), s.MockPrometheus.URL(), http.DefaultClient)
+	promTool, err := tool.NewPrometheusTool("test-vm", "test prometheus", filepath.Join("..", "..", "internal", "tool", "schemas", "prometheus.json"), s.MockPrometheus.URL(), http.DefaultClient)
 	if err != nil {
 		return fmt.Errorf("create prometheus tool: %w", err)
 	}
-	toolRegistry := analyzer.NewToolRegistry(promTool)
+	toolRegistry := tool.NewRegistry(promTool)
 
 	// Analyzer
 	llmProvider := analyzer.NewLLMProvider(analyzer.ProviderConfig{
@@ -187,29 +187,44 @@ Respond with JSON only:
 	if err != nil {
 		return fmt.Errorf("load system prompt: %w", err)
 	}
-	analyzerSvc := analyzer.NewService(llmProvider, toolRegistry, analyzer.ServiceConfig{
+	analyzerSvc, err := analyzer.NewService(llmProvider, toolRegistry, analyzer.ServiceConfig{
 		MaxIterations:       cfg.Analyzer.MaxIterations,
 		SystemPrompt:        systemPrompt,
 		MaxToolResultChars:  cfg.Analyzer.MaxToolResultChars,
 		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
 		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
 	})
+	if err != nil {
+		return fmt.Errorf("build analyzer service: %w", err)
+	}
 
 	// Reporter (no-op in tests)
-	reporterSvc := reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
+	reporterSvc := notify.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
 
 	// Inspector service
-	reportRepo := insprepo.NewRepository(entClient)
+	reportRepo := report.NewEntReportRepository(entClient)
 	dsRefs := func() []analyzer.DatasourceRef {
 		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
 	}
-	inspectorSvc := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10)
+	inspectorSvc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10,
+		inspect.WithLogsClient(nil), // explicitly no logs client in integration tests
+	)
+	if err != nil {
+		return fmt.Errorf("create inspector service: %w", err)
+	}
+	if err := inspectorSvc.Start(); err != nil {
+		return fmt.Errorf("start inspector service: %w", err)
+	}
+	s.inspectorSvc = inspectorSvc
 
 	// Scheduler (disabled)
-	sched := scheduler.NewCronScheduler(inspectorSvc, cfg)
+	sched := schedule.NewService(inspectorSvc, cfg)
 
 	// HTTP handler
-	h := handler.NewHandler(inspectorSvc)
+	h, err := httphandler.New(inspectorSvc)
+	if err != nil {
+		return fmt.Errorf("create http handler: %w", err)
+	}
 
 	// Start HTTP server on random port
 	mux := http.NewServeMux()
@@ -264,6 +279,9 @@ func (s *Suite) Stop() {
 	}
 	if s.systemPromptFile != "" {
 		_ = os.Remove(s.systemPromptFile)
+	}
+	if s.inspectorSvc != nil {
+		s.inspectorSvc.Stop()
 	}
 }
 

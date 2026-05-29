@@ -7,15 +7,12 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/serengeti-sh/meerkat/internal/tool"
 )
 
-const (
-	defaultMaxToolResultChars = 30000
-	defaultMaxContextMessages = 50
-)
-
-// AnalyzerService defines the AI analysis service with agentic loop.
-type AnalyzerService interface {
+// Service defines the AI analysis service with agentic loop.
+type Service interface {
 	Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisResult, error)
 }
 
@@ -28,9 +25,14 @@ type ServiceConfig struct {
 	MaxContextMessages  int  // max messages before proactive trimming (default 50)
 }
 
+const (
+	defaultMaxToolResultChars = 30000
+	defaultMaxContextMessages = 50
+)
+
 type service struct {
 	provider       LLMProvider
-	toolRegistry   *ToolRegistry
+	toolRegistry   *tool.Registry
 	maxIterations  int
 	systemPrompt   string
 	maxToolResult  int
@@ -38,7 +40,15 @@ type service struct {
 	maxContextMsgs int
 }
 
-func NewService(provider LLMProvider, toolRegistry *ToolRegistry, cfg ServiceConfig) *service {
+var _ Service = (*service)(nil)
+
+func NewService(provider LLMProvider, toolRegistry *tool.Registry, cfg ServiceConfig) (*service, error) {
+	if provider == nil {
+		return nil, fmt.Errorf("provider is required")
+	}
+	if toolRegistry == nil {
+		return nil, fmt.Errorf("tool registry is required")
+	}
 	if cfg.MaxToolResultChars == 0 {
 		cfg.MaxToolResultChars = defaultMaxToolResultChars
 	}
@@ -53,7 +63,7 @@ func NewService(provider LLMProvider, toolRegistry *ToolRegistry, cfg ServiceCon
 		maxToolResult:  cfg.MaxToolResultChars,
 		summarize:      cfg.SummarizeOnOverflow,
 		maxContextMsgs: cfg.MaxContextMessages,
-	}
+	}, nil
 }
 
 // Analyze runs the agentic loop: call LLM, execute tools, repeat until done.
@@ -77,7 +87,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 				if !recovered {
 					return nil, fmt.Errorf("LLM call %d failed: context overflow, unable to reduce conversation size", i+1)
 				}
-				log.Printf("[meerkat] context overflow detected, summarized conversation, retrying")
+				log.Printf("[analyzer] context overflow detected, summarized conversation, retrying")
 				i--
 				continue
 			}
@@ -96,7 +106,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 
 		// Add assistant response with tool calls to conversation
 		messages = append(messages, Message{
-			Role:      "assistant",
+			Role:      RoleAssistant,
 			Content:   resp.Content,
 			ToolCalls: resp.ToolCalls,
 		})
@@ -106,7 +116,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 			tool, ok := s.toolRegistry.Get(tc.Name)
 			if !ok {
 				messages = append(messages, Message{
-					Role:       "tool",
+					Role:       RoleTool,
 					Content:    fmt.Sprintf("Error: unknown tool %q", tc.Name),
 					ToolCallID: tc.ID,
 					ToolName:   tc.Name,
@@ -114,7 +124,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 				continue
 			}
 
-			log.Printf("[meerkat] tool call #%d: %s(%s)", i+1, tc.Name, string(tc.Arguments))
+			log.Printf("[analyzer] tool call #%d: %s(%s)", i+1, tc.Name, string(tc.Arguments))
 
 			result, err := tool.Execute(ctx, tc.Arguments)
 			if err != nil {
@@ -126,14 +136,14 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 			result = s.truncateToolResult(result)
 
 			messages = append(messages, Message{
-				Role:       "tool",
+				Role:       RoleTool,
 				Content:    result,
 				ToolCallID: tc.ID,
 				ToolName:   tc.Name,
 			})
 		}
 
-		log.Printf("[meerkat] iteration %d complete, continuing...", i+1)
+		log.Printf("[analyzer] iteration %d complete, continuing...", i+1)
 	}
 
 	// Max iterations reached — force a final response without tools

@@ -1,0 +1,127 @@
+package report
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/serengeti-sh/meerkat/internal/ent"
+	entReport "github.com/serengeti-sh/meerkat/internal/ent/report"
+)
+
+type entReportRepository struct {
+	client *ent.Client
+}
+
+var _ Repository = (*entReportRepository)(nil)
+
+func NewEntReportRepository(client *ent.Client) *entReportRepository {
+	return &entReportRepository{client: client}
+}
+
+func (r *entReportRepository) Create(ctx context.Context, report *Report) error {
+	_, err := r.client.Report.Create().
+		SetID(report.ID).
+		SetTrigger(entReport.Trigger(report.Trigger)).
+		SetTriggerID(report.TriggerID).
+		SetStatus(entReport.Status(string(report.Status))).
+		SetSeverity(entReport.Severity(string(report.Severity))).
+		SetSummary(report.Summary).
+		SetDetail(report.Detail).
+		SetQuery(report.Query).
+		SetDatasources(report.Datasources).
+		SetIterations(report.Iterations).
+		Save(ctx)
+	if err != nil {
+		return fmt.Errorf("create report: %w", err)
+	}
+	return nil
+}
+
+func (r *entReportRepository) Update(ctx context.Context, report *Report) error {
+	if err := r.client.Report.UpdateOneID(report.ID).
+		SetStatus(entReport.Status(string(report.Status))).
+		SetSeverity(entReport.Severity(string(report.Severity))).
+		SetSummary(report.Summary).
+		SetDetail(report.Detail).
+		SetQuery(report.Query).
+		SetDatasources(report.Datasources).
+		SetIterations(report.Iterations).
+		Exec(ctx); err != nil {
+		return fmt.Errorf("update report: %w", err)
+	}
+	return nil
+}
+
+func (r *entReportRepository) GetByID(ctx context.Context, id string) (*Report, error) {
+	ds, err := r.client.Report.Get(ctx, id)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, fmt.Errorf("get report by id %s: %w", id, err)
+		}
+		return nil, fmt.Errorf("get report by id %s: %w", id, err)
+	}
+	return entToReport(ds)
+}
+
+func (r *entReportRepository) List(ctx context.Context, limit int) ([]*Report, error) {
+	const defaultListLimit = 50
+	if limit <= 0 {
+		limit = defaultListLimit
+	}
+
+	list, err := r.client.Report.Query().
+		Order(ent.Desc(entReport.FieldCreateTime)).
+		Limit(limit).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list reports: %w", err)
+	}
+
+	result := make([]*Report, 0, len(list))
+	for _, r := range list {
+		report, err := entToReport(r)
+		if err != nil {
+			return nil, fmt.Errorf("convert report: %w", err)
+		}
+		result = append(result, report)
+	}
+	return result, nil
+}
+
+// FindActiveByQuery finds a pending or running report with the same trigger and query,
+// created within the given time window.
+func (r *entReportRepository) FindActiveByQuery(ctx context.Context, trigger string, query string, since time.Time) (*Report, error) {
+	ds, err := r.client.Report.Query().
+		Where(
+			entReport.TriggerEQ(entReport.Trigger(trigger)),
+			entReport.QueryEQ(query),
+			entReport.StatusIn(entReport.StatusQueued, entReport.StatusPending, entReport.StatusRunning),
+			entReport.CreateTimeGTE(since),
+		).
+		Order(ent.Desc(entReport.FieldCreateTime)).
+		First(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("find active report: %w", err)
+	}
+	return entToReport(ds)
+}
+
+func entToReport(r *ent.Report) (*Report, error) {
+	return &Report{
+		ID:          r.ID,
+		Trigger:     TriggerType(r.Trigger),
+		TriggerID:   r.TriggerID,
+		Status:      Status(r.Status),
+		Severity:    Severity(r.Severity),
+		Summary:     r.Summary,
+		Detail:      r.Detail,
+		Query:       r.Query,
+		Datasources: r.Datasources,
+		Iterations:  r.Iterations,
+		CreatedAt:   r.CreateTime,
+	}, nil
+}

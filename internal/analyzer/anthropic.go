@@ -20,6 +20,8 @@ type anthropicProvider struct {
 	retryCfg    RetryConfig
 }
 
+var _ LLMProvider = (*anthropicProvider)(nil)
+
 func newAnthropicProvider(cfg ProviderConfig) LLMProvider {
 	opts := []option.RequestOption{}
 	if cfg.APIKey != "" {
@@ -47,13 +49,13 @@ func (p *anthropicProvider) Complete(ctx context.Context, req *CompletionRequest
 
 		for _, m := range req.Messages {
 			switch m.Role {
-			case "system":
+			case RoleSystem:
 				systemContent = m.Content
-			case "tool":
+			case RoleTool:
 				messages = append(messages, anthropic.NewUserMessage(
 					anthropic.NewToolResultBlock(m.ToolCallID, m.Content, false),
 				))
-			case "assistant":
+			case RoleAssistant:
 				blocks := make([]anthropic.ContentBlockParamUnion, 0, 1+len(m.ToolCalls))
 				if m.Content != "" {
 					blocks = append(blocks, anthropic.NewTextBlock(m.Content))
@@ -92,11 +94,15 @@ func (p *anthropicProvider) Complete(ctx context.Context, req *CompletionRequest
 		if len(req.Tools) > 0 {
 			tools := make([]anthropic.ToolUnionParam, 0, len(req.Tools))
 			for _, t := range req.Tools {
+				schema, err := parseSchema(t.Parameters)
+				if err != nil {
+					return nil, err
+				}
 				tools = append(tools, anthropic.ToolUnionParam{
 					OfTool: &anthropic.ToolParam{
 						Name:        t.Name,
 						Description: anthropic.String(t.Description),
-						InputSchema: parseSchema(t.Parameters),
+						InputSchema: schema,
 					},
 				})
 			}
@@ -148,8 +154,11 @@ func classifyAnthropicError(err error) error {
 	return err
 }
 
-func parseSchema(data json.RawMessage) anthropic.ToolInputSchemaParam {
-	m := jsonToMap(data)
+func parseSchema(data json.RawMessage) (anthropic.ToolInputSchemaParam, error) {
+	m, err := jsonToMap(data)
+	if err != nil {
+		return anthropic.ToolInputSchemaParam{}, err
+	}
 	schema := anthropic.ToolInputSchemaParam{}
 	if props, ok := m["properties"]; ok {
 		schema.Properties = props
@@ -163,5 +172,5 @@ func parseSchema(data json.RawMessage) anthropic.ToolInputSchemaParam {
 		}
 		schema.Required = required
 	}
-	return schema
+	return schema, nil
 }

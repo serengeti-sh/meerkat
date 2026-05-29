@@ -8,48 +8,32 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-
-	"github.com/santhosh-tekuri/jsonschema/v6"
+	"time"
 )
 
 // VictoriaLogsTool queries logs from a single Victoria Logs endpoint.
 type VictoriaLogsTool struct {
-	name        string
-	description string
-	params      json.RawMessage
-	schema      *jsonschema.Schema
-	baseURL     string
-	client      *http.Client
+	baseTool
+	baseURL string
+	client  *http.Client
 }
 
 // NewVictoriaLogsTool creates a tool backed by one Victoria Logs endpoint.
-func NewVictoriaLogsTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
-	if name == "" {
-		return nil, fmt.Errorf("victorialogs tool: name is required")
-	}
-	if description == "" {
-		return nil, fmt.Errorf("victorialogs tool %q: description is required", name)
-	}
-	if paramSchemaFile == "" {
-		return nil, fmt.Errorf("victorialogs tool %q: param_schema_file is required", name)
+func NewVictoriaLogsTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Plugin, error) {
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
 	}
 	if baseURL == "" {
 		return nil, fmt.Errorf("victorialogs tool %q: url is required", name)
 	}
 
-	schema, params, err := compileSchema(paramSchemaFile)
+	base, err := newBaseTool(name, description, paramSchemaFile)
 	if err != nil {
-		return nil, fmt.Errorf("victorialogs tool %q: %w", name, err)
+		return nil, err
 	}
 
-	return &VictoriaLogsTool{name: name, description: description, params: params, schema: schema, baseURL: baseURL, client: client}, nil
+	return &VictoriaLogsTool{baseTool: base, baseURL: baseURL, client: client}, nil
 }
-
-func (t *VictoriaLogsTool) Name() string { return t.name }
-
-func (t *VictoriaLogsTool) Description() string { return t.description }
-
-func (t *VictoriaLogsTool) Parameters() json.RawMessage { return t.params }
 
 func (t *VictoriaLogsTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
 	u, _ := url.Parse(t.baseURL)
@@ -131,23 +115,21 @@ func parseVictoriaLogsResponse(body []byte) ([]vlLogEntry, error) {
 	// Fallback to JSONL
 	var entries []vlLogEntry
 	for _, line := range splitLines(string(body)) {
-		var raw map[string]any
+		var raw struct {
+			Time    string `json:"_time"`
+			Message string `json:"_msg"`
+			Level   string `json:"level"`
+			Stream  string `json:"_stream"`
+		}
 		if json.Unmarshal([]byte(line), &raw) != nil {
 			continue
 		}
 
-		entry := vlLogEntry{Labels: make(map[string]string)}
-		if v, ok := raw["_time"].(string); ok {
-			entry.Timestamp = v
-		}
-		if v, ok := raw["_msg"].(string); ok {
-			entry.Message = v
-		}
-		if v, ok := raw["level"].(string); ok {
-			entry.Level = v
-		}
-		if v, ok := raw["_stream"].(string); ok {
-			entry.Labels["_stream"] = v
+		entry := vlLogEntry{
+			Timestamp: raw.Time,
+			Message:   raw.Message,
+			Level:     raw.Level,
+			Labels:    map[string]string{"_stream": raw.Stream},
 		}
 		entries = append(entries, entry)
 	}
@@ -173,4 +155,4 @@ func splitLines(s string) []string {
 	return lines
 }
 
-var _ Tool = (*VictoriaLogsTool)(nil)
+var _ Plugin = (*VictoriaLogsTool)(nil)

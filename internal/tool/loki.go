@@ -9,48 +9,31 @@ import (
 	"net/url"
 	"strconv"
 	"time"
-
-	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // LokiTool queries logs from a single Grafana Loki endpoint.
 type LokiTool struct {
-	name        string
-	description string
-	params      json.RawMessage
-	schema      *jsonschema.Schema
-	baseURL     string
-	client      *http.Client
+	baseTool
+	baseURL string
+	client  *http.Client
 }
 
 // NewLokiTool creates a tool backed by one Loki endpoint.
-func NewLokiTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
-	if name == "" {
-		return nil, fmt.Errorf("loki tool: name is required")
-	}
-	if description == "" {
-		return nil, fmt.Errorf("loki tool %q: description is required", name)
-	}
-	if paramSchemaFile == "" {
-		return nil, fmt.Errorf("loki tool %q: param_schema_file is required", name)
+func NewLokiTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Plugin, error) {
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
 	}
 	if baseURL == "" {
 		return nil, fmt.Errorf("loki tool %q: url is required", name)
 	}
 
-	schema, params, err := compileSchema(paramSchemaFile)
+	base, err := newBaseTool(name, description, paramSchemaFile)
 	if err != nil {
-		return nil, fmt.Errorf("loki tool %q: %w", name, err)
+		return nil, err
 	}
 
-	return &LokiTool{name: name, description: description, params: params, schema: schema, baseURL: baseURL, client: client}, nil
+	return &LokiTool{baseTool: base, baseURL: baseURL, client: client}, nil
 }
-
-func (t *LokiTool) Name() string { return t.name }
-
-func (t *LokiTool) Description() string { return t.description }
-
-func (t *LokiTool) Parameters() json.RawMessage { return t.params }
 
 func (t *LokiTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
 	now := time.Now()
@@ -145,4 +128,4 @@ func parseLokiResponse(body []byte) ([]logEntry, error) {
 	return entries, nil
 }
 
-var _ Tool = (*LokiTool)(nil)
+var _ Plugin = (*LokiTool)(nil)

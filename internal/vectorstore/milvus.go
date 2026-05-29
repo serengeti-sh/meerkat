@@ -5,14 +5,18 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/milvus-io/milvus-sdk-go/v2/client"
 	"github.com/milvus-io/milvus-sdk-go/v2/entity"
-	"github.com/serengeti-sh/meerkat/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/serengeti-sh/meerkat/internal/config"
 )
 
 const (
@@ -30,62 +34,68 @@ type milvusStore struct {
 	client     client.Client
 	collection string
 	dimension  int
+	retention  time.Duration
+	initOnce   sync.Once
+	initErr    error
 }
 
-// NewMilvusClient creates a VectorStore backed by Milvus.
-// On first use it ensures the collection exists with the correct schema and index.
-func NewMilvusClient(cfg *config.Config) (VectorStore, error) {
+var _ Store = (*milvusStore)(nil)
+
+// NewMilvusClient creates a Store backed by Milvus.
+// The connection is established immediately but collection setup is deferred
+// to the first operation via lazy initialization.
+func NewMilvusClient(cfg *config.Config) (*milvusStore, error) {
 	mc := cfg.VectorStore.Milvus
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	config := client.Config{
+	clientCfg := client.Config{
 		Address: mc.Address,
 		DBName:  mc.Database,
 	}
 
 	if mc.Auth.Enabled {
 		if mc.Auth.Token != "" {
-			config.APIKey = mc.Auth.Token
+			clientCfg.APIKey = mc.Auth.Token
 		} else {
-			config.Username = mc.Auth.User
-			config.Password = mc.Auth.Password
+			clientCfg.Username = mc.Auth.User
+			clientCfg.Password = mc.Auth.Password
 		}
 	}
 
 	if mc.TLS.Enabled {
-		config.EnableTLSAuth = true
+		clientCfg.EnableTLSAuth = true
 		if mc.TLS.CAFile != "" {
 			cred, err := credentials.NewClientTLSFromFile(mc.TLS.CAFile, "")
 			if err != nil {
 				return nil, fmt.Errorf("load tls ca file: %w", err)
 			}
-			config.DialOptions = append(config.DialOptions, grpc.WithTransportCredentials(cred))
+			clientCfg.DialOptions = append(clientCfg.DialOptions, grpc.WithTransportCredentials(cred))
 		} else if mc.TLS.SkipVerify {
-			config.DialOptions = append(config.DialOptions, grpc.WithTransportCredentials(
+			log.Printf("[milvus] WARNING: TLS skip_verify is enabled. This is insecure and should only be used for development.")
+			clientCfg.DialOptions = append(clientCfg.DialOptions, grpc.WithTransportCredentials(
 				credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})),
 			)
 		}
 	}
 
-	c, err := client.NewClient(ctx, config)
+	// client.NewClient does not actually dial; connection is lazy.
+	c, err := client.NewClient(context.Background(), clientCfg)
 	if err != nil {
 		return nil, fmt.Errorf("connect to milvus: %w", err)
 	}
 
-	store := &milvusStore{
+	return &milvusStore{
 		client:     c,
 		collection: mc.Collection,
 		dimension:  mc.Dimension,
-	}
+		retention:  mc.Retention,
+	}, nil
+}
 
-	if err := store.ensureCollection(ctx, mc.Retention); err != nil {
-		_ = c.Close()
-		return nil, fmt.Errorf("ensure collection: %w", err)
-	}
-
-	return store, nil
+func (s *milvusStore) lazyInit(ctx context.Context) error {
+	s.initOnce.Do(func() {
+		s.initErr = s.ensureCollection(ctx, s.retention)
+	})
+	return s.initErr
 }
 
 func (s *milvusStore) ensureCollection(ctx context.Context, retention time.Duration) error {
@@ -165,6 +175,9 @@ func (s *milvusStore) ensureCollection(ctx context.Context, retention time.Durat
 }
 
 func (s *milvusStore) Insert(ctx context.Context, records []Record) error {
+	if err := s.lazyInit(ctx); err != nil {
+		return err
+	}
 	if len(records) == 0 {
 		return nil
 	}
@@ -204,11 +217,24 @@ func (s *milvusStore) Insert(ctx context.Context, records []Record) error {
 	return nil
 }
 
-func (s *milvusStore) Search(ctx context.Context, vector []float32, limit int, timeRange time.Duration) ([]SearchResult, error) {
+func (s *milvusStore) Search(ctx context.Context, vector []float32, opts SearchOptions) ([]SearchResult, error) {
+	if err := s.lazyInit(ctx); err != nil {
+		return nil, err
+	}
+	var exprs []string
+	if opts.TimeRange > 0 {
+		cutoff := time.Now().Add(-opts.TimeRange).UnixMilli()
+		exprs = append(exprs, fmt.Sprintf("timestamp >= %d", cutoff))
+	}
+	if opts.Service != "" {
+		exprs = append(exprs, fmt.Sprintf("service == %q", opts.Service))
+	}
+	if opts.Severity != "" {
+		exprs = append(exprs, fmt.Sprintf("severity == %q", opts.Severity))
+	}
 	var expr string
-	if timeRange > 0 {
-		cutoff := time.Now().Add(-timeRange).UnixMilli()
-		expr = fmt.Sprintf("timestamp >= %d", cutoff)
+	if len(exprs) > 0 {
+		expr = strings.Join(exprs, " && ")
 	}
 
 	sp, err := entity.NewIndexHNSWSearchParam(searchEF)
@@ -217,10 +243,10 @@ func (s *milvusStore) Search(ctx context.Context, vector []float32, limit int, t
 	}
 
 	results, err := s.client.Search(ctx, s.collection, nil, expr,
-		[]string{"id", "body", "service", "severity", "timestamp"},
+		[]string{"id", "body", "service", "severity", "timestamp", "attributes"},
 		[]entity.Vector{entity.FloatVector(vector)},
 		"vector",
-		entity.L2, limit, sp,
+		entity.L2, opts.Limit, sp,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("search: %w", err)
@@ -267,6 +293,12 @@ func parseSearchResults(result client.SearchResult) ([]SearchResult, error) {
 				if col, ok := field.(*entity.ColumnInt64); ok {
 					sr.Timestamp = time.UnixMilli(col.Data()[i])
 				}
+			case "attributes":
+				if col, ok := field.(*entity.ColumnJSONBytes); ok {
+					var attrs map[string]string
+					_ = json.Unmarshal(col.Data()[i], &attrs)
+					sr.Attributes = attrs
+				}
 			}
 		}
 
@@ -274,6 +306,31 @@ func parseSearchResults(result client.SearchResult) ([]SearchResult, error) {
 	}
 
 	return out, nil
+}
+
+func (s *milvusStore) Delete(ctx context.Context, ids []string) error {
+	if err := s.lazyInit(ctx); err != nil {
+		return err
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+
+	expr := fmt.Sprintf("id in [%s]", joinQuoted(ids))
+	err := s.client.Delete(ctx, s.collection, "", expr)
+	if err != nil {
+		return fmt.Errorf("delete records: %w", err)
+	}
+
+	return nil
+}
+
+func joinQuoted(ids []string) string {
+	quoted := make([]string, len(ids))
+	for i, id := range ids {
+		quoted[i] = fmt.Sprintf("%q", id)
+	}
+	return strings.Join(quoted, ", ")
 }
 
 func (s *milvusStore) Close() error {

@@ -10,36 +10,26 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // PrometheusTool queries metrics from a single Prometheus/VictoriaMetrics endpoint.
 type PrometheusTool struct {
-	name        string
-	description string
-	params      json.RawMessage
-	schema      *jsonschema.Schema
-	v1api       v1.API
+	baseTool
+	v1api v1.API
 }
 
 // NewPrometheusTool creates a tool backed by one Prometheus-compatible endpoint.
-func NewPrometheusTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Tool, error) {
-	if name == "" {
-		return nil, fmt.Errorf("prometheus tool: name is required")
-	}
-	if description == "" {
-		return nil, fmt.Errorf("prometheus tool %q: description is required", name)
-	}
-	if paramSchemaFile == "" {
-		return nil, fmt.Errorf("prometheus tool %q: param_schema_file is required", name)
+func NewPrometheusTool(name, description, paramSchemaFile, baseURL string, client *http.Client) (Plugin, error) {
+	if client == nil {
+		client = &http.Client{Timeout: 15 * time.Second}
 	}
 	if baseURL == "" {
 		return nil, fmt.Errorf("prometheus tool %q: url is required", name)
 	}
 
-	schema, params, err := compileSchema(paramSchemaFile)
+	base, err := newBaseTool(name, description, paramSchemaFile)
 	if err != nil {
-		return nil, fmt.Errorf("prometheus tool %q: %w", name, err)
+		return nil, err
 	}
 
 	promClient, err := api.NewClient(api.Config{
@@ -51,22 +41,13 @@ func NewPrometheusTool(name, description, paramSchemaFile, baseURL string, clien
 	}
 
 	return &PrometheusTool{
-		name:        name,
-		description: description,
-		params:      params,
-		schema:      schema,
-		v1api:       v1.NewAPI(promClient),
+		baseTool: base,
+		v1api:    v1.NewAPI(promClient),
 	}, nil
 }
 
-func (t *PrometheusTool) Name() string { return t.name }
-
-func (t *PrometheusTool) Description() string { return t.description }
-
-func (t *PrometheusTool) Parameters() json.RawMessage { return t.params }
-
 func (t *PrometheusTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
-	if err := validateArgs(t.schema, args); err != nil {
+	if err := t.validateArgs(args); err != nil {
 		return "", err
 	}
 
@@ -182,4 +163,4 @@ func convertPromResult(value model.Value) ([]timeSeries, error) {
 	}
 }
 
-var _ Tool = (*PrometheusTool)(nil)
+var _ Plugin = (*PrometheusTool)(nil)

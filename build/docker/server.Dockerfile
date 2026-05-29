@@ -6,7 +6,7 @@ ARG GIT_COMMIT=unknown
 ############################
 # 1. Build Stage
 ############################
-FROM golang:1.26.1-alpine3.23 AS builder
+FROM golang:1.26.3-alpine3.23 AS builder
 
 RUN apk add --no-cache \
       git \
@@ -60,7 +60,7 @@ WORKDIR /app
 
 COPY --from=builder /build/meerkat-server /app/meerkat-server
 COPY --from=builder /build/api/openapi.bundled.json /app/api/openapi.bundled.json
-COPY --from=builder /build/resources/schemas /app/resources/schemas
+COPY --from=builder /build/internal/tool/schemas /app/internal/tool/schemas
 
 RUN mkdir -p /app/config && chown -R meerkat:meerkat /app
 

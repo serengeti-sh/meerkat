@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package meerkatlogs.v1;
+
+option go_package = "github.com/serengeti-sh/meerkat/internal/meerkatlogspb";
+
+import "google/protobuf/timestamp.proto";
+
+// Service provides log ingestion and semantic search for AI analysis.
+service Service {
+  // Ingest adds log entries to the vector store after template extraction.
+  rpc Ingest(IngestRequest) returns (IngestResponse);
+
+  // Search finds semantically similar log entries.
+  rpc Search(SearchRequest) returns (SearchResponse);
+
+  // GetContext retrieves relevant log context for a given service and time range.
+  rpc GetContext(GetContextRequest) returns (GetContextResponse);
+}
+
+// LogEntry represents a single log line for ingestion.
+message LogEntry {
+  string id = 1;
+  google.protobuf.Timestamp timestamp = 2;
+  string service = 3;
+  string severity = 4;
+  string body = 5;
+  map<string, string> attributes = 6;
+}
+
+// IngestRequest contains log entries to be indexed.
+message IngestRequest {
+  repeated LogEntry entries = 1;
+}
+
+// IngestResponse returns the ingestion result.
+message IngestResponse {
+  int32 ingested_count = 1;
+  int32 deduplicated_count = 2;
+  int32 filtered_count = 3;
+}
+
+// SearchRequest contains the query parameters.
+message SearchRequest {
+  string query = 1;
+  int32 limit = 2;
+  string service = 3;
+  string severity = 4;
+  int64 time_range_seconds = 5;
+}
+
+// SearchResult represents a single matching log entry.
+message SearchResult {
+  string id = 1;
+  float score = 2;
+  string body = 3;
+  string service = 4;
+  string severity = 5;
+  google.protobuf.Timestamp timestamp = 6;
+}
+
+// SearchResponse returns the search results.
+message SearchResponse {
+  repeated SearchResult results = 1;
+}
+
+// GetContextRequest retrieves log context for a specific incident.
+message GetContextRequest {
+  string service = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  int32 limit = 4;
+}
+
+// GetContextResponse returns the contextual log entries.
+message GetContextResponse {
+  repeated SearchResult results = 1;
+}

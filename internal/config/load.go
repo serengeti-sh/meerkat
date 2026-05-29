@@ -23,7 +23,9 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("error reading config.yaml: %w", err)
 		}
 		if settings := v.AllSettings(); len(settings) > 0 {
-			normalizeKeys(settings)
+			if err := normalizeKeys(settings); err != nil {
+				return nil, fmt.Errorf("error normalizing config keys: %w", err)
+			}
 			for k, val := range settings {
 				v.Set(k, val)
 			}
@@ -50,7 +52,9 @@ func LoadFromPath(path string) (*Config, error) {
 	}
 
 	if settings := v.AllSettings(); len(settings) > 0 {
-		normalizeKeys(settings)
+		if err := normalizeKeys(settings); err != nil {
+			return nil, fmt.Errorf("error normalizing config keys: %w", err)
+		}
 		for k, val := range settings {
 			v.Set(k, val)
 		}
@@ -68,23 +72,40 @@ func camelToSnake(s string) string {
 	return strings.ToLower(camelRe.ReplaceAllString(s, "${1}_${2}"))
 }
 
-func normalizeKeys(m map[string]any) {
+func normalizeKeys(m map[string]any) error {
 	for key, value := range m {
 		newKey := camelToSnake(key)
 		if newKey != key {
+			if existing, ok := m[newKey]; ok && existing != value {
+				return fmt.Errorf("config key collision: %q and %q normalize to %q", key, findOriginalKey(m, newKey), newKey)
+			}
 			delete(m, key)
 			m[newKey] = value
 		}
 		if nested, ok := value.(map[string]any); ok {
-			normalizeKeys(nested)
+			if err := normalizeKeys(nested); err != nil {
+				return err
+			}
 		} else if slice, ok := value.([]any); ok {
 			for _, item := range slice {
 				if nested, ok := item.(map[string]any); ok {
-					normalizeKeys(nested)
+					if err := normalizeKeys(nested); err != nil {
+						return err
+					}
 				}
 			}
 		}
 	}
+	return nil
+}
+
+func findOriginalKey(m map[string]any, snakeKey string) string {
+	for k := range m {
+		if camelToSnake(k) == snakeKey && k != snakeKey {
+			return k
+		}
+	}
+	return ""
 }
 
 func setDefaults(v *viper.Viper) {
@@ -115,8 +136,8 @@ func setDefaults(v *viper.Viper) {
 
 	v.SetDefault("scheduler.enabled", false)
 
-	v.SetDefault("inspector.queue_size", 1000)
-	v.SetDefault("inspector.worker_count", 10)
+	v.SetDefault("inspect.queue_size", 1000)
+	v.SetDefault("inspect.worker_count", 10)
 
 	v.SetDefault("collector.otlp_bind_addr", ":4317")
 	v.SetDefault("collector.batch_size", 100)
@@ -129,6 +150,11 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("vector_store.milvus.collection", "logs")
 	v.SetDefault("vector_store.milvus.dimension", 1536)
 	v.SetDefault("vector_store.milvus.retention", "72h")
+
+	v.SetDefault("meerkat_logs.enabled", false)
+	v.SetDefault("meerkat_logs.ingest_batch_size", 100)
+	v.SetDefault("meerkat_logs.similarity_threshold", 0.8)
+	v.SetDefault("meerkat_logs.max_context_logs", 50)
 }
 
 func bindEnvVars(v *viper.Viper) {
@@ -149,4 +175,5 @@ func bindEnvVars(v *viper.Viper) {
 	_ = v.BindEnv("vector_store.milvus.auth.user", "MILVUS_USER")
 	_ = v.BindEnv("vector_store.milvus.auth.password", "MILVUS_PASSWORD")
 	_ = v.BindEnv("vector_store.milvus.auth.token", "MILVUS_TOKEN")
+	_ = v.BindEnv("meerkat_logs.address", "MEERKAT_LOGS_ADDRESS")
 }

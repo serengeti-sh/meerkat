@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -18,6 +19,7 @@ type Config struct {
 	Collector   CollectorConfig   `mapstructure:"collector"`
 	Embedder    EmbedderConfig    `mapstructure:"embedder"`
 	VectorStore VectorStoreConfig `mapstructure:"vector_store"`
+	Vectors     VectorsConfig     `mapstructure:"vectors"`
 }
 
 type AppConfig struct {
@@ -132,15 +134,30 @@ type InspectorConfig struct {
 
 // DSN builds the database connection string from individual config fields.
 func (c *Config) DSN() string {
-	return fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		c.Store.Host,
-		c.Store.Port,
-		c.Store.User,
-		c.Store.Password,
-		c.Store.Name,
-		c.Store.SSLMode,
-	)
+	u := &url.URL{
+		Scheme: "postgres",
+		Host:   fmt.Sprintf("%s:%d", c.Store.Host, c.Store.Port),
+		User:   url.UserPassword(c.Store.User, c.Store.Password),
+		Path:   c.Store.Name,
+	}
+	q := u.Query()
+	q.Set("sslmode", c.Store.SSLMode)
+	u.RawQuery = q.Encode()
+	return u.String()
+}
+
+// RedactedDSN returns the DSN with the password masked for logging.
+func (c *Config) RedactedDSN() string {
+	u := &url.URL{
+		Scheme: "postgres",
+		Host:   fmt.Sprintf("%s:%d", c.Store.Host, c.Store.Port),
+		User:   url.UserPassword(c.Store.User, "***REDACTED***"),
+		Path:   c.Store.Name,
+	}
+	q := u.Query()
+	q.Set("sslmode", c.Store.SSLMode)
+	u.RawQuery = q.Encode()
+	return u.String()
 }
 
 // GetDedupWindow parses the dedup window duration, falling back to 5m.
@@ -169,7 +186,49 @@ type EmbedderConfig struct {
 }
 
 type VectorStoreConfig struct {
+	Driver string       `mapstructure:"driver"` // milvus (default), qdrant
 	Milvus MilvusConfig `mapstructure:"milvus"`
+	Qdrant QdrantConfig `mapstructure:"qdrant"`
+}
+
+type QdrantConfig struct {
+	Address    string `mapstructure:"address"`
+	Collection string `mapstructure:"collection"`
+	Dimension  int    `mapstructure:"dimension"`
+	APIKey     string `mapstructure:"api_key"`
+}
+
+// VectorsConfig configures the vectors ingestion and search service.
+type VectorsConfig struct {
+	Enabled               bool          `mapstructure:"enabled"`
+	Address               string        `mapstructure:"address"` // gRPC bind address
+	Port                  int           `mapstructure:"port"`
+	OTLPBindAddr          string        `mapstructure:"otlp_bind_addr"`
+	IngestBatchSize       int           `mapstructure:"ingest_batch_size"`
+	SimilarityThreshold   float64       `mapstructure:"similarity_threshold"`
+	MaxContextLogs        int           `mapstructure:"max_context_logs"`
+	FilterMode            string        `mapstructure:"filter_mode"`             // "all", "severity", "template"
+	MinSeverity           string        `mapstructure:"min_severity"`            // info, warning, error, critical
+	DeduplicateByTemplate bool          `mapstructure:"deduplicate_by_template"` // true (default), false
+	Retention             time.Duration `mapstructure:"retention"`               // vector store TTL
+}
+
+func (c VectorsConfig) GetAddress() string {
+	if c.Address != "" {
+		return c.Address
+	}
+	if c.Port != 0 {
+		return fmt.Sprintf(":%d", c.Port)
+	}
+	return ":50051"
+}
+
+func (c VectorsConfig) ShouldFilterBySeverity() bool {
+	return c.FilterMode == "severity" && c.MinSeverity != "" && c.MinSeverity != "info"
+}
+
+func (c VectorsConfig) ShouldDeduplicate() bool {
+	return c.FilterMode == "template" || c.DeduplicateByTemplate
 }
 
 type MilvusConfig struct {
@@ -193,6 +252,66 @@ type MilvusTLS struct {
 	Enabled    bool   `mapstructure:"enabled"`
 	CAFile     string `mapstructure:"ca_file"`
 	SkipVerify bool   `mapstructure:"skip_verify"`
+}
+
+// Validate checks that the configuration is valid.
+func (c *Config) Validate() error {
+	if c.HTTP.Port < 0 || c.HTTP.Port > 65535 {
+		return fmt.Errorf("http.port must be between 0 and 65535")
+	}
+
+	if c.Store.Host == "" {
+		return fmt.Errorf("store.host is required")
+	}
+	if c.Store.Name == "" {
+		return fmt.Errorf("store.name is required")
+	}
+	if c.Store.User == "" {
+		return fmt.Errorf("store.user is required")
+	}
+
+	if c.Analyzer.Provider != "" {
+		switch c.Analyzer.Provider {
+		case "openai", "anthropic":
+			// ok
+		default:
+			return fmt.Errorf("analyzer.provider must be 'openai' or 'anthropic', got %q", c.Analyzer.Provider)
+		}
+	}
+
+	if c.VectorStore.Driver != "" {
+		switch c.VectorStore.Driver {
+		case "milvus", "qdrant":
+			// ok
+		default:
+			return fmt.Errorf("vector_store.driver must be 'milvus' or 'qdrant', got %q", c.VectorStore.Driver)
+		}
+	}
+
+	if c.Vectors.Enabled {
+		if c.Vectors.Port < 0 || c.Vectors.Port > 65535 {
+			return fmt.Errorf("vectors.port must be between 0 and 65535")
+		}
+		if c.Vectors.Address == "" && c.Vectors.Port == 0 {
+			return fmt.Errorf("vectors.address or vectors.port is required when vectors is enabled")
+		}
+		if c.Vectors.FilterMode != "" {
+			switch c.Vectors.FilterMode {
+			case "all", "severity", "template":
+				// ok
+			default:
+				return fmt.Errorf("vectors.filter_mode must be 'all', 'severity', or 'template', got %q", c.Vectors.FilterMode)
+			}
+		}
+	}
+
+	if c.Collector.OTLPBindAddr != "" {
+		if c.Collector.BatchSize <= 0 {
+			return fmt.Errorf("collector.batch_size must be > 0")
+		}
+	}
+
+	return nil
 }
 
 func (c *Config) IsDevelopment() bool {

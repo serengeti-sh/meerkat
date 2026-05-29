@@ -80,15 +80,16 @@ func (s *Suite) Start(ctx context.Context) error {
 		return fmt.Errorf("get postgres port: %w", err)
 	}
 	s.pgHost = pgHost
-	s.pgPort = pgPortNat.Int()
+	s.pgPort = int(pgPortNat.Num())
 
 	// 3. Start mock services
 	s.mockOpenAI = newMockOpenAIServer()
 	s.mockPrometheus = newMockPrometheusServer()
 
-	// 4. Copy resources to temp dir so the binary can find schema files
-	if err := copyDir(filepath.Join(repoRoot(s.t), "resources"), filepath.Join(s.tmpDir, "resources")); err != nil {
-		return fmt.Errorf("copy resources: %w", err)
+	// 4. Copy schema files to temp dir so the binary can find them
+	schemaDir := filepath.Join(repoRoot(s.t), "internal", "tool", "schemas")
+	if err := copyDir(schemaDir, filepath.Join(s.tmpDir, "internal", "tool", "schemas")); err != nil {
+		return fmt.Errorf("copy schema files: %w", err)
 	}
 
 	// 5. Build meerkat-server binary
@@ -167,6 +168,38 @@ reporter:
 	}
 
 	// 7. Wait for server to be ready (poll health endpoint)
+	s.BaseURL = s.waitForServer(ctx, 30*time.Second)
+	if s.BaseURL == "" {
+		return fmt.Errorf("server failed to start within timeout")
+	}
+
+	return nil
+}
+
+// StartWithLogs initializes the e2e suite with a MeerkatLogs server configured.
+func (s *Suite) StartWithLogs(ctx context.Context, logsPort int) error {
+	if err := s.Start(ctx); err != nil {
+		return err
+	}
+	// Restart the server with MEERKAT_LOGS_ADDRESS env var
+	if s.serverCmd != nil && s.serverCmd.Process != nil {
+		_ = s.serverCmd.Process.Kill()
+		_ = s.serverCmd.Wait()
+	}
+
+	binaryPath := filepath.Join(s.tmpDir, "meerkat-server")
+	configPath := filepath.Join(s.tmpDir, "config.yaml")
+
+	s.serverCmd = exec.CommandContext(ctx, binaryPath, "analyzer", "serve", "--config", configPath)
+	s.serverCmd.Dir = s.tmpDir
+	s.serverCmd.Stdout = os.Stdout
+	s.serverCmd.Stderr = os.Stderr
+	s.serverCmd.Env = append(s.serverCmd.Environ(), fmt.Sprintf("MEERKAT_LOGS_ADDRESS=127.0.0.1:%d", logsPort))
+
+	if err := s.serverCmd.Start(); err != nil {
+		return fmt.Errorf("start meerkat-server with MeerkatLogs: %w", err)
+	}
+
 	s.BaseURL = s.waitForServer(ctx, 30*time.Second)
 	if s.BaseURL == "" {
 		return fmt.Errorf("server failed to start within timeout")
@@ -283,6 +316,8 @@ func writeSystemPrompt(t *testing.T, tmpDir string) string {
 When calling tools, use the EXACT tool name as provided. Do NOT invent tool names.
 If a tool call fails, do NOT guess. Report the failure honestly.
 If ALL datasources fail, set severity to "info" for resolved alerts or "warning" for firing alerts.
+
+When the context includes "=== Recent Log Context ===", use those log entries as supplementary evidence for root cause analysis.
 
 Respond with JSON only:
 {"severity": "info|warning|critical", "summary": "...", "detail": "..."}`
