@@ -10,7 +10,6 @@ import (
 func TestSchemaFiles_ValidJSON(t *testing.T) {
 	files := []string{
 		"schemas/prometheus.json",
-		"schemas/loki.json",
 		"schemas/victorialogs.json",
 	}
 
@@ -83,14 +82,6 @@ func TestValidateArgs_Invalid(t *testing.T) {
 			assert.Error(t, err)
 		})
 	}
-}
-
-func TestValidateArgs_LokiSchema(t *testing.T) {
-	schema, _, err := compileSchema("schemas/loki.json")
-	require.NoError(t, err)
-
-	err = validateArgs(schema, []byte(`{"query":"{app=\"nginx\"} |= \"error\"","limit":100}`))
-	assert.NoError(t, err)
 }
 
 func TestValidateArgs_VictoriaLogsSchema(t *testing.T) {

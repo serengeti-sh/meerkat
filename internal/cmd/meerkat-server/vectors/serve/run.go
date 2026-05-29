@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	logsv1 "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	"google.golang.org/grpc"
 
 	"github.com/serengeti-sh/meerkat/internal/config"
@@ -23,7 +22,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
-// Run starts the Vectors gRPC server (Search/Ingest/GetContext).
+// Run starts the Vectors server with OTLP ingestion and query services.
 func Run(cfgFile string, port int) error {
 	cfg, err := loadConfig(cfgFile)
 	if err != nil {
@@ -38,7 +37,7 @@ func Run(cfgFile string, port int) error {
 		ml.Port = port
 	}
 
-	// Override vector store retention if meerkat_logs.retention is set.
+	// Override vector store retention if vectors.retention is set.
 	if ml.Retention > 0 {
 		cfg.VectorStore.Milvus.Retention = ml.Retention
 	}
@@ -55,6 +54,15 @@ func Run(cfgFile string, port int) error {
 		}
 	}()
 
+	// Health checks
+	ctx := context.Background()
+	if err := vstore.Ping(ctx); err != nil {
+		return fmt.Errorf("vector store connection failed: %w", err)
+	}
+	if err := emb.HealthCheck(ctx); err != nil {
+		return fmt.Errorf("embedder health check failed: %w", err)
+	}
+
 	// Create Vectors service with configurable threshold and filtering.
 	logsOpts := []vectors.ServiceOption{
 		vectors.WithFilterMode(ml.FilterMode, ml.MinSeverity),
@@ -70,7 +78,17 @@ func Run(cfgFile string, port int) error {
 		return fmt.Errorf("create vectors service: %w", err)
 	}
 
-	// Start gRPC server for Search/Ingest/GetContext.
+	// Start ingestors (currently OTLP only, extensible for Kafka, HTTP, file, etc.)
+	ingestors := []vectors.Ingestor{
+		vectors.NewOTLPIngestor(ml.GetAddress()),
+	}
+	for _, ing := range ingestors {
+		if err := ing.Start(context.Background(), logsSvc); err != nil {
+			return fmt.Errorf("start ingestor %q: %w", ing.Name(), err)
+		}
+	}
+
+	// Start gRPC server for Search/GetContext.
 	logsServer, err := vectors.NewGRPCServer(logsSvc)
 	if err != nil {
 		return fmt.Errorf("create vectors grpc server: %w", err)
@@ -79,10 +97,6 @@ func Run(cfgFile string, port int) error {
 	grpcServer := grpc.NewServer()
 	meerkatlogspb.RegisterServiceServer(grpcServer, logsServer)
 
-	// Register OTLP logs receiver.
-	otlpServer := vectors.NewOTLPServer(logsSvc)
-	logsv1.RegisterLogsServiceServer(grpcServer, otlpServer)
-
 	grpcAddr := ml.GetAddress()
 	lis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
@@ -90,7 +104,7 @@ func Run(cfgFile string, port int) error {
 	}
 
 	go func() {
-		log.Printf("Vectors gRPC server listening on %s (includes OTLP)", grpcAddr)
+		log.Printf("Vectors query gRPC server listening on %s", grpcAddr)
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Printf("gRPC server error: %v", err)
 		}
@@ -125,6 +139,13 @@ func Run(cfgFile string, port int) error {
 	// Graceful shutdown with timeout.
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	// Stop ingestors
+	for _, ing := range ingestors {
+		if err := ing.Stop(shutdownCtx); err != nil {
+			log.Printf("ingestor %q stop error: %v", ing.Name(), err)
+		}
+	}
 
 	done := make(chan struct{})
 	go func() {

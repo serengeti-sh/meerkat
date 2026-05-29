@@ -14,7 +14,6 @@ import (
 
 // Client is a gRPC client for the MeerkatLogs service.
 type Client interface {
-	Ingest(ctx context.Context, entries []Entry) (*IngestResult, error)
 	Search(ctx context.Context, query string, opts SearchOptions) ([]SearchResult, error)
 	GetContext(ctx context.Context, service string, start, end time.Time, limit int) ([]SearchResult, error)
 	Close() error
@@ -46,31 +45,6 @@ func New(addr string, opts ...Option) (*client, error) {
 	return &client{
 		conn: conn,
 		cli:  meerkatlogspb.NewServiceClient(conn),
-	}, nil
-}
-
-func (c *client) Ingest(ctx context.Context, entries []Entry) (*IngestResult, error) {
-	reqEntries := make([]*meerkatlogspb.LogEntry, len(entries))
-	for i, e := range entries {
-		reqEntries[i] = &meerkatlogspb.LogEntry{
-			Id:         e.ID,
-			Timestamp:  timestamppb.New(e.Timestamp),
-			Service:    e.Service,
-			Severity:   e.Severity,
-			Body:       e.Body,
-			Attributes: e.Attributes,
-		}
-	}
-
-	resp, err := c.cli.Ingest(ctx, &meerkatlogspb.IngestRequest{Entries: reqEntries})
-	if err != nil {
-		return nil, fmt.Errorf("ingest: %w", err)
-	}
-
-	return &IngestResult{
-		IngestedCount:     int(resp.IngestedCount),
-		DeduplicatedCount: int(resp.DeduplicatedCount),
-		FilteredCount:     int(resp.FilteredCount),
 	}, nil
 }
 

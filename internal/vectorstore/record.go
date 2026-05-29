@@ -49,6 +49,9 @@ type Store interface {
 	// Delete removes records by their IDs.
 	Delete(ctx context.Context, ids []string) error
 
+	// Ping checks connectivity to the vector store.
+	Ping(ctx context.Context) error
+
 	// Close releases resources held by the store.
 	Close() error
 }

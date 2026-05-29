@@ -36,6 +36,15 @@ func newOpenAIEmbedder(apiKey, baseURL, model string) *openAIEmbedder {
 	}
 }
 
+func (e *openAIEmbedder) HealthCheck(ctx context.Context) error {
+	// Perform a minimal embedding call to verify connectivity.
+	_, err := e.Embed(ctx, []string{"healthcheck"})
+	if err != nil {
+		return fmt.Errorf("openai embedder health check failed: %w", err)
+	}
+	return nil
+}
+
 func (e *openAIEmbedder) Embed(ctx context.Context, texts []string) ([][]float32, error) {
 	if len(texts) == 0 {
 		return nil, nil

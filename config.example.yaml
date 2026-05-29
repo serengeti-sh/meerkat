@@ -98,14 +98,14 @@ scheduler:
       metric_query: "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))"
       log_query: ""
 
-inspector:
+inspect:
   dedup_window: 5m
 
-reporter:
+notify:
   webhook_url: ""
   min_severity: warning
 
-embedder:
+embed:
   provider: openai
   api_key: ""
   base_url: ""

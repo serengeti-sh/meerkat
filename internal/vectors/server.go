@@ -40,32 +40,6 @@ func toProto(r SearchResult) *meerkatlogspb.SearchResult {
 	}
 }
 
-// Ingest adds log entries to the vector store.
-func (s *GRPCServer) Ingest(ctx context.Context, req *meerkatlogspb.IngestRequest) (*meerkatlogspb.IngestResponse, error) {
-	entries := make([]Entry, len(req.Entries))
-	for i, e := range req.Entries {
-		entries[i] = Entry{
-			ID:         e.Id,
-			Timestamp:  e.Timestamp.AsTime(),
-			Service:    e.Service,
-			Severity:   e.Severity,
-			Body:       e.Body,
-			Attributes: e.Attributes,
-		}
-	}
-
-	result, err := s.svc.Ingest(ctx, entries)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "ingest failed: %v", err)
-	}
-
-	return &meerkatlogspb.IngestResponse{
-		IngestedCount:     int32(result.IngestedCount),
-		DeduplicatedCount: int32(result.DeduplicatedCount),
-		FilteredCount:     int32(result.FilteredCount),
-	}, nil
-}
-
 // Search finds semantically similar log entries.
 func (s *GRPCServer) Search(ctx context.Context, req *meerkatlogspb.SearchRequest) (*meerkatlogspb.SearchResponse, error) {
 	opts := SearchOptions{

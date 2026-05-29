@@ -82,6 +82,8 @@ type mockEmbedder struct {
 	idx     int
 }
 
+func (m *mockEmbedder) HealthCheck(ctx context.Context) error { return nil }
+
 func (m *mockEmbedder) Embed(ctx context.Context, texts []string) ([][]float32, error) {
 	result := make([][]float32, len(texts))
 	for i := range texts {
@@ -118,4 +120,5 @@ func (m *inMemoryVectorStore) Search(ctx context.Context, vector []float32, opts
 }
 
 func (m *inMemoryVectorStore) Delete(ctx context.Context, ids []string) error { return nil }
+func (m *inMemoryVectorStore) Ping(ctx context.Context) error                 { return nil }
 func (m *inMemoryVectorStore) Close() error                                   { return nil }

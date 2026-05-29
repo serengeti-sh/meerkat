@@ -19,31 +19,10 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
-func TestClient_Ingest(t *testing.T) {
-	ctx := context.Background()
-	client, cleanup := setupTestClient(t)
-	defer cleanup()
-
-	entries := []vectorsclient.Entry{
-		{ID: "1", Body: "error: connection failed", Service: "api", Severity: "ERROR"},
-		{ID: "2", Body: "error: timeout", Service: "api", Severity: "ERROR"},
-	}
-
-	result, err := client.Ingest(ctx, entries)
-	require.NoError(t, err)
-	assert.GreaterOrEqual(t, result.IngestedCount, 0)
-}
-
 func TestClient_Search(t *testing.T) {
 	ctx := context.Background()
 	client, cleanup := setupTestClient(t)
 	defer cleanup()
-
-	// First ingest some data
-	_, err := client.Ingest(ctx, []vectorsclient.Entry{
-		{ID: "1", Body: "database connection error", Service: "db", Severity: "ERROR"},
-	})
-	require.NoError(t, err)
 
 	results, err := client.Search(ctx, "database error", vectorsclient.SearchOptions{
 		Limit:     10,
@@ -73,6 +52,8 @@ func TestClient_Close(t *testing.T) {
 // mockEmbedder implements embed.Model for testing.
 type mockEmbedder struct{}
 
+func (m *mockEmbedder) HealthCheck(ctx context.Context) error { return nil }
+
 func (m *mockEmbedder) Embed(ctx context.Context, texts []string) ([][]float32, error) {
 	vecs := make([][]float32, len(texts))
 	for i := range texts {
@@ -81,7 +62,7 @@ func (m *mockEmbedder) Embed(ctx context.Context, texts []string) ([][]float32, 
 	return vecs, nil
 }
 
-// inMemoryVectorStore implements vector.VectorStore for testing.
+// inMemoryVectorStore implements vectorstore.Store for testing.
 type inMemoryVectorStore struct {
 	records []vectorstore.Record
 }
@@ -107,6 +88,7 @@ func (m *inMemoryVectorStore) Search(ctx context.Context, v []float32, opts vect
 }
 
 func (m *inMemoryVectorStore) Delete(ctx context.Context, ids []string) error { return nil }
+func (m *inMemoryVectorStore) Ping(ctx context.Context) error                 { return nil }
 func (m *inMemoryVectorStore) Close() error                                   { return nil }
 
 func setupTestClient(t *testing.T) (vectorsclient.Client, func()) {

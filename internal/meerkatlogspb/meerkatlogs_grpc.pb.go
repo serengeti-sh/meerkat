@@ -19,7 +19,6 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Service_Ingest_FullMethodName     = "/meerkatlogs.v1.Service/Ingest"
 	Service_Search_FullMethodName     = "/meerkatlogs.v1.Service/Search"
 	Service_GetContext_FullMethodName = "/meerkatlogs.v1.Service/GetContext"
 )
@@ -28,10 +27,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Service provides log ingestion and semantic search for AI analysis.
+// Service provides semantic search and context retrieval for AI analysis.
 type ServiceClient interface {
-	// Ingest adds log entries to the vector store after template extraction.
-	Ingest(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*IngestResponse, error)
 	// Search finds semantically similar log entries.
 	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 	// GetContext retrieves relevant log context for a given service and time range.
@@ -44,16 +41,6 @@ type serviceClient struct {
 
 func NewServiceClient(cc grpc.ClientConnInterface) ServiceClient {
 	return &serviceClient{cc}
-}
-
-func (c *serviceClient) Ingest(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*IngestResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(IngestResponse)
-	err := c.cc.Invoke(ctx, Service_Ingest_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *serviceClient) Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error) {
@@ -80,10 +67,8 @@ func (c *serviceClient) GetContext(ctx context.Context, in *GetContextRequest, o
 // All implementations must embed UnimplementedServiceServer
 // for forward compatibility.
 //
-// Service provides log ingestion and semantic search for AI analysis.
+// Service provides semantic search and context retrieval for AI analysis.
 type ServiceServer interface {
-	// Ingest adds log entries to the vector store after template extraction.
-	Ingest(context.Context, *IngestRequest) (*IngestResponse, error)
 	// Search finds semantically similar log entries.
 	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	// GetContext retrieves relevant log context for a given service and time range.
@@ -98,9 +83,6 @@ type ServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedServiceServer struct{}
 
-func (UnimplementedServiceServer) Ingest(context.Context, *IngestRequest) (*IngestResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method Ingest not implemented")
-}
 func (UnimplementedServiceServer) Search(context.Context, *SearchRequest) (*SearchResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Search not implemented")
 }
@@ -126,24 +108,6 @@ func RegisterServiceServer(s grpc.ServiceRegistrar, srv ServiceServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&Service_ServiceDesc, srv)
-}
-
-func _Service_Ingest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(IngestRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ServiceServer).Ingest(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: Service_Ingest_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServiceServer).Ingest(ctx, req.(*IngestRequest))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _Service_Search_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -189,10 +153,6 @@ var Service_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "meerkatlogs.v1.Service",
 	HandlerType: (*ServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
-		{
-			MethodName: "Ingest",
-			Handler:    _Service_Ingest_Handler,
-		},
 		{
 			MethodName: "Search",
 			Handler:    _Service_Search_Handler,

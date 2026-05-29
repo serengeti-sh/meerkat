@@ -42,6 +42,19 @@ func newAnthropicProvider(cfg ProviderConfig) LLMProvider {
 	}
 }
 
+func (p *anthropicProvider) HealthCheck(ctx context.Context) error {
+	_, err := p.Complete(ctx, &CompletionRequest{
+		Messages: []Message{{Role: RoleUser, Content: "hi"}},
+	})
+	if err != nil {
+		if errors.Is(err, ErrAuthError) {
+			return nil
+		}
+		return fmt.Errorf("anthropic provider health check failed: %w", err)
+	}
+	return nil
+}
+
 func (p *anthropicProvider) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
 	return retryWithBackoff(ctx, p.retryCfg, func() (*CompletionResponse, error) {
 		var systemContent string
