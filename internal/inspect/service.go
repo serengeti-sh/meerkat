@@ -68,18 +68,18 @@ type reportRepo interface {
 }
 
 type service struct {
-	analyzerSvc analyzerSvc
-	reportRepo  reportRepo
-	reporterSvc reporterSvc
-	vectorsClient  vectorsclient.Client
-	dsRefs      DatasourceRefs
-	dedupWindow time.Duration
-	queueSize   int
-	workerCount int
-	queue       chan *analysisJob
-	wg          sync.WaitGroup
-	cancel      context.CancelFunc
-	startOnce   sync.Once
+	analyzerSvc   analyzerSvc
+	reportRepo    reportRepo
+	reporterSvc   reporterSvc
+	vectorsClient vectorsclient.Client
+	dsRefs        DatasourceRefs
+	dedupWindow   time.Duration
+	queueSize     int
+	workerCount   int
+	queue         chan *analysisJob
+	wg            sync.WaitGroup
+	cancel        context.CancelFunc
+	startOnce     sync.Once
 }
 
 var _ Service = (*service)(nil)

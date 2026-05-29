@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 	"github.com/serengeti-sh/meerkat/internal/vectors"
+	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 )
 
 // TestE2E_VectorsPipeline tests the complete vectors service pipeline:

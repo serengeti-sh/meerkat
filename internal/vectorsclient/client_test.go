@@ -13,9 +13,9 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/test/bufconn"
 
-	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 	"github.com/serengeti-sh/meerkat/internal/vectors"
 	"github.com/serengeti-sh/meerkat/internal/vectorsclient"
+	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 

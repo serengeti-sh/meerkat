@@ -342,7 +342,7 @@ func TestEntReportRepository_FindActiveByQuery_Error(t *testing.T) {
 	ctx := context.Background()
 
 	// Close client to simulate error
-	client.Close()
+	_ = client.Close()
 
 	_, err := repo.FindActiveByQuery(ctx, "manual", "query", time.Now().Add(-time.Hour))
 	assert.Error(t, err)

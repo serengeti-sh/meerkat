@@ -20,11 +20,11 @@ func TestLogRecordToEntry(t *testing.T) {
 	// The detailed conversion logic is tested via integration with the service.
 
 	tests := []struct {
-		name        string
-		body        string
-		severity    string
-		attrs       map[string]string
-		wantBody    string
+		name         string
+		body         string
+		severity     string
+		attrs        map[string]string
+		wantBody     string
 		wantSeverity string
 	}{
 		{

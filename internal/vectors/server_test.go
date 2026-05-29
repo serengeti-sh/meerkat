@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 	"github.com/serengeti-sh/meerkat/internal/vectors"
+	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
@@ -30,10 +30,10 @@ func TestGRPCServer_Search(t *testing.T) {
 
 	t.Run("successful search", func(t *testing.T) {
 		resp, err := server.Search(context.Background(), &vectorspb.SearchRequest{
-			Query:     "connection error",
-			Limit:     5,
-			Service:   "api",
-			Severity:  "ERROR",
+			Query:            "connection error",
+			Limit:            5,
+			Service:          "api",
+			Severity:         "ERROR",
 			TimeRangeSeconds: 3600,
 		})
 		require.NoError(t, err)

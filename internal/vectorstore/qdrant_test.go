@@ -12,7 +12,7 @@ import (
 
 func TestAPIKeyAuth_GetRequestMetadata(t *testing.T) {
 	auth := vectorstore.NewAPIKeyAuth("test-api-key")
-	
+
 	metadata, err := auth.GetRequestMetadata(context.Background(), "test-uri")
 	require.NoError(t, err)
 	assert.Equal(t, "test-api-key", metadata["api-key"])
