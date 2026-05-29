@@ -61,7 +61,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Generate SBOM attestation
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-name: ${{ vars.REGISTRY }}/${{ vars.REPOSITORY }}
           subject-digest: ${{ steps.build.outputs.digest }}
