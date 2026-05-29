@@ -60,14 +60,14 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 	// Repository
 	reportRepo := report.NewEntReportRepository(client)
 
-	// MeerkatLogs client
-	logsClient, err := newLogsClient(cfg)
+	// Vectors client
+	vectorsClient, err := newVectorsClient(cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	// Tool registry
-	toolRegistry, err := buildToolRegistry(cfg, logsClient)
+	toolRegistry, err := buildToolRegistry(cfg, vectorsClient)
 	if err != nil {
 		return nil, fmt.Errorf("build tool registry: %w", err)
 	}
@@ -100,8 +100,8 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 
 	// Inspector
 	var inspectorOpts []inspect.ServiceOption
-	if logsClient != nil {
-		inspectorOpts = append(inspectorOpts, inspect.WithLogsClient(logsClient))
+	if vectorsClient != nil {
+		inspectorOpts = append(inspectorOpts, inspect.WithVectorsClient(vectorsClient))
 	}
 
 	inspectorSvc, err := inspect.NewService(
@@ -208,7 +208,7 @@ func (a *Analyzer) Run() error {
 	return nil
 }
 
-func newLogsClient(cfg *config.Config) (vectorsclient.Client, error) {
+func newVectorsClient(cfg *config.Config) (vectorsclient.Client, error) {
 	if !cfg.Vectors.Enabled || cfg.Vectors.Address == "" {
 		return nil, nil
 	}
@@ -219,7 +219,7 @@ func newLogsClient(cfg *config.Config) (vectorsclient.Client, error) {
 	return client, nil
 }
 
-func buildToolRegistry(cfg *config.Config, logsClient vectorsclient.Client) (*tool.Registry, error) {
+func buildToolRegistry(cfg *config.Config, vectorsClient vectorsclient.Client) (*tool.Registry, error) {
 	var tools []tool.Plugin
 
 	for _, pc := range cfg.Tools.Prometheus {
@@ -282,8 +282,8 @@ func buildToolRegistry(cfg *config.Config, logsClient vectorsclient.Client) (*to
 		tools = append(tools, t)
 	}
 
-	if logsClient != nil {
-		tools = append(tools, tool.NewSearchLogsTool(logsClient))
+	if vectorsClient != nil {
+		tools = append(tools, tool.NewSearchLogsTool(vectorsClient))
 	}
 
 	return tool.NewRegistry(tools...), nil

@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
+	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 	"github.com/serengeti-sh/meerkat/internal/vectors"
 )
 
@@ -34,14 +34,14 @@ func TestE2E_VectorsPipeline(t *testing.T) {
 	}
 	vs := &inMemoryVectorStore{}
 
-	logsSvc, err := vectors.NewService(emb, vs,
+	vectorsSvc, err := vectors.NewService(emb, vs,
 		vectors.WithFilterMode("all", ""),
 		vectors.WithBatchSize(10),
 	)
 	require.NoError(t, err)
 
 	// Step 1: Create gRPC server
-	grpcServer, err := vectors.NewGRPCServer(logsSvc)
+	grpcServer, err := vectors.NewGRPCServer(vectorsSvc)
 	require.NoError(t, err)
 
 	// Step 2: Ingest log entries
@@ -66,12 +66,12 @@ func TestE2E_VectorsPipeline(t *testing.T) {
 		},
 	}
 
-	result, err := logsSvc.Ingest(ctx, entries)
+	result, err := vectorsSvc.Ingest(ctx, entries)
 	require.NoError(t, err)
 	assert.Greater(t, result.IngestedCount, 0, "expected some entries to be ingested")
 
 	// Step 3: Search via gRPC server
-	searchResp, err := grpcServer.Search(ctx, &meerkatlogspb.SearchRequest{
+	searchResp, err := grpcServer.Search(ctx, &vectorspb.SearchRequest{
 		Query:            "database connection error",
 		Limit:            10,
 		Service:          "api-server",
@@ -83,7 +83,7 @@ func TestE2E_VectorsPipeline(t *testing.T) {
 
 	// Step 4: GetContext via gRPC server
 	now := time.Now()
-	contextResp, err := grpcServer.GetContext(ctx, &meerkatlogspb.GetContextRequest{
+	contextResp, err := grpcServer.GetContext(ctx, &vectorspb.GetContextRequest{
 		Service:   "api-server",
 		StartTime: timestamppb.New(now.Add(-time.Hour)),
 		EndTime:   timestamppb.New(now),
@@ -107,7 +107,7 @@ func TestE2E_VectorsDeduplication(t *testing.T) {
 	vs := &inMemoryVectorStore{}
 
 	// Use template deduplication mode
-	logsSvc, err := vectors.NewService(emb, vs,
+	vectorsSvc, err := vectors.NewService(emb, vs,
 		vectors.WithFilterMode("template", ""),
 		vectors.WithSimilarityThreshold(0.7),
 	)
@@ -120,7 +120,7 @@ func TestE2E_VectorsDeduplication(t *testing.T) {
 		{Timestamp: time.Now(), Service: "api", Severity: "ERROR", Body: "connection refused to db-3"},
 	}
 
-	result, err := logsSvc.Ingest(ctx, entries)
+	result, err := vectorsSvc.Ingest(ctx, entries)
 	require.NoError(t, err)
 
 	// With template deduplication, only the first unique template should be ingested
@@ -142,7 +142,7 @@ func TestE2E_VectorsSeverityFiltering(t *testing.T) {
 	vs := &inMemoryVectorStore{}
 
 	// Filter out INFO and below, only WARNING and above
-	logsSvc, err := vectors.NewService(emb, vs,
+	vectorsSvc, err := vectors.NewService(emb, vs,
 		vectors.WithFilterMode("severity", "warning"),
 	)
 	require.NoError(t, err)
@@ -154,7 +154,7 @@ func TestE2E_VectorsSeverityFiltering(t *testing.T) {
 		{Timestamp: time.Now(), Service: "api", Severity: "DEBUG", Body: "debug trace"},
 	}
 
-	result, err := logsSvc.Ingest(ctx, entries)
+	result, err := vectorsSvc.Ingest(ctx, entries)
 	require.NoError(t, err)
 
 	assert.Equal(t, 2, result.IngestedCount, "expected only WARNING and ERROR to be ingested")

@@ -11,37 +11,37 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
+	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 )
 
-// mockMeerkatLogsServer implements a minimal MeerkatLogs gRPC server for E2E testing.
-type mockMeerkatLogsServer struct {
-	meerkatlogspb.UnimplementedServiceServer
-	entries []*meerkatlogspb.SearchResult
+// mockVectorsServer implements a minimal Vectors gRPC server for E2E testing.
+type mockVectorsServer struct {
+	vectorspb.UnimplementedServiceServer
+	entries []*vectorspb.SearchResult
 }
 
-func (m *mockMeerkatLogsServer) Search(ctx context.Context, req *meerkatlogspb.SearchRequest) (*meerkatlogspb.SearchResponse, error) {
-	return &meerkatlogspb.SearchResponse{Results: m.entries}, nil
+func (m *mockVectorsServer) Search(ctx context.Context, req *vectorspb.SearchRequest) (*vectorspb.SearchResponse, error) {
+	return &vectorspb.SearchResponse{Results: m.entries}, nil
 }
 
-func (m *mockMeerkatLogsServer) GetContext(ctx context.Context, req *meerkatlogspb.GetContextRequest) (*meerkatlogspb.GetContextResponse, error) {
-	return &meerkatlogspb.GetContextResponse{Results: m.entries}, nil
+func (m *mockVectorsServer) GetContext(ctx context.Context, req *vectorspb.GetContextRequest) (*vectorspb.GetContextResponse, error) {
+	return &vectorspb.GetContextResponse{Results: m.entries}, nil
 }
 
 // TestE2E_Webhook_WithLogContext verifies that when a webhook is received
-// and a MeerkatLogs server is available, the analyzer receives log context in its prompt.
+// and a Vectors server is available, the analyzer receives log context in its prompt.
 func TestE2E_Webhook_WithLogContext(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping e2e test in short mode")
 	}
 
-	// 1. Start mock MeerkatLogs gRPC server
+	// 1. Start mock Vectors gRPC server
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
-	logsPort := lis.Addr().(*net.TCPAddr).Port
+	vectorsPort := lis.Addr().(*net.TCPAddr).Port
 
-	logsSvc := &mockMeerkatLogsServer{
-		entries: []*meerkatlogspb.SearchResult{
+	vectorsSvc := &mockVectorsServer{
+		entries: []*vectorspb.SearchResult{
 			{
 				Id:        "log-1",
 				Timestamp: timestamppb.New(time.Now().Add(-5 * time.Minute)),
@@ -58,18 +58,18 @@ func TestE2E_Webhook_WithLogContext(t *testing.T) {
 			},
 		},
 	}
-	logsGRPC := grpc.NewServer()
-	meerkatlogspb.RegisterServiceServer(logsGRPC, logsSvc)
+	vectorsGRPC := grpc.NewServer()
+	vectorspb.RegisterServiceServer(vectorsGRPC, vectorsSvc)
 
 	go func() {
-		if err := logsGRPC.Serve(lis); err != nil {
-			t.Logf("mock MeerkatLogs server error: %v", err)
+		if err := vectorsGRPC.Serve(lis); err != nil {
+			t.Logf("mock Vectors server error: %v", err)
 		}
 	}()
-	defer logsGRPC.GracefulStop()
+	defer vectorsGRPC.GracefulStop()
 
-	// 2. Start e2e suite with MeerkatLogs server configured
-	suite := SetupSuiteWithLogs(t, logsPort)
+	// 2. Start e2e suite with Vectors server configured
+	suite := SetupSuiteWithVectors(t, vectorsPort)
 
 	// 3. Send webhook referencing the service
 	payload := map[string]any{
@@ -97,8 +97,8 @@ func TestE2E_Webhook_WithLogContext(t *testing.T) {
 	assert.NotEmpty(t, report["summary"])
 }
 
-// SetupSuiteWithLogs creates an e2e suite with MEERKAT_LOGS_ADDRESS env var set.
-func SetupSuiteWithLogs(t *testing.T, logsPort int) *Suite {
+// SetupSuiteWithVectors creates an e2e suite with VECTORS_ADDRESS env var set.
+func SetupSuiteWithVectors(t *testing.T, vectorsPort int) *Suite {
 	if testing.Short() {
 		t.Skip("Skipping e2e test in short mode")
 	}
@@ -106,7 +106,7 @@ func SetupSuiteWithLogs(t *testing.T, logsPort int) *Suite {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 
 	suite := NewSuite(t)
-	require.NoError(t, suite.StartWithLogs(ctx, logsPort), "Failed to start e2e test suite with MeerkatLogs")
+	require.NoError(t, suite.StartWithVectors(ctx, vectorsPort), "Failed to start e2e test suite with Vectors")
 	t.Cleanup(func() {
 		cancel()
 		suite.Stop()

@@ -9,12 +9,12 @@ import (
 
 // Export internal functions for testing only.
 
-func ExportNewLogsClient(cfg *config.Config) (vectorsclient.Client, error) {
-	return newLogsClient(cfg)
+func ExportNewVectorsClient(cfg *config.Config) (vectorsclient.Client, error) {
+	return newVectorsClient(cfg)
 }
 
-func ExportBuildToolRegistry(cfg *config.Config, logsClient vectorsclient.Client) (*tool.Registry, error) {
-	return buildToolRegistry(cfg, logsClient)
+func ExportBuildToolRegistry(cfg *config.Config, vectorsClient vectorsclient.Client) (*tool.Registry, error) {
+	return buildToolRegistry(cfg, vectorsClient)
 }
 
 func ExportBuildAnalyzerService(provider analyzer.LLMProvider, registry *tool.Registry, cfg *config.Config) (analyzer.Service, error) {

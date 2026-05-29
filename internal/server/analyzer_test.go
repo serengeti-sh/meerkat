@@ -28,7 +28,7 @@ func TestNewLogsClient(t *testing.T) {
 				Enabled: false,
 			},
 		}
-		client, err := server.ExportNewLogsClient(cfg)
+		client, err := server.ExportNewVectorsClient(cfg)
 		require.NoError(t, err)
 		assert.Nil(t, client)
 	})
@@ -40,7 +40,7 @@ func TestNewLogsClient(t *testing.T) {
 				Address: "",
 			},
 		}
-		client, err := server.ExportNewLogsClient(cfg)
+		client, err := server.ExportNewVectorsClient(cfg)
 		require.NoError(t, err)
 		assert.Nil(t, client)
 	})
@@ -52,7 +52,7 @@ func TestNewLogsClient(t *testing.T) {
 				Address: "localhost:50051",
 			},
 		}
-		client, err := server.ExportNewLogsClient(cfg)
+		client, err := server.ExportNewVectorsClient(cfg)
 		require.NoError(t, err)
 		assert.NotNil(t, client)
 	})

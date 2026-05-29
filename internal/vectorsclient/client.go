@@ -9,10 +9,10 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
+	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 )
 
-// Client is a gRPC client for the MeerkatLogs service.
+// Client is a gRPC client for the Vectors service.
 type Client interface {
 	Search(ctx context.Context, query string, opts SearchOptions) ([]SearchResult, error)
 	GetContext(ctx context.Context, service string, start, end time.Time, limit int) ([]SearchResult, error)
@@ -21,12 +21,12 @@ type Client interface {
 
 type client struct {
 	conn *grpc.ClientConn
-	cli  meerkatlogspb.ServiceClient
+	cli  vectorspb.ServiceClient
 }
 
 var _ Client = (*client)(nil)
 
-// New creates a client connected to the MeerkatLogs gRPC server at addr.
+// New creates a client connected to the Vectors gRPC server at addr.
 func New(addr string, opts ...Option) (*client, error) {
 	cfg := &config{
 		dialOpts: []grpc.DialOption{
@@ -39,17 +39,17 @@ func New(addr string, opts ...Option) (*client, error) {
 
 	conn, err := grpc.NewClient(addr, cfg.dialOpts...)
 	if err != nil {
-		return nil, fmt.Errorf("connect to MeerkatLogs server: %w", err)
+		return nil, fmt.Errorf("connect to Vectors server: %w", err)
 	}
 
 	return &client{
 		conn: conn,
-		cli:  meerkatlogspb.NewServiceClient(conn),
+		cli:  vectorspb.NewServiceClient(conn),
 	}, nil
 }
 
 func (c *client) Search(ctx context.Context, query string, opts SearchOptions) ([]SearchResult, error) {
-	req := &meerkatlogspb.SearchRequest{
+	req := &vectorspb.SearchRequest{
 		Query:            query,
 		Limit:            int32(opts.Limit),
 		TimeRangeSeconds: int64(opts.TimeRange.Seconds()),
@@ -66,7 +66,7 @@ func (c *client) Search(ctx context.Context, query string, opts SearchOptions) (
 }
 
 func (c *client) GetContext(ctx context.Context, service string, start, end time.Time, limit int) ([]SearchResult, error) {
-	req := &meerkatlogspb.GetContextRequest{
+	req := &vectorspb.GetContextRequest{
 		Service:   service,
 		StartTime: timestamppb.New(start),
 		EndTime:   timestamppb.New(end),
@@ -85,7 +85,7 @@ func (c *client) Close() error {
 	return c.conn.Close()
 }
 
-func fromProtoResults(results []*meerkatlogspb.SearchResult) []SearchResult {
+func fromProtoResults(results []*vectorspb.SearchResult) []SearchResult {
 	out := make([]SearchResult, len(results))
 	for i, r := range results {
 		out[i] = SearchResult{

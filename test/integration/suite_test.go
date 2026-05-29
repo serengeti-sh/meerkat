@@ -206,7 +206,7 @@ Respond with JSON only:
 		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
 	}
 	inspectorSvc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10,
-		inspect.WithLogsClient(nil), // explicitly no logs client in integration tests
+		inspect.WithVectorsClient(nil), // explicitly no logs client in integration tests
 	)
 	if err != nil {
 		return fmt.Errorf("create inspector service: %w", err)

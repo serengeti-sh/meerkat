@@ -2,9 +2,9 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v7.34.1
-// source: api/proto/meerkatlogs/v1/meerkatlogs.proto
+// source: api/proto/vectors/v1/vectors.proto
 
-package meerkatlogspb
+package vectorspb
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -37,7 +37,7 @@ type SearchResult struct {
 
 func (x *SearchResult) Reset() {
 	*x = SearchResult{}
-	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[0]
+	mi := &file_api_proto_vectors_v1_vectors_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -49,7 +49,7 @@ func (x *SearchResult) String() string {
 func (*SearchResult) ProtoMessage() {}
 
 func (x *SearchResult) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[0]
+	mi := &file_api_proto_vectors_v1_vectors_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -62,7 +62,7 @@ func (x *SearchResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchResult.ProtoReflect.Descriptor instead.
 func (*SearchResult) Descriptor() ([]byte, []int) {
-	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_vectors_v1_vectors_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *SearchResult) GetId() string {
@@ -121,7 +121,7 @@ type SearchRequest struct {
 
 func (x *SearchRequest) Reset() {
 	*x = SearchRequest{}
-	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[1]
+	mi := &file_api_proto_vectors_v1_vectors_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -133,7 +133,7 @@ func (x *SearchRequest) String() string {
 func (*SearchRequest) ProtoMessage() {}
 
 func (x *SearchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[1]
+	mi := &file_api_proto_vectors_v1_vectors_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -146,7 +146,7 @@ func (x *SearchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchRequest.ProtoReflect.Descriptor instead.
 func (*SearchRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_vectors_v1_vectors_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *SearchRequest) GetQuery() string {
@@ -194,7 +194,7 @@ type SearchResponse struct {
 
 func (x *SearchResponse) Reset() {
 	*x = SearchResponse{}
-	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[2]
+	mi := &file_api_proto_vectors_v1_vectors_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -206,7 +206,7 @@ func (x *SearchResponse) String() string {
 func (*SearchResponse) ProtoMessage() {}
 
 func (x *SearchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[2]
+	mi := &file_api_proto_vectors_v1_vectors_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -219,7 +219,7 @@ func (x *SearchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SearchResponse.ProtoReflect.Descriptor instead.
 func (*SearchResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_vectors_v1_vectors_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *SearchResponse) GetResults() []*SearchResult {
@@ -242,7 +242,7 @@ type GetContextRequest struct {
 
 func (x *GetContextRequest) Reset() {
 	*x = GetContextRequest{}
-	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[3]
+	mi := &file_api_proto_vectors_v1_vectors_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -254,7 +254,7 @@ func (x *GetContextRequest) String() string {
 func (*GetContextRequest) ProtoMessage() {}
 
 func (x *GetContextRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[3]
+	mi := &file_api_proto_vectors_v1_vectors_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -267,7 +267,7 @@ func (x *GetContextRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetContextRequest.ProtoReflect.Descriptor instead.
 func (*GetContextRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_vectors_v1_vectors_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *GetContextRequest) GetService() string {
@@ -308,7 +308,7 @@ type GetContextResponse struct {
 
 func (x *GetContextResponse) Reset() {
 	*x = GetContextResponse{}
-	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[4]
+	mi := &file_api_proto_vectors_v1_vectors_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -320,7 +320,7 @@ func (x *GetContextResponse) String() string {
 func (*GetContextResponse) ProtoMessage() {}
 
 func (x *GetContextResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes[4]
+	mi := &file_api_proto_vectors_v1_vectors_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -333,7 +333,7 @@ func (x *GetContextResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetContextResponse.ProtoReflect.Descriptor instead.
 func (*GetContextResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_vectors_v1_vectors_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetContextResponse) GetResults() []*SearchResult {
@@ -343,11 +343,12 @@ func (x *GetContextResponse) GetResults() []*SearchResult {
 	return nil
 }
 
-var File_api_proto_meerkatlogs_v1_meerkatlogs_proto protoreflect.FileDescriptor
+var File_api_proto_vectors_v1_vectors_proto protoreflect.FileDescriptor
 
-const file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDesc = "" +
+const file_api_proto_vectors_v1_vectors_proto_rawDesc = "" +
 	"\n" +
-	"*api/proto/meerkatlogs/v1/meerkatlogs.proto\x12\x0emeerkatlogs.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb8\x01\n" +
+	"\"api/proto/vectors/v1/vectors.proto\x12\n" +
+	"vectors.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb8\x01\n" +
 	"\fSearchResult\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05score\x18\x02 \x01(\x02R\x05score\x12\x12\n" +
@@ -360,53 +361,53 @@ const file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDesc = "" +
 	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x18\n" +
 	"\aservice\x18\x03 \x01(\tR\aservice\x12\x1a\n" +
 	"\bseverity\x18\x04 \x01(\tR\bseverity\x12,\n" +
-	"\x12time_range_seconds\x18\x05 \x01(\x03R\x10timeRangeSeconds\"H\n" +
-	"\x0eSearchResponse\x126\n" +
-	"\aresults\x18\x01 \x03(\v2\x1c.meerkatlogs.v1.SearchResultR\aresults\"\xb5\x01\n" +
+	"\x12time_range_seconds\x18\x05 \x01(\x03R\x10timeRangeSeconds\"D\n" +
+	"\x0eSearchResponse\x122\n" +
+	"\aresults\x18\x01 \x03(\v2\x18.vectors.v1.SearchResultR\aresults\"\xb5\x01\n" +
 	"\x11GetContextRequest\x12\x18\n" +
 	"\aservice\x18\x01 \x01(\tR\aservice\x129\n" +
 	"\n" +
 	"start_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tstartTime\x125\n" +
 	"\bend_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\aendTime\x12\x14\n" +
-	"\x05limit\x18\x04 \x01(\x05R\x05limit\"L\n" +
-	"\x12GetContextResponse\x126\n" +
-	"\aresults\x18\x01 \x03(\v2\x1c.meerkatlogs.v1.SearchResultR\aresults2\xa7\x01\n" +
-	"\aService\x12G\n" +
-	"\x06Search\x12\x1d.meerkatlogs.v1.SearchRequest\x1a\x1e.meerkatlogs.v1.SearchResponse\x12S\n" +
+	"\x05limit\x18\x04 \x01(\x05R\x05limit\"H\n" +
+	"\x12GetContextResponse\x122\n" +
+	"\aresults\x18\x01 \x03(\v2\x18.vectors.v1.SearchResultR\aresults2\x97\x01\n" +
+	"\aService\x12?\n" +
+	"\x06Search\x12\x19.vectors.v1.SearchRequest\x1a\x1a.vectors.v1.SearchResponse\x12K\n" +
 	"\n" +
-	"GetContext\x12!.meerkatlogs.v1.GetContextRequest\x1a\".meerkatlogs.v1.GetContextResponseB8Z6github.com/serengeti-sh/meerkat/internal/meerkatlogspbb\x06proto3"
+	"GetContext\x12\x1d.vectors.v1.GetContextRequest\x1a\x1e.vectors.v1.GetContextResponseB4Z2github.com/serengeti-sh/meerkat/internal/vectorspbb\x06proto3"
 
 var (
-	file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescOnce sync.Once
-	file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescData []byte
+	file_api_proto_vectors_v1_vectors_proto_rawDescOnce sync.Once
+	file_api_proto_vectors_v1_vectors_proto_rawDescData []byte
 )
 
-func file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescGZIP() []byte {
-	file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescOnce.Do(func() {
-		file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDesc), len(file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDesc)))
+func file_api_proto_vectors_v1_vectors_proto_rawDescGZIP() []byte {
+	file_api_proto_vectors_v1_vectors_proto_rawDescOnce.Do(func() {
+		file_api_proto_vectors_v1_vectors_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_vectors_v1_vectors_proto_rawDesc), len(file_api_proto_vectors_v1_vectors_proto_rawDesc)))
 	})
-	return file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDescData
+	return file_api_proto_vectors_v1_vectors_proto_rawDescData
 }
 
-var file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_api_proto_meerkatlogs_v1_meerkatlogs_proto_goTypes = []any{
-	(*SearchResult)(nil),          // 0: meerkatlogs.v1.SearchResult
-	(*SearchRequest)(nil),         // 1: meerkatlogs.v1.SearchRequest
-	(*SearchResponse)(nil),        // 2: meerkatlogs.v1.SearchResponse
-	(*GetContextRequest)(nil),     // 3: meerkatlogs.v1.GetContextRequest
-	(*GetContextResponse)(nil),    // 4: meerkatlogs.v1.GetContextResponse
+var file_api_proto_vectors_v1_vectors_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_api_proto_vectors_v1_vectors_proto_goTypes = []any{
+	(*SearchResult)(nil),          // 0: vectors.v1.SearchResult
+	(*SearchRequest)(nil),         // 1: vectors.v1.SearchRequest
+	(*SearchResponse)(nil),        // 2: vectors.v1.SearchResponse
+	(*GetContextRequest)(nil),     // 3: vectors.v1.GetContextRequest
+	(*GetContextResponse)(nil),    // 4: vectors.v1.GetContextResponse
 	(*timestamppb.Timestamp)(nil), // 5: google.protobuf.Timestamp
 }
-var file_api_proto_meerkatlogs_v1_meerkatlogs_proto_depIdxs = []int32{
-	5, // 0: meerkatlogs.v1.SearchResult.timestamp:type_name -> google.protobuf.Timestamp
-	0, // 1: meerkatlogs.v1.SearchResponse.results:type_name -> meerkatlogs.v1.SearchResult
-	5, // 2: meerkatlogs.v1.GetContextRequest.start_time:type_name -> google.protobuf.Timestamp
-	5, // 3: meerkatlogs.v1.GetContextRequest.end_time:type_name -> google.protobuf.Timestamp
-	0, // 4: meerkatlogs.v1.GetContextResponse.results:type_name -> meerkatlogs.v1.SearchResult
-	1, // 5: meerkatlogs.v1.Service.Search:input_type -> meerkatlogs.v1.SearchRequest
-	3, // 6: meerkatlogs.v1.Service.GetContext:input_type -> meerkatlogs.v1.GetContextRequest
-	2, // 7: meerkatlogs.v1.Service.Search:output_type -> meerkatlogs.v1.SearchResponse
-	4, // 8: meerkatlogs.v1.Service.GetContext:output_type -> meerkatlogs.v1.GetContextResponse
+var file_api_proto_vectors_v1_vectors_proto_depIdxs = []int32{
+	5, // 0: vectors.v1.SearchResult.timestamp:type_name -> google.protobuf.Timestamp
+	0, // 1: vectors.v1.SearchResponse.results:type_name -> vectors.v1.SearchResult
+	5, // 2: vectors.v1.GetContextRequest.start_time:type_name -> google.protobuf.Timestamp
+	5, // 3: vectors.v1.GetContextRequest.end_time:type_name -> google.protobuf.Timestamp
+	0, // 4: vectors.v1.GetContextResponse.results:type_name -> vectors.v1.SearchResult
+	1, // 5: vectors.v1.Service.Search:input_type -> vectors.v1.SearchRequest
+	3, // 6: vectors.v1.Service.GetContext:input_type -> vectors.v1.GetContextRequest
+	2, // 7: vectors.v1.Service.Search:output_type -> vectors.v1.SearchResponse
+	4, // 8: vectors.v1.Service.GetContext:output_type -> vectors.v1.GetContextResponse
 	7, // [7:9] is the sub-list for method output_type
 	5, // [5:7] is the sub-list for method input_type
 	5, // [5:5] is the sub-list for extension type_name
@@ -414,26 +415,26 @@ var file_api_proto_meerkatlogs_v1_meerkatlogs_proto_depIdxs = []int32{
 	0, // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_api_proto_meerkatlogs_v1_meerkatlogs_proto_init() }
-func file_api_proto_meerkatlogs_v1_meerkatlogs_proto_init() {
-	if File_api_proto_meerkatlogs_v1_meerkatlogs_proto != nil {
+func init() { file_api_proto_vectors_v1_vectors_proto_init() }
+func file_api_proto_vectors_v1_vectors_proto_init() {
+	if File_api_proto_vectors_v1_vectors_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDesc), len(file_api_proto_meerkatlogs_v1_meerkatlogs_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_vectors_v1_vectors_proto_rawDesc), len(file_api_proto_vectors_v1_vectors_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_api_proto_meerkatlogs_v1_meerkatlogs_proto_goTypes,
-		DependencyIndexes: file_api_proto_meerkatlogs_v1_meerkatlogs_proto_depIdxs,
-		MessageInfos:      file_api_proto_meerkatlogs_v1_meerkatlogs_proto_msgTypes,
+		GoTypes:           file_api_proto_vectors_v1_vectors_proto_goTypes,
+		DependencyIndexes: file_api_proto_vectors_v1_vectors_proto_depIdxs,
+		MessageInfos:      file_api_proto_vectors_v1_vectors_proto_msgTypes,
 	}.Build()
-	File_api_proto_meerkatlogs_v1_meerkatlogs_proto = out.File
-	file_api_proto_meerkatlogs_v1_meerkatlogs_proto_goTypes = nil
-	file_api_proto_meerkatlogs_v1_meerkatlogs_proto_depIdxs = nil
+	File_api_proto_vectors_v1_vectors_proto = out.File
+	file_api_proto_vectors_v1_vectors_proto_goTypes = nil
+	file_api_proto_vectors_v1_vectors_proto_depIdxs = nil
 }

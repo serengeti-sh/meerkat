@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
+	"github.com/serengeti-sh/meerkat/internal/vectorspb"
 	"github.com/serengeti-sh/meerkat/internal/vectors"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
@@ -29,7 +29,7 @@ func TestGRPCServer_Search(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("successful search", func(t *testing.T) {
-		resp, err := server.Search(context.Background(), &meerkatlogspb.SearchRequest{
+		resp, err := server.Search(context.Background(), &vectorspb.SearchRequest{
 			Query:     "connection error",
 			Limit:     5,
 			Service:   "api",
@@ -44,7 +44,7 @@ func TestGRPCServer_Search(t *testing.T) {
 	})
 
 	t.Run("empty query", func(t *testing.T) {
-		_, err := server.Search(context.Background(), &meerkatlogspb.SearchRequest{
+		_, err := server.Search(context.Background(), &vectorspb.SearchRequest{
 			Query: "",
 		})
 		require.Error(t, err)
@@ -59,7 +59,7 @@ func TestGRPCServer_Search(t *testing.T) {
 		emptyServer, err := vectors.NewGRPCServer(emptySvc)
 		require.NoError(t, err)
 
-		resp, err := emptyServer.Search(context.Background(), &meerkatlogspb.SearchRequest{
+		resp, err := emptyServer.Search(context.Background(), &vectorspb.SearchRequest{
 			Query: "nonexistent",
 		})
 		require.NoError(t, err)
@@ -82,7 +82,7 @@ func TestGRPCServer_GetContext(t *testing.T) {
 
 	t.Run("successful context retrieval", func(t *testing.T) {
 		now := time.Now()
-		resp, err := server.GetContext(context.Background(), &meerkatlogspb.GetContextRequest{
+		resp, err := server.GetContext(context.Background(), &vectorspb.GetContextRequest{
 			Service:   "api",
 			StartTime: timestamppb.New(now.Add(-time.Hour)),
 			EndTime:   timestamppb.New(now),
@@ -95,7 +95,7 @@ func TestGRPCServer_GetContext(t *testing.T) {
 
 	t.Run("invalid time range", func(t *testing.T) {
 		now := time.Now()
-		_, err := server.GetContext(context.Background(), &meerkatlogspb.GetContextRequest{
+		_, err := server.GetContext(context.Background(), &vectorspb.GetContextRequest{
 			Service:   "api",
 			StartTime: timestamppb.New(now),
 			EndTime:   timestamppb.New(now.Add(-time.Hour)),

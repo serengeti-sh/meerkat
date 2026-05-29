@@ -2,9 +2,9 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.2
 // - protoc             v7.34.1
-// source: api/proto/meerkatlogs/v1/meerkatlogs.proto
+// source: api/proto/vectors/v1/vectors.proto
 
-package meerkatlogspb
+package vectorspb
 
 import (
 	context "context"
@@ -19,8 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Service_Search_FullMethodName     = "/meerkatlogs.v1.Service/Search"
-	Service_GetContext_FullMethodName = "/meerkatlogs.v1.Service/GetContext"
+	Service_Search_FullMethodName     = "/vectors.v1.Service/Search"
+	Service_GetContext_FullMethodName = "/vectors.v1.Service/GetContext"
 )
 
 // ServiceClient is the client API for Service service.
@@ -150,7 +150,7 @@ func _Service_GetContext_Handler(srv interface{}, ctx context.Context, dec func(
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Service_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "meerkatlogs.v1.Service",
+	ServiceName: "vectors.v1.Service",
 	HandlerType: (*ServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -163,5 +163,5 @@ var Service_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/meerkatlogs/v1/meerkatlogs.proto",
+	Metadata: "api/proto/vectors/v1/vectors.proto",
 }
