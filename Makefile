@@ -87,9 +87,9 @@ test-integration: ## Run integration tests (uses in-memory DI, not real binary)
 test-e2e: ## Run end-to-end tests (uses real built binary)
 	go test -v ./test/e2e/... -timeout 10m --coverprofile cover-e2e.out
 
-.PHONY: test-deploy
-test-deploy: ## Run deployment integration test (requires Docker + Kind)
-	go test -v ./test/deploy/... -timeout 15m
+.PHONY: test-kind
+test-kind: ## Run Kind cluster integration test (requires Docker + Kind)
+	go test -v ./test/kind/... -timeout 15m
 
 # Building
 .PHONY: build

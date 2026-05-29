@@ -1,4 +1,4 @@
-package deploy
+package kind
 
 import (
 	"context"
@@ -30,7 +30,7 @@ const (
 
 func repoRoot(t *testing.T) string {
 	t.Helper()
-	// test/deploy/deploy_test.go -> repo root
+	// test/kind/kind_test.go -> repo root
 	dir, err := filepath.Abs(filepath.Join("..", ".."))
 	require.NoError(t, err)
 	return dir
@@ -43,8 +43,8 @@ func TestDeploy(t *testing.T) {
 
 	root := repoRoot(t)
 	chartDir := filepath.Join(root, "deployment", "charts", "meerkat")
-	valuesFile := filepath.Join(root, "test", "deploy", "test-values.yaml")
-	kindConfig := filepath.Join(root, "test", "deploy", "kind-config.yaml")
+	valuesFile := filepath.Join(root, "test", "kind", "test-values.yaml")
+	kindConfig := filepath.Join(root, "test", "kind", "kind-config.yaml")
 
 	// Step 1: Build Docker image
 	t.Log("Building Docker image")
