@@ -136,8 +136,8 @@ func setDefaults(v *viper.Viper) {
 
 	v.SetDefault("scheduler.enabled", false)
 
-	v.SetDefault("inspector.queue_size", 1000)
-	v.SetDefault("inspector.worker_count", 10)
+	v.SetDefault("inspect.queue_size", 1000)
+	v.SetDefault("inspect.worker_count", 10)
 
 	v.SetDefault("collector.otlp_bind_addr", ":4317")
 	v.SetDefault("collector.batch_size", 100)

@@ -7,17 +7,17 @@ import (
 	"fmt"
 	"net/http"
 
-	apperrors "github.com/serengeti-sh/meerkat/internal/apperrors"
+	errs "github.com/serengeti-sh/meerkat/internal/errs"
 
-	"github.com/serengeti-sh/meerkat/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/inspect"
 	"github.com/serengeti-sh/meerkat/internal/report"
 )
 
-// Inspector is the subset of inspector.Service that Handler requires.
+// Inspector is the subset of inspect.Service that Handler requires.
 // Defined locally so Handler depends only on what it uses.
 type Inspector interface {
-	Inspect(ctx context.Context, req inspector.InspectRequest) (*report.Report, error)
-	InspectByWebhook(ctx context.Context, payload inspector.WebhookPayload) (*report.Report, error)
+	Inspect(ctx context.Context, req inspect.InspectRequest) (*report.Report, error)
+	InspectByWebhook(ctx context.Context, payload inspect.WebhookPayload) (*report.Report, error)
 	GetReport(ctx context.Context, id string) (*report.Report, error)
 	ListReports(ctx context.Context, limit int) ([]*report.Report, error)
 }
@@ -60,9 +60,9 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 }
 
 func mapError(err error) int {
-	var appErr apperrors.Error
+	var appErr errs.Error
 	if errors.As(err, &appErr) {
-		return apperrors.HTTPStatus(appErr.Type())
+		return errs.HTTPStatus(appErr.Type())
 	}
 	return http.StatusInternalServerError
 }

@@ -19,7 +19,7 @@ type Config struct {
 	Collector   CollectorConfig   `mapstructure:"collector"`
 	Embedder    EmbedderConfig    `mapstructure:"embedder"`
 	VectorStore VectorStoreConfig `mapstructure:"vector_store"`
-	MeerkatLogs MeerkatLogsConfig `mapstructure:"meerkat_logs"`
+	Vectors VectorsConfig `mapstructure:"vectors"`
 }
 
 type AppConfig struct {
@@ -198,8 +198,8 @@ type QdrantConfig struct {
 	APIKey     string `mapstructure:"api_key"`
 }
 
-// MeerkatLogsConfig configures the meerkatlogs ingestion and search service.
-type MeerkatLogsConfig struct {
+// VectorsConfig configures the vectors ingestion and search service.
+type VectorsConfig struct {
 	Enabled               bool          `mapstructure:"enabled"`
 	Address               string        `mapstructure:"address"` // gRPC bind address
 	Port                  int           `mapstructure:"port"`
@@ -213,7 +213,7 @@ type MeerkatLogsConfig struct {
 	Retention             time.Duration `mapstructure:"retention"`               // vector store TTL
 }
 
-func (c MeerkatLogsConfig) GetAddress() string {
+func (c VectorsConfig) GetAddress() string {
 	if c.Address != "" {
 		return c.Address
 	}
@@ -223,11 +223,11 @@ func (c MeerkatLogsConfig) GetAddress() string {
 	return ":50051"
 }
 
-func (c MeerkatLogsConfig) ShouldFilterBySeverity() bool {
+func (c VectorsConfig) ShouldFilterBySeverity() bool {
 	return c.FilterMode == "severity" && c.MinSeverity != "" && c.MinSeverity != "info"
 }
 
-func (c MeerkatLogsConfig) ShouldDeduplicate() bool {
+func (c VectorsConfig) ShouldDeduplicate() bool {
 	return c.FilterMode == "template" || c.DeduplicateByTemplate
 }
 
@@ -288,19 +288,19 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	if c.MeerkatLogs.Enabled {
-		if c.MeerkatLogs.Port < 0 || c.MeerkatLogs.Port > 65535 {
-			return fmt.Errorf("meerkat_logs.port must be between 0 and 65535")
+	if c.Vectors.Enabled {
+		if c.Vectors.Port < 0 || c.Vectors.Port > 65535 {
+			return fmt.Errorf("vectors.port must be between 0 and 65535")
 		}
-		if c.MeerkatLogs.Address == "" && c.MeerkatLogs.Port == 0 {
-			return fmt.Errorf("meerkat_logs.address or meerkat_logs.port is required when meerkat_logs is enabled")
+		if c.Vectors.Address == "" && c.Vectors.Port == 0 {
+			return fmt.Errorf("vectors.address or vectors.port is required when vectors is enabled")
 		}
-		if c.MeerkatLogs.FilterMode != "" {
-			switch c.MeerkatLogs.FilterMode {
+		if c.Vectors.FilterMode != "" {
+			switch c.Vectors.FilterMode {
 			case "all", "severity", "template":
 				// ok
 			default:
-				return fmt.Errorf("meerkat_logs.filter_mode must be 'all', 'severity', or 'template', got %q", c.MeerkatLogs.FilterMode)
+				return fmt.Errorf("vectors.filter_mode must be 'all', 'severity', or 'template', got %q", c.Vectors.FilterMode)
 			}
 		}
 	}

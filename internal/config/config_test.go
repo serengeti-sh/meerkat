@@ -69,21 +69,21 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: "vector_store.driver",
 		},
 		{
-			name: "negative meerkat_logs port",
+			name: "negative vectors port",
 			modify: func(c *Config) {
-				c.MeerkatLogs.Enabled = true
-				c.MeerkatLogs.Port = -1
+				c.Vectors.Enabled = true
+				c.Vectors.Port = -1
 			},
-			wantErr: "meerkat_logs.port",
+			wantErr: "vectors.port",
 		},
 		{
 			name: "invalid filter_mode",
 			modify: func(c *Config) {
-				c.MeerkatLogs.Enabled = true
-				c.MeerkatLogs.Address = ":50051"
-				c.MeerkatLogs.FilterMode = "magic"
+				c.Vectors.Enabled = true
+				c.Vectors.Address = ":50051"
+				c.Vectors.FilterMode = "magic"
 			},
-			wantErr: "meerkat_logs.filter_mode",
+			wantErr: "vectors.filter_mode",
 		},
 	}
 

@@ -2,8 +2,8 @@ package logsclient
 
 import "time"
 
-// LogEntry represents a single log line for ingestion.
-type LogEntry struct {
+// Entry represents a single log line for ingestion.
+type Entry struct {
 	ID         string
 	Timestamp  time.Time
 	Service    string

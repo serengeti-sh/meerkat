@@ -170,7 +170,7 @@ func (_c *ClientMock_GetContext_Call) RunAndReturn(run func(ctx context.Context,
 }
 
 // Ingest provides a mock function for the type ClientMock
-func (_mock *ClientMock) Ingest(ctx context.Context, entries []logsclient.LogEntry) (*logsclient.IngestResult, error) {
+func (_mock *ClientMock) Ingest(ctx context.Context, entries []logsclient.Entry) (*logsclient.IngestResult, error) {
 	ret := _mock.Called(ctx, entries)
 
 	if len(ret) == 0 {
@@ -179,17 +179,17 @@ func (_mock *ClientMock) Ingest(ctx context.Context, entries []logsclient.LogEnt
 
 	var r0 *logsclient.IngestResult
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []logsclient.LogEntry) (*logsclient.IngestResult, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []logsclient.Entry) (*logsclient.IngestResult, error)); ok {
 		return returnFunc(ctx, entries)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, []logsclient.LogEntry) *logsclient.IngestResult); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, []logsclient.Entry) *logsclient.IngestResult); ok {
 		r0 = returnFunc(ctx, entries)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*logsclient.IngestResult)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, []logsclient.LogEntry) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, []logsclient.Entry) error); ok {
 		r1 = returnFunc(ctx, entries)
 	} else {
 		r1 = ret.Error(1)
@@ -204,20 +204,20 @@ type ClientMock_Ingest_Call struct {
 
 // Ingest is a helper method to define mock.On call
 //   - ctx context.Context
-//   - entries []logsclient.LogEntry
+//   - entries []logsclient.Entry
 func (_e *ClientMock_Expecter) Ingest(ctx interface{}, entries interface{}) *ClientMock_Ingest_Call {
 	return &ClientMock_Ingest_Call{Call: _e.mock.On("Ingest", ctx, entries)}
 }
 
-func (_c *ClientMock_Ingest_Call) Run(run func(ctx context.Context, entries []logsclient.LogEntry)) *ClientMock_Ingest_Call {
+func (_c *ClientMock_Ingest_Call) Run(run func(ctx context.Context, entries []logsclient.Entry)) *ClientMock_Ingest_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 []logsclient.LogEntry
+		var arg1 []logsclient.Entry
 		if args[1] != nil {
-			arg1 = args[1].([]logsclient.LogEntry)
+			arg1 = args[1].([]logsclient.Entry)
 		}
 		run(
 			arg0,
@@ -232,7 +232,7 @@ func (_c *ClientMock_Ingest_Call) Return(ingestResult *logsclient.IngestResult, 
 	return _c
 }
 
-func (_c *ClientMock_Ingest_Call) RunAndReturn(run func(ctx context.Context, entries []logsclient.LogEntry) (*logsclient.IngestResult, error)) *ClientMock_Ingest_Call {
+func (_c *ClientMock_Ingest_Call) RunAndReturn(run func(ctx context.Context, entries []logsclient.Entry) (*logsclient.IngestResult, error)) *ClientMock_Ingest_Call {
 	_c.Call.Return(run)
 	return _c
 }

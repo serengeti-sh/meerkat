@@ -14,7 +14,7 @@ import (
 
 // Client is a gRPC client for the MeerkatLogs service.
 type Client interface {
-	Ingest(ctx context.Context, entries []LogEntry) (*IngestResult, error)
+	Ingest(ctx context.Context, entries []Entry) (*IngestResult, error)
 	Search(ctx context.Context, query string, opts SearchOptions) ([]SearchResult, error)
 	GetContext(ctx context.Context, service string, start, end time.Time, limit int) ([]SearchResult, error)
 	Close() error
@@ -49,7 +49,7 @@ func New(addr string, opts ...Option) (*client, error) {
 	}, nil
 }
 
-func (c *client) Ingest(ctx context.Context, entries []LogEntry) (*IngestResult, error) {
+func (c *client) Ingest(ctx context.Context, entries []Entry) (*IngestResult, error) {
 	reqEntries := make([]*meerkatlogspb.LogEntry, len(entries))
 	for i, e := range entries {
 		reqEntries[i] = &meerkatlogspb.LogEntry{

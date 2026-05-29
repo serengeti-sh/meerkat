@@ -9,33 +9,20 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 // CustomTool calls an arbitrary HTTP endpoint configured by the user.
 type CustomTool struct {
-	name        string
-	description string
-	method      string
-	baseURL     string
-	params      json.RawMessage
-	schema      *jsonschema.Schema
-	client      *http.Client
+	baseTool
+	method  string
+	baseURL string
+	client  *http.Client
 }
 
 // NewCustomTool creates a tool backed by an arbitrary HTTP endpoint.
 func NewCustomTool(name, description, method, baseURL, paramSchemaFile string, client *http.Client) (Plugin, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 15 * time.Second}
-	}
-	if name == "" {
-		return nil, fmt.Errorf("custom tool: name is required")
-	}
-	if description == "" {
-		return nil, fmt.Errorf("custom tool %q: description is required", name)
-	}
-	if paramSchemaFile == "" {
-		return nil, fmt.Errorf("custom tool %q: param_schema_file is required", name)
 	}
 	if baseURL == "" {
 		return nil, fmt.Errorf("custom tool %q: url is required", name)
@@ -46,27 +33,18 @@ func NewCustomTool(name, description, method, baseURL, paramSchemaFile string, c
 		m = http.MethodGet
 	}
 
-	schema, params, err := compileSchema(paramSchemaFile)
+	base, err := newBaseTool(name, description, paramSchemaFile)
 	if err != nil {
-		return nil, fmt.Errorf("custom tool %q: %w", name, err)
+		return nil, err
 	}
 
 	return &CustomTool{
-		name:        name,
-		description: description,
-		method:      m,
-		baseURL:     baseURL,
-		params:      params,
-		schema:      schema,
-		client:      client,
+		baseTool: base,
+		method:   m,
+		baseURL:  baseURL,
+		client:   client,
 	}, nil
 }
-
-func (t *CustomTool) Name() string { return t.name }
-
-func (t *CustomTool) Description() string { return t.description }
-
-func (t *CustomTool) Parameters() json.RawMessage { return t.params }
 
 func (t *CustomTool) Execute(ctx context.Context, args json.RawMessage) (string, error) {
 	if err := validateArgs(t.schema, args); err != nil {

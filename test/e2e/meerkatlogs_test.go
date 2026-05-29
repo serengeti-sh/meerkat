@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/serengeti-sh/meerkat/internal/meerkatlogs"
+	"github.com/serengeti-sh/meerkat/internal/vectors"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
 
@@ -26,12 +26,12 @@ func TestMeerkatLogsEndToEnd(t *testing.T) {
 		},
 	}
 	vs := &inMemoryVectorStore{}
-	svc, err := meerkatlogs.NewService(emb, vs)
+	svc, err := vectors.NewService(emb, vs)
 	require.NoError(t, err)
 	ctx := context.Background()
 
 	// Step 1: Ingest log entries
-	entries := []meerkatlogs.LogEntry{
+	entries := []vectors.Entry{
 		{
 			ID:        "log-1",
 			Timestamp: time.Now().Add(-30 * time.Minute),
@@ -60,7 +60,7 @@ func TestMeerkatLogsEndToEnd(t *testing.T) {
 	assert.Greater(t, result.IngestedCount, 0, "expected some entries to be ingested")
 
 	// Step 2: Search for similar entries
-	searchResults, err := svc.Search(ctx, "database connection error", meerkatlogs.SearchOptions{
+	searchResults, err := svc.Search(ctx, "database connection error", vectors.SearchOptions{
 		Limit:     10,
 		TimeRange: time.Hour,
 		Service:   "api-server",
@@ -76,7 +76,7 @@ func TestMeerkatLogsEndToEnd(t *testing.T) {
 	assert.NotEmpty(t, contextResults, "expected context results")
 }
 
-// mockEmbedder implements embedder.Model for E2E testing.
+// mockEmbedder implements embed.Model for E2E testing.
 type mockEmbedder struct {
 	vectors [][]float32
 	idx     int
@@ -91,7 +91,7 @@ func (m *mockEmbedder) Embed(ctx context.Context, texts []string) ([][]float32, 
 	return result, nil
 }
 
-// inMemoryVectorStore implements vectorstore.VectorStore for E2E testing.
+// inMemoryVectorStore implements vector.VectorStore for E2E testing.
 type inMemoryVectorStore struct {
 	records []vectorstore.Record
 }

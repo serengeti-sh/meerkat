@@ -21,16 +21,16 @@ func NewEntReportRepository(client *ent.Client) *entReportRepository {
 
 func (r *entReportRepository) Create(ctx context.Context, report *Report) error {
 	_, err := r.client.Report.Create().
-		SetID(report.ID()).
-		SetTrigger(entReport.Trigger(report.Trigger())).
-		SetTriggerID(report.TriggerID()).
-		SetStatus(entReport.Status(string(report.Status()))).
-		SetSeverity(entReport.Severity(string(report.Severity()))).
-		SetSummary(report.Summary()).
-		SetDetail(report.Detail()).
-		SetQuery(report.Query()).
-		SetDatasources(report.Datasources()).
-		SetIterations(report.Iterations()).
+		SetID(report.ID).
+		SetTrigger(entReport.Trigger(report.Trigger)).
+		SetTriggerID(report.TriggerID).
+		SetStatus(entReport.Status(string(report.Status))).
+		SetSeverity(entReport.Severity(string(report.Severity))).
+		SetSummary(report.Summary).
+		SetDetail(report.Detail).
+		SetQuery(report.Query).
+		SetDatasources(report.Datasources).
+		SetIterations(report.Iterations).
 		Save(ctx)
 	if err != nil {
 		return fmt.Errorf("create report: %w", err)
@@ -39,14 +39,14 @@ func (r *entReportRepository) Create(ctx context.Context, report *Report) error 
 }
 
 func (r *entReportRepository) Update(ctx context.Context, report *Report) error {
-	if err := r.client.Report.UpdateOneID(report.ID()).
-		SetStatus(entReport.Status(string(report.Status()))).
-		SetSeverity(entReport.Severity(string(report.Severity()))).
-		SetSummary(report.Summary()).
-		SetDetail(report.Detail()).
-		SetQuery(report.Query()).
-		SetDatasources(report.Datasources()).
-		SetIterations(report.Iterations()).
+	if err := r.client.Report.UpdateOneID(report.ID).
+		SetStatus(entReport.Status(string(report.Status))).
+		SetSeverity(entReport.Severity(string(report.Severity))).
+		SetSummary(report.Summary).
+		SetDetail(report.Detail).
+		SetQuery(report.Query).
+		SetDatasources(report.Datasources).
+		SetIterations(report.Iterations).
 		Exec(ctx); err != nil {
 		return fmt.Errorf("update report: %w", err)
 	}
@@ -111,17 +111,17 @@ func (r *entReportRepository) FindActiveByQuery(ctx context.Context, trigger str
 }
 
 func entToReport(r *ent.Report) (*Report, error) {
-	return NewReport(
-		WithID(r.ID),
-		WithTrigger(TriggerType(r.Trigger)),
-		WithTriggerID(r.TriggerID),
-		WithStatus(Status(r.Status)),
-		WithSeverity(Severity(r.Severity)),
-		WithSummary(r.Summary),
-		WithDetail(r.Detail),
-		WithQuery(r.Query),
-		WithDatasources(r.Datasources),
-		WithIterations(r.Iterations),
-		WithCreatedAt(r.CreateTime),
-	), nil
+	return &Report{
+		ID:          r.ID,
+		Trigger:     TriggerType(r.Trigger),
+		TriggerID:   r.TriggerID,
+		Status:      Status(r.Status),
+		Severity:    Severity(r.Severity),
+		Summary:     r.Summary,
+		Detail:      r.Detail,
+		Query:       r.Query,
+		Datasources: r.Datasources,
+		Iterations:  r.Iterations,
+		CreatedAt:   r.CreateTime,
+	}, nil
 }

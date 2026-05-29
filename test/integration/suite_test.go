@@ -23,10 +23,10 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/ent"
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
-	"github.com/serengeti-sh/meerkat/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/inspect"
 	"github.com/serengeti-sh/meerkat/internal/report"
-	"github.com/serengeti-sh/meerkat/internal/reporter"
-	"github.com/serengeti-sh/meerkat/internal/scheduler"
+	"github.com/serengeti-sh/meerkat/internal/notify"
+	"github.com/serengeti-sh/meerkat/internal/schedule"
 	"github.com/serengeti-sh/meerkat/internal/tool"
 	"github.com/serengeti-sh/meerkat/test/integration/mock"
 
@@ -48,7 +48,7 @@ type Suite struct {
 	// Internal
 	server           *http.Server
 	systemPromptFile string
-	inspectorSvc     inspector.Service
+	inspectorSvc     inspect.Service
 }
 
 // NewSuite creates a new e2e test suite.
@@ -158,11 +158,11 @@ Respond with JSON only:
 	}
 
 	// 5. Wire up dependencies (same as server.go but without fx)
-	entClient, err := inspector.NewEntClient(cfg)
+	entClient, err := inspect.NewEntClient(cfg)
 	if err != nil {
 		return fmt.Errorf("connect to database: %w", err)
 	}
-	if err := inspector.Migrate(ctx, entClient); err != nil {
+	if err := inspect.Migrate(ctx, entClient); err != nil {
 		return fmt.Errorf("run migrations: %w", err)
 	}
 	s.Client = entClient
@@ -199,15 +199,15 @@ Respond with JSON only:
 	}
 
 	// Reporter (no-op in tests)
-	reporterSvc := reporter.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
+	reporterSvc := notify.NewService(cfg.Reporter.WebhookURL, cfg.Reporter.MinSeverity, nil)
 
 	// Inspector service
 	reportRepo := report.NewEntReportRepository(entClient)
 	dsRefs := func() []analyzer.DatasourceRef {
 		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
 	}
-	inspectorSvc, err := inspector.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10,
-		inspector.WithLogsClient(nil), // explicitly no logs client in integration tests
+	inspectorSvc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10,
+		inspect.WithLogsClient(nil), // explicitly no logs client in integration tests
 	)
 	if err != nil {
 		return fmt.Errorf("create inspector service: %w", err)
@@ -218,7 +218,7 @@ Respond with JSON only:
 	s.inspectorSvc = inspectorSvc
 
 	// Scheduler (disabled)
-	sched := scheduler.NewService(inspectorSvc, cfg)
+	sched := schedule.NewService(inspectorSvc, cfg)
 
 	// HTTP handler
 	h, err := httphandler.New(inspectorSvc)

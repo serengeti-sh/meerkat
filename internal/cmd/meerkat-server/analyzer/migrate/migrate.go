@@ -7,12 +7,12 @@ import (
 
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/ent"
-	"github.com/serengeti-sh/meerkat/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/inspect"
 )
 
 // ApplyMigrations applies database migrations.
 func ApplyMigrations(cfg *config.Config) error {
-	entClient, err := inspector.NewEntClient(cfg)
+	entClient, err := inspect.NewEntClient(cfg)
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -30,5 +30,5 @@ func ApplyMigrations(cfg *config.Config) error {
 }
 
 func autoMigrate(ctx context.Context, client *ent.Client) error {
-	return inspector.Migrate(ctx, client)
+	return inspect.Migrate(ctx, client)
 }

@@ -99,15 +99,21 @@ func (s *qdrantStore) Insert(ctx context.Context, records []Record) error {
 
 	points := make([]*qdrant.PointStruct, len(records))
 	for i, r := range records {
+		payload := map[string]*qdrant.Value{
+			"timestamp": {Kind: &qdrant.Value_IntegerValue{IntegerValue: r.Timestamp.UnixMilli()}},
+			"service":   {Kind: &qdrant.Value_StringValue{StringValue: r.Service}},
+			"severity":  {Kind: &qdrant.Value_StringValue{StringValue: r.Severity}},
+			"body":      {Kind: &qdrant.Value_StringValue{StringValue: r.Body}},
+		}
+		if len(r.Attributes) > 0 {
+			for k, v := range r.Attributes {
+				payload[k] = &qdrant.Value{Kind: &qdrant.Value_StringValue{StringValue: v}}
+			}
+		}
 		points[i] = &qdrant.PointStruct{
 			Id:      qdrant.NewIDUUID(r.ID),
 			Vectors: qdrant.NewVectors(r.Vector...),
-			Payload: map[string]*qdrant.Value{
-				"timestamp": {Kind: &qdrant.Value_IntegerValue{IntegerValue: r.Timestamp.UnixMilli()}},
-				"service":   {Kind: &qdrant.Value_StringValue{StringValue: r.Service}},
-				"severity":  {Kind: &qdrant.Value_StringValue{StringValue: r.Severity}},
-				"body":      {Kind: &qdrant.Value_StringValue{StringValue: r.Body}},
-			},
+			Payload: payload,
 		}
 	}
 
@@ -130,7 +136,7 @@ func (s *qdrantStore) Search(ctx context.Context, vector []float32, opts SearchO
 		CollectionName: s.collection,
 		Vector:         vector,
 		Limit:          uint64(opts.Limit),
-		WithPayload:    qdrant.NewWithPayloadInclude("timestamp", "service", "severity", "body"),
+		WithPayload:    qdrant.NewWithPayloadEnable(true),
 	}
 
 	if opts.Limit <= 0 {
@@ -213,6 +219,15 @@ func (s *qdrantStore) parseSearchResults(results []*qdrant.ScoredPoint) []Search
 		}
 		if ts, ok := payload["timestamp"]; ok {
 			sr.Timestamp = time.UnixMilli(ts.GetIntegerValue())
+		}
+		sr.Attributes = make(map[string]string)
+		for k, v := range payload {
+			if k == "body" || k == "service" || k == "severity" || k == "timestamp" {
+				continue
+			}
+			if sv := v.GetStringValue(); sv != "" {
+				sr.Attributes[k] = sv
+			}
 		}
 
 		out = append(out, sr)

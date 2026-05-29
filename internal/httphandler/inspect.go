@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/serengeti-sh/meerkat/internal/inspector"
+	"github.com/serengeti-sh/meerkat/internal/inspect"
 	"github.com/serengeti-sh/meerkat/internal/report"
 )
 
@@ -24,7 +24,7 @@ type reportResponse struct {
 }
 
 func (h *Handler) Inspect(w http.ResponseWriter, r *http.Request) {
-	var req inspector.InspectRequest
+	var req inspect.InspectRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
@@ -41,16 +41,16 @@ func (h *Handler) Inspect(w http.ResponseWriter, r *http.Request) {
 
 func mapReport(r *report.Report) reportResponse {
 	return reportResponse{
-		ID:          r.ID(),
-		Trigger:     string(r.Trigger()),
-		TriggerID:   r.TriggerID(),
-		Status:      string(r.Status()),
-		Severity:    string(r.Severity()),
-		Summary:     r.Summary(),
-		Detail:      r.Detail(),
-		Query:       r.Query(),
-		Datasources: r.Datasources(),
-		Iterations:  r.Iterations(),
-		CreatedAt:   r.CreatedAt(),
+		ID:          r.ID,
+		Trigger:     string(r.Trigger),
+		TriggerID:   r.TriggerID,
+		Status:      string(r.Status),
+		Severity:    string(r.Severity),
+		Summary:     r.Summary,
+		Detail:      r.Detail,
+		Query:       r.Query,
+		Datasources: r.Datasources,
+		Iterations:  r.Iterations,
+		CreatedAt:   r.CreatedAt,
 	}
 }

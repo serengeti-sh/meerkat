@@ -243,7 +243,7 @@ func (s *milvusStore) Search(ctx context.Context, vector []float32, opts SearchO
 	}
 
 	results, err := s.client.Search(ctx, s.collection, nil, expr,
-		[]string{"id", "body", "service", "severity", "timestamp"},
+		[]string{"id", "body", "service", "severity", "timestamp", "attributes"},
 		[]entity.Vector{entity.FloatVector(vector)},
 		"vector",
 		entity.L2, opts.Limit, sp,
@@ -292,6 +292,12 @@ func parseSearchResults(result client.SearchResult) ([]SearchResult, error) {
 			case "timestamp":
 				if col, ok := field.(*entity.ColumnInt64); ok {
 					sr.Timestamp = time.UnixMilli(col.Data()[i])
+				}
+			case "attributes":
+				if col, ok := field.(*entity.ColumnJSONBytes); ok {
+					var attrs map[string]string
+					_ = json.Unmarshal(col.Data()[i], &attrs)
+					sr.Attributes = attrs
 				}
 			}
 		}

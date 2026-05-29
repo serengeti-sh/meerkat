@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/serengeti-sh/meerkat/internal/logsclient"
-	"github.com/serengeti-sh/meerkat/internal/meerkatlogs"
+	"github.com/serengeti-sh/meerkat/internal/vectors"
 	"github.com/serengeti-sh/meerkat/internal/meerkatlogspb"
 	"github.com/serengeti-sh/meerkat/internal/vectorstore"
 )
@@ -24,7 +24,7 @@ func TestClient_Ingest(t *testing.T) {
 	client, cleanup := setupTestClient(t)
 	defer cleanup()
 
-	entries := []logsclient.LogEntry{
+	entries := []logsclient.Entry{
 		{ID: "1", Body: "error: connection failed", Service: "api", Severity: "ERROR"},
 		{ID: "2", Body: "error: timeout", Service: "api", Severity: "ERROR"},
 	}
@@ -40,7 +40,7 @@ func TestClient_Search(t *testing.T) {
 	defer cleanup()
 
 	// First ingest some data
-	_, err := client.Ingest(ctx, []logsclient.LogEntry{
+	_, err := client.Ingest(ctx, []logsclient.Entry{
 		{ID: "1", Body: "database connection error", Service: "db", Severity: "ERROR"},
 	})
 	require.NoError(t, err)
@@ -70,7 +70,7 @@ func TestClient_Close(t *testing.T) {
 	cleanup()
 }
 
-// mockEmbedder implements embedder.Model for testing.
+// mockEmbedder implements embed.Model for testing.
 type mockEmbedder struct{}
 
 func (m *mockEmbedder) Embed(ctx context.Context, texts []string) ([][]float32, error) {
@@ -81,7 +81,7 @@ func (m *mockEmbedder) Embed(ctx context.Context, texts []string) ([][]float32, 
 	return vecs, nil
 }
 
-// inMemoryVectorStore implements vectorstore.VectorStore for testing.
+// inMemoryVectorStore implements vector.VectorStore for testing.
 type inMemoryVectorStore struct {
 	records []vectorstore.Record
 }
@@ -91,7 +91,7 @@ func (m *inMemoryVectorStore) Insert(ctx context.Context, records []vectorstore.
 	return nil
 }
 
-func (m *inMemoryVectorStore) Search(ctx context.Context, vector []float32, opts vectorstore.SearchOptions) ([]vectorstore.SearchResult, error) {
+func (m *inMemoryVectorStore) Search(ctx context.Context, v []float32, opts vectorstore.SearchOptions) ([]vectorstore.SearchResult, error) {
 	results := make([]vectorstore.SearchResult, len(m.records))
 	for i, r := range m.records {
 		results[i] = vectorstore.SearchResult{
@@ -114,9 +114,9 @@ func setupTestClient(t *testing.T) (logsclient.Client, func()) {
 
 	emb := &mockEmbedder{}
 	vs := &inMemoryVectorStore{}
-	logsSvc, err := meerkatlogs.NewService(emb, vs)
+	logsSvc, err := vectors.NewService(emb, vs)
 	require.NoError(t, err)
-	logsServer, err := meerkatlogs.NewGRPCServer(logsSvc)
+	logsServer, err := vectors.NewGRPCServer(logsSvc)
 	require.NoError(t, err)
 
 	grpcServer := grpc.NewServer()

@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/serengeti-sh/meerkat/internal/apperrors"
+	"github.com/serengeti-sh/meerkat/internal/errs"
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
-	"github.com/serengeti-sh/meerkat/internal/inspector"
-	inspectorMocks "github.com/serengeti-sh/meerkat/internal/inspector/mocks"
+	"github.com/serengeti-sh/meerkat/internal/inspect"
+	inspectorMocks "github.com/serengeti-sh/meerkat/internal/inspect/mocks"
 	"github.com/serengeti-sh/meerkat/internal/report"
 )
 
@@ -40,12 +40,12 @@ func TestHandler_Health(t *testing.T) {
 
 func TestHandler_Inspect(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	mockSvc.On("Inspect", mock.Anything, inspector.InspectRequest{
+	mockSvc.On("Inspect", mock.Anything, inspect.InspectRequest{
 		MetricQuery: "up",
 		LogQuery:    "",
 		Query:       "check status",
 	}).Return(
-		report.NewReport(report.WithID("r-1"), report.WithTrigger(report.TriggerManual), report.WithStatus(report.StatusPending), report.WithSeverity(report.SeverityInfo), report.WithSummary("all ok"), report.WithQuery("check status"), report.WithDatasources([]string{"vm"}), report.WithIterations(1), report.WithCreatedAt(time.Now())),
+		&report.Report{ID: "r-1", Trigger: report.TriggerManual, Status: report.StatusPending, Severity: report.SeverityInfo, Summary: "all ok", Query: "check status", Datasources: []string{"vm"}, Iterations: 1, CreatedAt: time.Now()},
 		nil,
 	)
 
@@ -85,11 +85,11 @@ func TestHandler_Inspect_InvalidBody(t *testing.T) {
 
 func TestHandler_Inspect_ServiceError(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	mockSvc.On("Inspect", mock.Anything, inspector.InspectRequest{
+	mockSvc.On("Inspect", mock.Anything, inspect.InspectRequest{
 		Query: "check status",
 	}).Return(
 		nil,
-		apperrors.New(apperrors.ErrInternal, "database error"),
+		errs.New(errs.ErrInternal, "database error"),
 	)
 
 	h, err := httphandler.New(mockSvc)
@@ -108,13 +108,13 @@ func TestHandler_Inspect_ServiceError(t *testing.T) {
 
 func TestHandler_Webhook(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
-	mockSvc.On("InspectByWebhook", mock.Anything, inspector.WebhookPayload{
+	mockSvc.On("InspectByWebhook", mock.Anything, inspect.WebhookPayload{
 		Source:  "grafana",
 		Alert:   "High CPU",
 		Message: "CPU > 80%",
 		Data:    json.RawMessage(`{"value": 85}`),
 	}).Return(
-		report.NewReport(report.WithID("r-2"), report.WithTrigger(report.TriggerWebhook), report.WithStatus(report.StatusCompleted), report.WithSeverity(report.SeverityWarning), report.WithSummary("high cpu"), report.WithDatasources([]string{"vm"}), report.WithIterations(1), report.WithCreatedAt(time.Now())),
+		&report.Report{ID: "r-2", Trigger: report.TriggerWebhook, Status: report.StatusCompleted, Severity: report.SeverityWarning, Summary: "high cpu", Datasources: []string{"vm"}, Iterations: 1, CreatedAt: time.Now()},
 		nil,
 	)
 
@@ -156,7 +156,7 @@ func TestHandler_ListReports(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("ListReports", mock.Anything, 50).Return(
 		[]*report.Report{
-			report.NewReport(report.WithID("r-1"), report.WithTrigger(report.TriggerManual), report.WithStatus(report.StatusCompleted), report.WithSeverity(report.SeverityInfo), report.WithSummary("ok"), report.WithDatasources([]string{}), report.WithIterations(1), report.WithCreatedAt(time.Now())),
+			&report.Report{ID: "r-1", Trigger: report.TriggerManual, Status: report.StatusCompleted, Severity: report.SeverityInfo, Summary: "ok", Datasources: []string{}, Iterations: 1, CreatedAt: time.Now()},
 		},
 		nil,
 	)
@@ -201,7 +201,7 @@ func TestHandler_ListReports_ServiceError(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("ListReports", mock.Anything, 50).Return(
 		nil,
-		apperrors.New(apperrors.ErrInternal, "database error"),
+		errs.New(errs.ErrInternal, "database error"),
 	)
 
 	h, err := httphandler.New(mockSvc)
@@ -219,7 +219,7 @@ func TestHandler_ListReports_ServiceError(t *testing.T) {
 func TestHandler_GetReport(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("GetReport", mock.Anything, "r-1").Return(
-		report.NewReport(report.WithID("r-1"), report.WithTrigger(report.TriggerManual), report.WithStatus(report.StatusCompleted), report.WithSeverity(report.SeverityCritical), report.WithSummary("critical issue"), report.WithDetail("details"), report.WithDatasources([]string{"vm"}), report.WithIterations(3), report.WithCreatedAt(time.Now())),
+		&report.Report{ID: "r-1", Trigger: report.TriggerManual, Status: report.StatusCompleted, Severity: report.SeverityCritical, Summary: "critical issue", Detail: "details", Datasources: []string{"vm"}, Iterations: 3, CreatedAt: time.Now()},
 		nil,
 	)
 
@@ -245,7 +245,7 @@ func TestHandler_GetReport_NotFound(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("GetReport", mock.Anything, "r-missing").Return(
 		nil,
-		apperrors.New(apperrors.ErrNotFound, "report not found"),
+		errs.New(errs.ErrNotFound, "report not found"),
 	)
 
 	h, err := httphandler.New(mockSvc)
@@ -265,3 +265,5 @@ func TestHandler_New_NilInspector(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "inspectorSvc is required")
 }
+
+

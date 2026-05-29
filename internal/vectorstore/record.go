@@ -21,12 +21,13 @@ type Record struct {
 
 // SearchResult represents a single vector search match.
 type SearchResult struct {
-	ID        string
-	Score     float32
-	Body      string
-	Service   string
-	Severity  string
-	Timestamp time.Time
+	ID         string
+	Score      float32
+	Body       string
+	Service    string
+	Severity   string
+	Timestamp  time.Time
+	Attributes map[string]string
 }
 
 // SearchOptions holds optional filters for vector search.

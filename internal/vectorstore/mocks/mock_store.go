@@ -197,8 +197,8 @@ func (_c *StoreMock_Insert_Call) RunAndReturn(run func(ctx context.Context, reco
 }
 
 // Search provides a mock function for the type StoreMock
-func (_mock *StoreMock) Search(ctx context.Context, vector []float32, opts vectorstore.SearchOptions) ([]vectorstore.SearchResult, error) {
-	ret := _mock.Called(ctx, vector, opts)
+func (_mock *StoreMock) Search(ctx context.Context, vector1 []float32, opts vectorstore.SearchOptions) ([]vectorstore.SearchResult, error) {
+	ret := _mock.Called(ctx, vector1, opts)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Search")
@@ -207,17 +207,17 @@ func (_mock *StoreMock) Search(ctx context.Context, vector []float32, opts vecto
 	var r0 []vectorstore.SearchResult
 	var r1 error
 	if returnFunc, ok := ret.Get(0).(func(context.Context, []float32, vectorstore.SearchOptions) ([]vectorstore.SearchResult, error)); ok {
-		return returnFunc(ctx, vector, opts)
+		return returnFunc(ctx, vector1, opts)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, []float32, vectorstore.SearchOptions) []vectorstore.SearchResult); ok {
-		r0 = returnFunc(ctx, vector, opts)
+		r0 = returnFunc(ctx, vector1, opts)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]vectorstore.SearchResult)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, []float32, vectorstore.SearchOptions) error); ok {
-		r1 = returnFunc(ctx, vector, opts)
+		r1 = returnFunc(ctx, vector1, opts)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -231,13 +231,13 @@ type StoreMock_Search_Call struct {
 
 // Search is a helper method to define mock.On call
 //   - ctx context.Context
-//   - vector []float32
+//   - vector1 []float32
 //   - opts vectorstore.SearchOptions
-func (_e *StoreMock_Expecter) Search(ctx interface{}, vector interface{}, opts interface{}) *StoreMock_Search_Call {
-	return &StoreMock_Search_Call{Call: _e.mock.On("Search", ctx, vector, opts)}
+func (_e *StoreMock_Expecter) Search(ctx interface{}, vector1 interface{}, opts interface{}) *StoreMock_Search_Call {
+	return &StoreMock_Search_Call{Call: _e.mock.On("Search", ctx, vector1, opts)}
 }
 
-func (_c *StoreMock_Search_Call) Run(run func(ctx context.Context, vector []float32, opts vectorstore.SearchOptions)) *StoreMock_Search_Call {
+func (_c *StoreMock_Search_Call) Run(run func(ctx context.Context, vector1 []float32, opts vectorstore.SearchOptions)) *StoreMock_Search_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -265,7 +265,7 @@ func (_c *StoreMock_Search_Call) Return(searchResults []vectorstore.SearchResult
 	return _c
 }
 
-func (_c *StoreMock_Search_Call) RunAndReturn(run func(ctx context.Context, vector []float32, opts vectorstore.SearchOptions) ([]vectorstore.SearchResult, error)) *StoreMock_Search_Call {
+func (_c *StoreMock_Search_Call) RunAndReturn(run func(ctx context.Context, vector1 []float32, opts vectorstore.SearchOptions) ([]vectorstore.SearchResult, error)) *StoreMock_Search_Call {
 	_c.Call.Return(run)
 	return _c
 }
