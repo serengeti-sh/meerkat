@@ -63,9 +63,7 @@ jobs:
   unit-test:
     name: Unit Tests
     needs: [fmt-check, vet, lint]
-    runs-on: dawn-cluster
-    container:
-      image: golang:1.26.3
+    runs-on: dawn-cluster-dind
     env:
       GOFLAGS: "-buildvcs=false"
     steps:
