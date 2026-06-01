@@ -66,6 +66,8 @@ jobs:
     runs-on: dawn-cluster
     container:
       image: golang:1.26.3
+    env:
+      GOFLAGS: "-buildvcs=false"
     steps:
       - uses: actions/checkout@v6.0.2
       - uses: actions/setup-go@v6.4.0
@@ -88,6 +90,8 @@ jobs:
     runs-on: dawn-cluster
     container:
       image: golang:1.26.3
+    env:
+      GOFLAGS: "-buildvcs=false"
     steps:
       - uses: actions/checkout@v6.0.2
       - name: Download dependencies
@@ -201,6 +205,8 @@ jobs:
     runs-on: dawn-cluster
     container:
       image: golang:1.26.3
+    env:
+      GOFLAGS: "-buildvcs=false"
     steps:
       - uses: actions/checkout@v6.0.2
         with:
