@@ -149,6 +149,8 @@ cp config.example.yaml config.yaml
 app:
   name: meerkat
   env: development
+  log_level: info      # debug, info, warn, error
+  log_format: json     # json, console
 
 http:
   host: 0.0.0.0

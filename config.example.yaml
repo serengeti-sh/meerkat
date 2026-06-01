@@ -2,6 +2,8 @@ app:
   name: meerkat
   env: development
   debug: true
+  log_level: info      # debug, info, warn, error (default: info)
+  log_format: json     # json, console (default: json)
 
 http:
   host: 0.0.0.0
