@@ -10,30 +10,6 @@ import (
 )
 
 // SetFake set fake values.
-func (s *CreateDatasourceRequest) SetFake() {
-	{
-		{
-			s.Name = "string"
-		}
-	}
-	{
-		{
-			s.Type.SetFake()
-		}
-	}
-	{
-		{
-			s.URL = "string"
-		}
-	}
-}
-
-// SetFake set fake values.
-func (s *CreateDatasourceRequestType) SetFake() {
-	*s = CreateDatasourceRequestTypePrometheus
-}
-
-// SetFake set fake values.
 func (s *CreateInspectReq) SetFake() {
 	{
 		{
@@ -50,40 +26,6 @@ func (s *CreateInspectReq) SetFake() {
 			s.LogQuery.SetFake()
 		}
 	}
-}
-
-// SetFake set fake values.
-func (s *DatasourceResponse) SetFake() {
-	{
-		{
-			s.ID = "string"
-		}
-	}
-	{
-		{
-			s.Name = "string"
-		}
-	}
-	{
-		{
-			s.Type.SetFake()
-		}
-	}
-	{
-		{
-			s.URL = "string"
-		}
-	}
-	{
-		{
-			s.CreatedAt.SetFake()
-		}
-	}
-}
-
-// SetFake set fake values.
-func (s *DatasourceResponseType) SetFake() {
-	*s = DatasourceResponseTypePrometheus
 }
 
 // SetFake set fake values.
@@ -263,13 +205,4 @@ func (s *ReportResponseStatus) SetFake() {
 // SetFake set fake values.
 func (s *ReportResponseTrigger) SetFake() {
 	*s = ReportResponseTriggerManual
-}
-
-// SetFake set fake values.
-func (s *TestDatasourceOK) SetFake() {
-	{
-		{
-			s.Status = "string"
-		}
-	}
 }

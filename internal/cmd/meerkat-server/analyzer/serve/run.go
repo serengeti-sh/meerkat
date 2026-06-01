@@ -1,7 +1,11 @@
 package serve
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/server"
@@ -19,12 +23,15 @@ func Run(cfgFile string, port int) error {
 		return fmt.Errorf("validate config: %w", err)
 	}
 
-	app, err := server.NewAnalyzer(cfg)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	app, err := server.NewAnalyzer(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("create analyzer: %w", err)
 	}
 
-	return app.Run()
+	return app.Run(ctx)
 }
 
 func loadConfig(cfgFile string, port int) (*config.Config, error) {

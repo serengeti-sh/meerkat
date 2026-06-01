@@ -22,10 +22,12 @@ type Config struct {
 }
 
 type AppConfig struct {
-	Name    string `mapstructure:"name"`
-	Version string `mapstructure:"version"`
-	Env     string `mapstructure:"env"`
-	Debug   bool   `mapstructure:"debug"`
+	Name      string `mapstructure:"name"`
+	Version   string `mapstructure:"version"`
+	Env       string `mapstructure:"env"`
+	Debug     bool   `mapstructure:"debug"`
+	LogLevel  string `mapstructure:"log_level"`  // debug, info, warn, error (default: info)
+	LogFormat string `mapstructure:"log_format"` // json, console (default: json)
 }
 
 type TLSConfig struct {

@@ -9,91 +9,6 @@ import (
 	"github.com/go-faster/jx"
 )
 
-// Ref: #/components/schemas/CreateDatasourceRequest
-type CreateDatasourceRequest struct {
-	Name string                      `json:"name"`
-	Type CreateDatasourceRequestType `json:"type"`
-	URL  string                      `json:"url"`
-}
-
-// GetName returns the value of Name.
-func (s *CreateDatasourceRequest) GetName() string {
-	return s.Name
-}
-
-// GetType returns the value of Type.
-func (s *CreateDatasourceRequest) GetType() CreateDatasourceRequestType {
-	return s.Type
-}
-
-// GetURL returns the value of URL.
-func (s *CreateDatasourceRequest) GetURL() string {
-	return s.URL
-}
-
-// SetName sets the value of Name.
-func (s *CreateDatasourceRequest) SetName(val string) {
-	s.Name = val
-}
-
-// SetType sets the value of Type.
-func (s *CreateDatasourceRequest) SetType(val CreateDatasourceRequestType) {
-	s.Type = val
-}
-
-// SetURL sets the value of URL.
-func (s *CreateDatasourceRequest) SetURL(val string) {
-	s.URL = val
-}
-
-type CreateDatasourceRequestType string
-
-const (
-	CreateDatasourceRequestTypePrometheus   CreateDatasourceRequestType = "prometheus"
-	CreateDatasourceRequestTypeVictoriaLogs CreateDatasourceRequestType = "victoria-logs"
-	CreateDatasourceRequestTypeLoki         CreateDatasourceRequestType = "loki"
-)
-
-// AllValues returns all CreateDatasourceRequestType values.
-func (CreateDatasourceRequestType) AllValues() []CreateDatasourceRequestType {
-	return []CreateDatasourceRequestType{
-		CreateDatasourceRequestTypePrometheus,
-		CreateDatasourceRequestTypeVictoriaLogs,
-		CreateDatasourceRequestTypeLoki,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s CreateDatasourceRequestType) MarshalText() ([]byte, error) {
-	switch s {
-	case CreateDatasourceRequestTypePrometheus:
-		return []byte(s), nil
-	case CreateDatasourceRequestTypeVictoriaLogs:
-		return []byte(s), nil
-	case CreateDatasourceRequestTypeLoki:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *CreateDatasourceRequestType) UnmarshalText(data []byte) error {
-	switch CreateDatasourceRequestType(data) {
-	case CreateDatasourceRequestTypePrometheus:
-		*s = CreateDatasourceRequestTypePrometheus
-		return nil
-	case CreateDatasourceRequestTypeVictoriaLogs:
-		*s = CreateDatasourceRequestTypeVictoriaLogs
-		return nil
-	case CreateDatasourceRequestTypeLoki:
-		*s = CreateDatasourceRequestTypeLoki
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/CreateInspectReq
 type CreateInspectReq struct {
 	Query       OptString `json:"query"`
@@ -129,115 +44,6 @@ func (s *CreateInspectReq) SetMetricQuery(val OptString) {
 // SetLogQuery sets the value of LogQuery.
 func (s *CreateInspectReq) SetLogQuery(val OptString) {
 	s.LogQuery = val
-}
-
-// Ref: #/components/schemas/DatasourceResponse
-type DatasourceResponse struct {
-	ID        string                 `json:"id"`
-	Name      string                 `json:"name"`
-	Type      DatasourceResponseType `json:"type"`
-	URL       string                 `json:"url"`
-	CreatedAt OptDateTime            `json:"created_at"`
-}
-
-// GetID returns the value of ID.
-func (s *DatasourceResponse) GetID() string {
-	return s.ID
-}
-
-// GetName returns the value of Name.
-func (s *DatasourceResponse) GetName() string {
-	return s.Name
-}
-
-// GetType returns the value of Type.
-func (s *DatasourceResponse) GetType() DatasourceResponseType {
-	return s.Type
-}
-
-// GetURL returns the value of URL.
-func (s *DatasourceResponse) GetURL() string {
-	return s.URL
-}
-
-// GetCreatedAt returns the value of CreatedAt.
-func (s *DatasourceResponse) GetCreatedAt() OptDateTime {
-	return s.CreatedAt
-}
-
-// SetID sets the value of ID.
-func (s *DatasourceResponse) SetID(val string) {
-	s.ID = val
-}
-
-// SetName sets the value of Name.
-func (s *DatasourceResponse) SetName(val string) {
-	s.Name = val
-}
-
-// SetType sets the value of Type.
-func (s *DatasourceResponse) SetType(val DatasourceResponseType) {
-	s.Type = val
-}
-
-// SetURL sets the value of URL.
-func (s *DatasourceResponse) SetURL(val string) {
-	s.URL = val
-}
-
-// SetCreatedAt sets the value of CreatedAt.
-func (s *DatasourceResponse) SetCreatedAt(val OptDateTime) {
-	s.CreatedAt = val
-}
-
-func (*DatasourceResponse) createDatasourceRes() {}
-
-type DatasourceResponseType string
-
-const (
-	DatasourceResponseTypePrometheus   DatasourceResponseType = "prometheus"
-	DatasourceResponseTypeVictoriaLogs DatasourceResponseType = "victoria-logs"
-	DatasourceResponseTypeLoki         DatasourceResponseType = "loki"
-)
-
-// AllValues returns all DatasourceResponseType values.
-func (DatasourceResponseType) AllValues() []DatasourceResponseType {
-	return []DatasourceResponseType{
-		DatasourceResponseTypePrometheus,
-		DatasourceResponseTypeVictoriaLogs,
-		DatasourceResponseTypeLoki,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s DatasourceResponseType) MarshalText() ([]byte, error) {
-	switch s {
-	case DatasourceResponseTypePrometheus:
-		return []byte(s), nil
-	case DatasourceResponseTypeVictoriaLogs:
-		return []byte(s), nil
-	case DatasourceResponseTypeLoki:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *DatasourceResponseType) UnmarshalText(data []byte) error {
-	switch DatasourceResponseType(data) {
-	case DatasourceResponseTypePrometheus:
-		*s = DatasourceResponseTypePrometheus
-		return nil
-	case DatasourceResponseTypeVictoriaLogs:
-		*s = DatasourceResponseTypeVictoriaLogs
-		return nil
-	case DatasourceResponseTypeLoki:
-		*s = DatasourceResponseTypeLoki
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }
 
 // Ref: #/components/schemas/Error
@@ -281,11 +87,9 @@ func (s *ErrorStatusCode) SetResponse(val Error) {
 	s.Response = val
 }
 
-func (*ErrorStatusCode) createDatasourceRes() {}
-func (*ErrorStatusCode) createInspectRes()    {}
-func (*ErrorStatusCode) getReportRes()        {}
-func (*ErrorStatusCode) receiveWebhookRes()   {}
-func (*ErrorStatusCode) testDatasourceRes()   {}
+func (*ErrorStatusCode) createInspectRes()  {}
+func (*ErrorStatusCode) getReportRes()      {}
+func (*ErrorStatusCode) receiveWebhookRes() {}
 
 type GetHealthOK struct {
 	Status string `json:"status"`
@@ -869,19 +673,3 @@ func (s *ReportResponseTrigger) UnmarshalText(data []byte) error {
 		return errors.Errorf("invalid value: %q", data)
 	}
 }
-
-type TestDatasourceOK struct {
-	Status string `json:"status"`
-}
-
-// GetStatus returns the value of Status.
-func (s *TestDatasourceOK) GetStatus() string {
-	return s.Status
-}
-
-// SetStatus sets the value of Status.
-func (s *TestDatasourceOK) SetStatus(val string) {
-	s.Status = val
-}
-
-func (*TestDatasourceOK) testDatasourceRes() {}

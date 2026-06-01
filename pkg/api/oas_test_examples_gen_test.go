@@ -11,30 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestCreateDatasourceRequest_EncodeDecode(t *testing.T) {
-	var typ CreateDatasourceRequest
-	typ.SetFake()
-
-	e := jx.Encoder{}
-	typ.Encode(&e)
-	data := e.Bytes()
-	require.True(t, std.Valid(data), "Encoded: %s", data)
-
-	var typ2 CreateDatasourceRequest
-	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
-}
-func TestCreateDatasourceRequestType_EncodeDecode(t *testing.T) {
-	var typ CreateDatasourceRequestType
-	typ.SetFake()
-
-	e := jx.Encoder{}
-	typ.Encode(&e)
-	data := e.Bytes()
-	require.True(t, std.Valid(data), "Encoded: %s", data)
-
-	var typ2 CreateDatasourceRequestType
-	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
-}
 func TestCreateInspectReq_EncodeDecode(t *testing.T) {
 	var typ CreateInspectReq
 	typ.SetFake()
@@ -45,30 +21,6 @@ func TestCreateInspectReq_EncodeDecode(t *testing.T) {
 	require.True(t, std.Valid(data), "Encoded: %s", data)
 
 	var typ2 CreateInspectReq
-	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
-}
-func TestDatasourceResponse_EncodeDecode(t *testing.T) {
-	var typ DatasourceResponse
-	typ.SetFake()
-
-	e := jx.Encoder{}
-	typ.Encode(&e)
-	data := e.Bytes()
-	require.True(t, std.Valid(data), "Encoded: %s", data)
-
-	var typ2 DatasourceResponse
-	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
-}
-func TestDatasourceResponseType_EncodeDecode(t *testing.T) {
-	var typ DatasourceResponseType
-	typ.SetFake()
-
-	e := jx.Encoder{}
-	typ.Encode(&e)
-	data := e.Bytes()
-	require.True(t, std.Valid(data), "Encoded: %s", data)
-
-	var typ2 DatasourceResponseType
 	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
 }
 func TestError_EncodeDecode(t *testing.T) {
@@ -167,17 +119,5 @@ func TestReportResponseTrigger_EncodeDecode(t *testing.T) {
 	require.True(t, std.Valid(data), "Encoded: %s", data)
 
 	var typ2 ReportResponseTrigger
-	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
-}
-func TestTestDatasourceOK_EncodeDecode(t *testing.T) {
-	var typ TestDatasourceOK
-	typ.SetFake()
-
-	e := jx.Encoder{}
-	typ.Encode(&e)
-	data := e.Bytes()
-	require.True(t, std.Valid(data), "Encoded: %s", data)
-
-	var typ2 TestDatasourceOK
 	require.NoError(t, typ2.Decode(jx.DecodeBytes(data)))
 }

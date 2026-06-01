@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -22,12 +21,15 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/ent"
+	"github.com/rs/zerolog"
+
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
 	"github.com/serengeti-sh/meerkat/internal/notify"
 	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/schedule"
 	"github.com/serengeti-sh/meerkat/internal/tool"
+	"github.com/serengeti-sh/meerkat/pkg/api"
 	"github.com/serengeti-sh/meerkat/test/integration/mock"
 
 	_ "github.com/lib/pq"
@@ -220,22 +222,22 @@ Respond with JSON only:
 	sched := schedule.NewService(inspectorSvc, cfg)
 
 	// HTTP handler
-	h, err := httphandler.New(inspectorSvc)
+		logger := zerolog.New(nil)
+	h := httphandler.New(inspectorSvc, logger)
+
+	ogenServer, err := api.NewServer(h)
 	if err != nil {
-		return fmt.Errorf("create http handler: %w", err)
+		return fmt.Errorf("create ogen server: %w", err)
 	}
 
 	// Start HTTP server on random port
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
 	}
 
 	s.server = &http.Server{
-		Handler:           mux,
+		Handler:           ogenServer,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      60 * time.Second,
@@ -244,7 +246,7 @@ Respond with JSON only:
 
 	go func() {
 		if err := s.server.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Printf("server error: %v", err)
+			logger.Error().Err(err).Msg("server error")
 		}
 	}()
 

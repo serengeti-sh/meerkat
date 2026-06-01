@@ -14,6 +14,6 @@ type Model interface {
 
 // New creates a Model based on the provider configuration.
 // Currently supports "openai".
-func New(apiKey, baseURL, model string) *openAIEmbedder {
+func New(apiKey, baseURL, model string) Model {
 	return newOpenAIEmbedder(apiKey, baseURL, model)
 }

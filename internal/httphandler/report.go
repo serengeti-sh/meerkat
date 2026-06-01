@@ -1,42 +1,39 @@
 package httphandler
 
 import (
-	"net/http"
-	"strconv"
+	"context"
+
+	"github.com/serengeti-sh/meerkat/pkg/api"
 )
 
-const defaultListLimit = 50
-
-func (h *Handler) ListReports(w http.ResponseWriter, r *http.Request) {
-	limit := defaultListLimit
-	if l := r.URL.Query().Get("limit"); l != "" {
-		if v, err := strconv.Atoi(l); err == nil && v > 0 {
-			limit = v
-		}
+func (h *Handler) ListReports(ctx context.Context, params api.ListReportsParams) ([]api.ReportResponse, error) {
+	limit := 50
+	if params.Limit.IsSet() {
+		limit = params.Limit.Value
 	}
 
-	reports, err := h.inspectorSvc.ListReports(r.Context(), limit)
+	reports, err := h.inspectorSvc.ListReports(ctx, limit)
 	if err != nil {
-		writeError(w, mapError(err), err.Error())
-		return
+		h.log.Error().Err(err).Msg("list reports failed")
+		return nil, err
 	}
 
-	result := make([]reportResponse, 0, len(reports))
+	result := make([]api.ReportResponse, 0, len(reports))
 	for _, r := range reports {
-		result = append(result, mapReport(r))
+		result = append(result, *mapReportToResponse(r))
 	}
-
-	writeJSON(w, http.StatusOK, result)
+	return result, nil
 }
 
-func (h *Handler) GetReport(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-
-	report, err := h.inspectorSvc.GetReport(r.Context(), id)
+func (h *Handler) GetReport(ctx context.Context, params api.GetReportParams) (api.GetReportRes, error) {
+	report, err := h.inspectorSvc.GetReport(ctx, params.ID)
 	if err != nil {
-		writeError(w, mapError(err), err.Error())
-		return
+		h.log.Error().Err(err).Str("id", params.ID).Msg("get report failed")
+		return &api.ErrorStatusCode{
+			StatusCode: mapError(err),
+			Response:   api.Error{Error: err.Error()},
+		}, nil
 	}
 
-	writeJSON(w, http.StatusOK, mapReport(report))
+	return mapReportToResponse(report), nil
 }

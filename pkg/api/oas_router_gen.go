@@ -14,10 +14,7 @@ var (
 	rn1AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
-	rn3AllowedHeaders = map[string]string{
-		"POST": "Content-Type",
-	}
-	rn8AllowedHeaders = map[string]string{
+	rn7AllowedHeaders = map[string]string{
 		"POST": "Content-Type",
 	}
 )
@@ -73,84 +70,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			switch elem[0] {
-			case 'd': // Prefix: "datasources"
-
-				if l := len("datasources"); len(elem) >= l && elem[0:l] == "datasources" {
-					elem = elem[l:]
-				} else {
-					break
-				}
-
-				if len(elem) == 0 {
-					switch r.Method {
-					case "GET":
-						s.handleListDatasourcesRequest([0]string{}, elemIsEscaped, w, r)
-					case "POST":
-						s.handleCreateDatasourceRequest([0]string{}, elemIsEscaped, w, r)
-					default:
-						s.notAllowed(w, r, notAllowedParams{
-							allowedMethods: "GET,POST",
-							allowedHeaders: rn1AllowedHeaders,
-							acceptPost:     "application/json",
-							acceptPatch:    "",
-						})
-					}
-
-					return
-				}
-				switch elem[0] {
-				case '/': // Prefix: "/"
-
-					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
-						elem = elem[l:]
-					} else {
-						break
-					}
-
-					// Param: "id"
-					// Match until "/"
-					idx := strings.IndexByte(elem, '/')
-					if idx < 0 {
-						idx = len(elem)
-					}
-					args[0] = elem[:idx]
-					elem = elem[idx:]
-
-					if len(elem) == 0 {
-						break
-					}
-					switch elem[0] {
-					case '/': // Prefix: "/test"
-
-						if l := len("/test"); len(elem) >= l && elem[0:l] == "/test" {
-							elem = elem[l:]
-						} else {
-							break
-						}
-
-						if len(elem) == 0 {
-							// Leaf node.
-							switch r.Method {
-							case "GET":
-								s.handleTestDatasourceRequest([1]string{
-									args[0],
-								}, elemIsEscaped, w, r)
-							default:
-								s.notAllowed(w, r, notAllowedParams{
-									allowedMethods: "GET",
-									allowedHeaders: nil,
-									acceptPost:     "",
-									acceptPatch:    "",
-								})
-							}
-
-							return
-						}
-
-					}
-
-				}
-
 			case 'h': // Prefix: "health"
 
 				if l := len("health"); len(elem) >= l && elem[0:l] == "health" {
@@ -192,7 +111,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "POST",
-							allowedHeaders: rn3AllowedHeaders,
+							allowedHeaders: rn1AllowedHeaders,
 							acceptPost:     "application/json",
 							acceptPatch:    "",
 						})
@@ -279,7 +198,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					default:
 						s.notAllowed(w, r, notAllowedParams{
 							allowedMethods: "POST",
-							allowedHeaders: rn8AllowedHeaders,
+							allowedHeaders: rn7AllowedHeaders,
 							acceptPost:     "application/json",
 							acceptPatch:    "",
 						})
@@ -388,89 +307,6 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 				break
 			}
 			switch elem[0] {
-			case 'd': // Prefix: "datasources"
-
-				if l := len("datasources"); len(elem) >= l && elem[0:l] == "datasources" {
-					elem = elem[l:]
-				} else {
-					break
-				}
-
-				if len(elem) == 0 {
-					switch method {
-					case "GET":
-						r.name = ListDatasourcesOperation
-						r.summary = "List datasources"
-						r.operationID = "listDatasources"
-						r.operationGroup = ""
-						r.pathPattern = "/datasources"
-						r.args = args
-						r.count = 0
-						return r, true
-					case "POST":
-						r.name = CreateDatasourceOperation
-						r.summary = "Add a datasource"
-						r.operationID = "createDatasource"
-						r.operationGroup = ""
-						r.pathPattern = "/datasources"
-						r.args = args
-						r.count = 0
-						return r, true
-					default:
-						return
-					}
-				}
-				switch elem[0] {
-				case '/': // Prefix: "/"
-
-					if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
-						elem = elem[l:]
-					} else {
-						break
-					}
-
-					// Param: "id"
-					// Match until "/"
-					idx := strings.IndexByte(elem, '/')
-					if idx < 0 {
-						idx = len(elem)
-					}
-					args[0] = elem[:idx]
-					elem = elem[idx:]
-
-					if len(elem) == 0 {
-						break
-					}
-					switch elem[0] {
-					case '/': // Prefix: "/test"
-
-						if l := len("/test"); len(elem) >= l && elem[0:l] == "/test" {
-							elem = elem[l:]
-						} else {
-							break
-						}
-
-						if len(elem) == 0 {
-							// Leaf node.
-							switch method {
-							case "GET":
-								r.name = TestDatasourceOperation
-								r.summary = "Test datasource connection"
-								r.operationID = "testDatasource"
-								r.operationGroup = ""
-								r.pathPattern = "/datasources/{id}/test"
-								r.args = args
-								r.count = 1
-								return r, true
-							default:
-								return
-							}
-						}
-
-					}
-
-				}
-
 			case 'h': // Prefix: "health"
 
 				if l := len("health"); len(elem) >= l && elem[0:l] == "health" {

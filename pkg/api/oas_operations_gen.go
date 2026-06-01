@@ -6,12 +6,9 @@ package api
 type OperationName = string
 
 const (
-	CreateDatasourceOperation OperationName = "CreateDatasource"
-	CreateInspectOperation    OperationName = "CreateInspect"
-	GetHealthOperation        OperationName = "GetHealth"
-	GetReportOperation        OperationName = "GetReport"
-	ListDatasourcesOperation  OperationName = "ListDatasources"
-	ListReportsOperation      OperationName = "ListReports"
-	ReceiveWebhookOperation   OperationName = "ReceiveWebhook"
-	TestDatasourceOperation   OperationName = "TestDatasource"
+	CreateInspectOperation  OperationName = "CreateInspect"
+	GetHealthOperation      OperationName = "GetHealth"
+	GetReportOperation      OperationName = "GetReport"
+	ListReportsOperation    OperationName = "ListReports"
+	ReceiveWebhookOperation OperationName = "ReceiveWebhook"
 )

@@ -1,56 +1,42 @@
 package httphandler
 
 import (
-	"encoding/json"
-	"net/http"
-	"time"
+	"context"
 
 	"github.com/serengeti-sh/meerkat/internal/inspect"
 	"github.com/serengeti-sh/meerkat/internal/report"
+	"github.com/serengeti-sh/meerkat/pkg/api"
 )
 
-type reportResponse struct {
-	ID          string    `json:"id"`
-	Trigger     string    `json:"trigger"`
-	TriggerID   string    `json:"trigger_id"`
-	Status      string    `json:"status"`
-	Severity    string    `json:"severity"`
-	Summary     string    `json:"summary"`
-	Detail      string    `json:"detail"`
-	Query       string    `json:"query"`
-	Datasources []string  `json:"datasources"`
-	Iterations  int       `json:"iterations"`
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-func (h *Handler) Inspect(w http.ResponseWriter, r *http.Request) {
-	var req inspect.Request
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid request body")
-		return
-	}
-
-	report, err := h.inspectorSvc.Inspect(r.Context(), req)
+func (h *Handler) CreateInspect(ctx context.Context, req *api.CreateInspectReq) (api.CreateInspectRes, error) {
+	report, err := h.inspectorSvc.Inspect(ctx, inspect.Request{
+		Query:       req.Query.Value,
+		MetricQuery: req.MetricQuery.Value,
+		LogQuery:    req.LogQuery.Value,
+	})
 	if err != nil {
-		writeError(w, mapError(err), err.Error())
-		return
+		h.log.Error().Err(err).Msg("inspect failed")
+		return &api.ErrorStatusCode{
+			StatusCode: mapError(err),
+			Response:   api.Error{Error: err.Error()},
+		}, nil
 	}
 
-	writeJSON(w, http.StatusAccepted, mapReport(report))
+	return mapReportToResponse(report), nil
 }
 
-func mapReport(r *report.Report) reportResponse {
-	return reportResponse{
-		ID:          r.ID,
-		Trigger:     string(r.Trigger),
-		TriggerID:   r.TriggerID,
-		Status:      string(r.Status),
-		Severity:    string(r.Severity),
-		Summary:     r.Summary,
-		Detail:      r.Detail,
-		Query:       r.Query,
+func mapReportToResponse(r *report.Report) *api.ReportResponse {
+	return &api.ReportResponse{
+		ID:        r.ID,
+		Trigger:   api.ReportResponseTrigger(r.Trigger),
+		TriggerID: r.TriggerID,
+		Status:    api.ReportResponseStatus(r.Status),
+		Severity:  api.NewOptReportResponseSeverity(api.ReportResponseSeverity(r.Severity)),
+		Summary:   api.NewOptString(r.Summary),
+		Detail:    api.NewOptString(r.Detail),
+		Query:     api.NewOptString(r.Query),
 		Datasources: r.Datasources,
-		Iterations:  r.Iterations,
-		CreatedAt:   r.CreatedAt,
+		Iterations:  api.NewOptInt(r.Iterations),
+		CreatedAt:   api.NewOptDateTime(r.CreatedAt),
 	}
 }

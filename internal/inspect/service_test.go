@@ -34,17 +34,21 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 	require.NoError(t, svc.Start())
 	defer svc.Stop()
 
+	callCount := 0
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "check for errors", mock.Anything).Return(nil, nil)
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 	// Goroutine expectations
 	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running
 	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // completed
-	analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).Return(&analyzer.AnalysisResult{
-		Severity:   analyzer.SeverityWarning,
-		Summary:    "test summary",
-		Detail:     "test detail",
-		Iterations: 1,
-	}, nil)
+	analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, input *analyzer.AnalysisInput) (*analyzer.AnalysisResult, error) {
+		callCount++
+		return &analyzer.AnalysisResult{
+			Severity:   analyzer.SeverityWarning,
+			Summary:    "test summary",
+			Detail:     "test detail",
+			Iterations: 1,
+		}, nil
+	})
 	reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
 
 	rpt, err := svc.Inspect(context.Background(), inspect.Request{
@@ -57,7 +61,7 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 	assert.NotEmpty(t, rpt.ID)
 
 	// Wait for async worker to process the job
-	time.Sleep(200 * time.Millisecond)
+	require.Eventually(t, func() bool { return callCount >= 1 }, 500*time.Millisecond, 10*time.Millisecond)
 }
 
 func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
@@ -70,17 +74,21 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 	require.NoError(t, svc.Start())
 	defer svc.Stop()
 
+	callCount := 0
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "webhook", "HighErrorRate", mock.Anything).Return(nil, nil)
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 	// Goroutine expectations
 	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running
 	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // completed
-	analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).Return(&analyzer.AnalysisResult{
-		Severity:   analyzer.SeverityWarning,
-		Summary:    "webhook analysis",
-		Detail:     "test detail",
-		Iterations: 1,
-	}, nil)
+	analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, input *analyzer.AnalysisInput) (*analyzer.AnalysisResult, error) {
+		callCount++
+		return &analyzer.AnalysisResult{
+			Severity:   analyzer.SeverityWarning,
+			Summary:    "webhook analysis",
+			Detail:     "test detail",
+			Iterations: 1,
+		}, nil
+	})
 	reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
 
 	rpt, err := svc.InspectByWebhook(context.Background(), inspect.WebhookPayload{
@@ -94,7 +102,7 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 	assert.Equal(t, report.TriggerWebhook, rpt.Trigger)
 
 	// Wait for async worker to process the job
-	time.Sleep(200 * time.Millisecond)
+	require.Eventually(t, func() bool { return callCount >= 1 }, 500*time.Millisecond, 10*time.Millisecond)
 }
 
 func TestService_Inspect_NoDatasources(t *testing.T) {

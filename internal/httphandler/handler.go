@@ -2,13 +2,12 @@ package httphandler
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
-	errs "github.com/serengeti-sh/meerkat/internal/errs"
+	"github.com/rs/zerolog"
 
+	"github.com/serengeti-sh/meerkat/internal/errs"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
 	"github.com/serengeti-sh/meerkat/internal/report"
 )
@@ -24,43 +23,21 @@ type Inspector interface {
 
 type Handler struct {
 	inspectorSvc Inspector
+	log          zerolog.Logger
 }
 
-func New(
-	inspectorSvc Inspector,
-) (*Handler, error) {
+func New(inspectorSvc Inspector, log zerolog.Logger) *Handler {
 	if inspectorSvc == nil {
-		return nil, fmt.Errorf("handler: inspectorSvc is required")
+		panic("handler: inspectorSvc is required")
 	}
 	return &Handler{
 		inspectorSvc: inspectorSvc,
-	}, nil
-}
-
-func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /v1/health", h.Health)
-	mux.HandleFunc("POST /v1/inspect", h.Inspect)
-	mux.HandleFunc("POST /v1/webhook", h.Webhook)
-	mux.HandleFunc("GET /v1/reports", h.ListReports)
-	mux.HandleFunc("GET /v1/reports/{id}", h.GetReport)
-}
-
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
-}
-
-type errorResponse struct {
-	Error string `json:"error"`
-}
-
-func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, errorResponse{Error: msg})
+		log:          log,
+	}
 }
 
 func mapError(err error) int {
-	var appErr errs.Error
+	var appErr errs.AppError
 	if errors.As(err, &appErr) {
 		return errs.HTTPStatus(appErr.Type())
 	}
