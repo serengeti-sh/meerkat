@@ -85,12 +85,11 @@ jobs:
   build:
     name: Build
     needs: [unit-test]
-    runs-on: ubuntu-latest
+    runs-on: dawn-cluster
+    container:
+      image: golang:1.26.3
     steps:
       - uses: actions/checkout@v6.0.2
-      - uses: actions/setup-go@v6.4.0
-        with:
-          go-version: "1.26.3"
       - name: Download dependencies
         run: go mod download
       - name: Build binaries
@@ -199,14 +198,13 @@ jobs:
   goreleaser-check:
     name: GoReleaser Check
     needs: [build]
-    runs-on: ubuntu-latest
+    runs-on: dawn-cluster
+    container:
+      image: golang:1.26.3
     steps:
       - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v6.4.0
-        with:
-          go-version: "1.26.3"
       - name: GoReleaser check
         uses: goreleaser/goreleaser-action@v7.2.2
         with:
