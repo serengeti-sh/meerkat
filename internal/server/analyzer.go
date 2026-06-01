@@ -220,5 +220,3 @@ func (a *Analyzer) Run(ctx context.Context) error {
 	a.log.Info().Msg("server stopped gracefully")
 	return nil
 }
-
-

@@ -27,14 +27,14 @@ func (h *Handler) CreateInspect(ctx context.Context, req *api.CreateInspectReq) 
 
 func mapReportToResponse(r *report.Report) *api.ReportResponse {
 	return &api.ReportResponse{
-		ID:        r.ID,
-		Trigger:   api.ReportResponseTrigger(r.Trigger),
-		TriggerID: r.TriggerID,
-		Status:    api.ReportResponseStatus(r.Status),
-		Severity:  api.NewOptReportResponseSeverity(api.ReportResponseSeverity(r.Severity)),
-		Summary:   api.NewOptString(r.Summary),
-		Detail:    api.NewOptString(r.Detail),
-		Query:     api.NewOptString(r.Query),
+		ID:          r.ID,
+		Trigger:     api.ReportResponseTrigger(r.Trigger),
+		TriggerID:   r.TriggerID,
+		Status:      api.ReportResponseStatus(r.Status),
+		Severity:    api.NewOptReportResponseSeverity(api.ReportResponseSeverity(r.Severity)),
+		Summary:     api.NewOptString(r.Summary),
+		Detail:      api.NewOptString(r.Detail),
+		Query:       api.NewOptString(r.Query),
 		Datasources: r.Datasources,
 		Iterations:  api.NewOptInt(r.Iterations),
 		CreatedAt:   api.NewOptDateTime(r.CreatedAt),

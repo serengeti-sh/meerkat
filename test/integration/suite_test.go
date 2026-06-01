@@ -18,10 +18,10 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/rs/zerolog"
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/ent"
-	"github.com/rs/zerolog"
 
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
@@ -222,7 +222,7 @@ Respond with JSON only:
 	sched := schedule.NewService(inspectorSvc, cfg)
 
 	// HTTP handler
-		logger := zerolog.New(nil)
+	logger := zerolog.New(nil)
 	h := httphandler.New(inspectorSvc, logger)
 
 	ogenServer, err := api.NewServer(h)
