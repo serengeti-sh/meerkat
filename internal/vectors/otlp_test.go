@@ -4,13 +4,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/serengeti-sh/meerkat/internal/vectors"
 )
 
 func TestOTLPIngestor_Name(t *testing.T) {
-	ing := vectors.NewOTLPIngestor(":4317")
+	ing := vectors.NewOTLPIngestor(":4317", zerolog.New(nil))
 	assert.Equal(t, "otlp", ing.Name())
 }
 

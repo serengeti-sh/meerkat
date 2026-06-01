@@ -3,12 +3,14 @@ package server
 import (
 	"fmt"
 
+	"github.com/rs/zerolog"
+
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/tool"
 )
 
-func buildAnalyzerService(provider analyzer.LLMProvider, registry *tool.Registry, cfg *config.Config) (analyzer.Service, error) {
+func buildAnalyzerService(provider analyzer.LLMProvider, registry *tool.Registry, cfg *config.Config, log zerolog.Logger) (analyzer.Service, error) {
 	systemPrompt, err := analyzer.LoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
 	if err != nil {
 		return nil, fmt.Errorf("load system prompt: %w", err)
@@ -24,7 +26,7 @@ func buildAnalyzerService(provider analyzer.LLMProvider, registry *tool.Registry
 		MaxToolResultChars:  cfg.Analyzer.MaxToolResultChars,
 		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
 		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
-	})
+	}, log)
 	if err != nil {
 		return nil, fmt.Errorf("create analyzer service: %w", err)
 	}

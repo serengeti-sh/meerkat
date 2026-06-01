@@ -10,6 +10,7 @@ import (
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
 	"github.com/openai/openai-go/v3/shared"
+	"github.com/rs/zerolog"
 )
 
 // openaiCompatProvider is a generic OpenAI-compatible API client.
@@ -20,6 +21,7 @@ type openaiCompatProvider struct {
 	maxTokens   int64
 	temperature float64
 	retryCfg    RetryConfig
+	log         zerolog.Logger
 }
 
 var _ LLMProvider = (*openaiCompatProvider)(nil)
@@ -39,6 +41,7 @@ func newOpenAICompatProvider(cfg ProviderConfig) LLMProvider {
 		maxTokens:   int64(cfg.MaxTokens),
 		temperature: cfg.Temperature,
 		retryCfg:    cfg.Retry,
+		log:         cfg.Log,
 	}
 }
 
@@ -58,7 +61,7 @@ func (p *openaiCompatProvider) HealthCheck(ctx context.Context) error {
 }
 
 func (p *openaiCompatProvider) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
-	return retryWithBackoff(ctx, p.retryCfg, func() (*CompletionResponse, error) {
+	return retryWithBackoff(ctx, p.log, p.retryCfg, func() (*CompletionResponse, error) {
 		messages := make([]openai.ChatCompletionMessageParamUnion, 0, len(req.Messages))
 		for _, m := range req.Messages {
 			messages = append(messages, toOpenAIMessage(m))

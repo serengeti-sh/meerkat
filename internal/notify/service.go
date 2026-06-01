@@ -6,9 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
+
+	"github.com/rs/zerolog"
 
 	"github.com/serengeti-sh/meerkat/internal/errs"
 )
@@ -46,6 +47,7 @@ type service struct {
 	webhookURL  string
 	minSeverity string
 	httpClient  *http.Client
+	log         zerolog.Logger
 }
 
 var _ Service = (*service)(nil)
@@ -53,7 +55,7 @@ var _ Service = (*service)(nil)
 const defaultHTTPTimeout = 30 * time.Second
 
 // NewService creates a Service that sends reports to the configured webhook URL.
-func NewService(webhookURL, minSeverity string, httpClient *http.Client) *service {
+func NewService(webhookURL, minSeverity string, httpClient *http.Client, log zerolog.Logger) *service {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: defaultHTTPTimeout}
 	}
@@ -61,6 +63,7 @@ func NewService(webhookURL, minSeverity string, httpClient *http.Client) *servic
 		webhookURL:  webhookURL,
 		minSeverity: minSeverity,
 		httpClient:  httpClient,
+		log:         log,
 	}
 }
 
@@ -101,6 +104,6 @@ func (s *service) Report(ctx context.Context, report *ReportData) error {
 			fmt.Sprintf("webhook returned status %d", resp.StatusCode))
 	}
 
-	log.Printf("[notify] sent report %s (severity=%s) to %s", report.ID, report.Severity, s.webhookURL)
+	s.log.Info().Str("report_id", report.ID).Str("severity", report.Severity).Str("webhook", s.webhookURL).Msg("sent report")
 	return nil
 }

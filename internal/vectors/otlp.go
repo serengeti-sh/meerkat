@@ -3,11 +3,11 @@ package vectors
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 	"strconv"
 	"time"
 
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,11 +23,12 @@ type OTLPIngestor struct {
 	addr       string
 	grpcServer *grpc.Server
 	listener   net.Listener
+	log        zerolog.Logger
 }
 
 // NewOTLPIngestor creates an OTLP ingestor that will listen on the given address.
-func NewOTLPIngestor(addr string) *OTLPIngestor {
-	return &OTLPIngestor{addr: addr}
+func NewOTLPIngestor(addr string, log zerolog.Logger) *OTLPIngestor {
+	return &OTLPIngestor{addr: addr, log: log}
 }
 
 // Name returns the ingestor identifier.
@@ -47,9 +48,9 @@ func (o *OTLPIngestor) Start(ctx context.Context, svc Service) error {
 	logsv1.RegisterLogsServiceServer(o.grpcServer, &otlpLogsServer{svc: svc})
 
 	go func() {
-		log.Printf("OTLP ingestor listening on %s", o.addr)
+		o.log.Info().Str("addr", o.addr).Msg("OTLP ingestor listening")
 		if err := o.grpcServer.Serve(lis); err != nil {
-			log.Printf("OTLP server error: %v", err)
+			o.log.Error().Err(err).Msg("OTLP server error")
 		}
 	}()
 

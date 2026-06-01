@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
+	"github.com/rs/zerolog"
 )
 
 // RetryConfig holds retry parameters for provider API calls.
@@ -27,7 +27,7 @@ func isRetryable(err error) bool {
 }
 
 // retryWithBackoff wraps a function call with exponential backoff and jitter.
-func retryWithBackoff(ctx context.Context, cfg RetryConfig, fn func() (*CompletionResponse, error)) (*CompletionResponse, error) {
+func retryWithBackoff(ctx context.Context, log zerolog.Logger, cfg RetryConfig, fn func() (*CompletionResponse, error)) (*CompletionResponse, error) {
 	if cfg.MaxRetries <= 0 {
 		return fn()
 	}
@@ -57,8 +57,7 @@ func retryWithBackoff(ctx context.Context, cfg RetryConfig, fn func() (*Completi
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-time.After(nextBackoff):
-			log.Printf("[meerkat] retry attempt %d/%d after %v: %v",
-				attempt+1, cfg.MaxRetries, nextBackoff, lastErr)
+			log.Error().Err(lastErr).Int("attempt", attempt+1).Int("max_retries", cfg.MaxRetries).Dur("backoff", nextBackoff).Msg("retrying after error")
 		}
 	}
 	return nil, fmt.Errorf("after %d retries: %w", cfg.MaxRetries, lastErr)

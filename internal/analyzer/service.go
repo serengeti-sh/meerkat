@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
+
+	"github.com/rs/zerolog"
 
 	"github.com/serengeti-sh/meerkat/internal/tool"
 )
@@ -38,11 +39,12 @@ type service struct {
 	maxToolResult  int
 	summarize      bool
 	maxContextMsgs int
+	log            zerolog.Logger
 }
 
 var _ Service = (*service)(nil)
 
-func NewService(provider LLMProvider, toolRegistry *tool.Registry, cfg ServiceConfig) (*service, error) {
+func NewService(provider LLMProvider, toolRegistry *tool.Registry, cfg ServiceConfig, log zerolog.Logger) (*service, error) {
 	if provider == nil {
 		return nil, fmt.Errorf("provider is required")
 	}
@@ -63,6 +65,7 @@ func NewService(provider LLMProvider, toolRegistry *tool.Registry, cfg ServiceCo
 		maxToolResult:  cfg.MaxToolResultChars,
 		summarize:      cfg.SummarizeOnOverflow,
 		maxContextMsgs: cfg.MaxContextMessages,
+		log:            log,
 	}, nil
 }
 
@@ -87,7 +90,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 				if !recovered {
 					return nil, fmt.Errorf("LLM call %d failed: context overflow, unable to reduce conversation size", i+1)
 				}
-				log.Printf("[analyzer] context overflow detected, summarized conversation, retrying")
+				s.log.Info().Msg("context overflow detected, summarized conversation, retrying")
 				i--
 				continue
 			}
@@ -124,7 +127,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 				continue
 			}
 
-			log.Printf("[analyzer] tool call #%d: %s(%s)", i+1, tc.Name, string(tc.Arguments))
+			s.log.Info().Int("iteration", i+1).Str("tool", tc.Name).Str("args", string(tc.Arguments)).Msg("tool call")
 
 			result, err := tool.Execute(ctx, tc.Arguments)
 			if err != nil {
@@ -143,7 +146,7 @@ func (s *service) Analyze(ctx context.Context, input *AnalysisInput) (*AnalysisR
 			})
 		}
 
-		log.Printf("[analyzer] iteration %d complete, continuing...", i+1)
+		s.log.Info().Int("iteration", i+1).Msg("iteration complete, continuing")
 	}
 
 	// Max iterations reached — force a final response without tools

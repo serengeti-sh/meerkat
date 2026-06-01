@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +36,7 @@ func TestRetryWithBackoff_Success(t *testing.T) {
 	cfg := RetryConfig{MaxRetries: 3, BaseDelay: 10 * time.Millisecond}
 	callCount := 0
 
-	resp, err := retryWithBackoff(context.Background(), cfg, func() (*CompletionResponse, error) {
+	resp, err := retryWithBackoff(context.Background(), zerolog.New(nil), cfg, func() (*CompletionResponse, error) {
 		callCount++
 		return &CompletionResponse{Content: "ok", Stop: true}, nil
 	})
@@ -49,7 +50,7 @@ func TestRetryWithBackoff_RetriesOnTransientError(t *testing.T) {
 	cfg := RetryConfig{MaxRetries: 3, BaseDelay: 10 * time.Millisecond}
 	callCount := 0
 
-	resp, err := retryWithBackoff(context.Background(), cfg, func() (*CompletionResponse, error) {
+	resp, err := retryWithBackoff(context.Background(), zerolog.New(nil), cfg, func() (*CompletionResponse, error) {
 		callCount++
 		if callCount < 3 {
 			return nil, fmt.Errorf("server error (502)")
@@ -66,7 +67,7 @@ func TestRetryWithBackoff_NoRetryOnContextOverflow(t *testing.T) {
 	cfg := RetryConfig{MaxRetries: 3, BaseDelay: 10 * time.Millisecond}
 	callCount := 0
 
-	_, err := retryWithBackoff(context.Background(), cfg, func() (*CompletionResponse, error) {
+	_, err := retryWithBackoff(context.Background(), zerolog.New(nil), cfg, func() (*CompletionResponse, error) {
 		callCount++
 		return nil, fmt.Errorf("%w: prompt too long", ErrContextOverflow)
 	})
@@ -80,7 +81,7 @@ func TestRetryWithBackoff_NoRetryOnAuthError(t *testing.T) {
 	cfg := RetryConfig{MaxRetries: 3, BaseDelay: 10 * time.Millisecond}
 	callCount := 0
 
-	_, err := retryWithBackoff(context.Background(), cfg, func() (*CompletionResponse, error) {
+	_, err := retryWithBackoff(context.Background(), zerolog.New(nil), cfg, func() (*CompletionResponse, error) {
 		callCount++
 		return nil, fmt.Errorf("%w: invalid api key", ErrAuthError)
 	})
@@ -94,7 +95,7 @@ func TestRetryWithBackoff_ExhaustsRetries(t *testing.T) {
 	cfg := RetryConfig{MaxRetries: 2, BaseDelay: 10 * time.Millisecond}
 	callCount := 0
 
-	_, err := retryWithBackoff(context.Background(), cfg, func() (*CompletionResponse, error) {
+	_, err := retryWithBackoff(context.Background(), zerolog.New(nil), cfg, func() (*CompletionResponse, error) {
 		callCount++
 		return nil, fmt.Errorf("persistent error")
 	})
@@ -114,7 +115,7 @@ func TestRetryWithBackoff_RespectsContextCancellation(t *testing.T) {
 		cancel()
 	}()
 
-	_, err := retryWithBackoff(ctx, cfg, func() (*CompletionResponse, error) {
+	_, err := retryWithBackoff(ctx, zerolog.New(nil), cfg, func() (*CompletionResponse, error) {
 		callCount++
 		return nil, fmt.Errorf("server error")
 	})
@@ -127,7 +128,7 @@ func TestRetryWithBackoff_ZeroRetries(t *testing.T) {
 	cfg := RetryConfig{MaxRetries: 0, BaseDelay: 10 * time.Millisecond}
 	callCount := 0
 
-	_, err := retryWithBackoff(context.Background(), cfg, func() (*CompletionResponse, error) {
+	_, err := retryWithBackoff(context.Background(), zerolog.New(nil), cfg, func() (*CompletionResponse, error) {
 		callCount++
 		return nil, fmt.Errorf("fail immediately")
 	})

@@ -176,6 +176,8 @@ Respond with JSON only:
 	toolRegistry := tool.NewRegistry(promTool)
 
 	// Analyzer
+	logger := zerolog.New(nil)
+
 	llmProvider := analyzer.NewLLMProvider(analyzer.ProviderConfig{
 		Provider:    cfg.Analyzer.Provider,
 		URL:         cfg.Analyzer.URL,
@@ -183,6 +185,7 @@ Respond with JSON only:
 		Model:       cfg.Analyzer.Model,
 		MaxTokens:   cfg.Analyzer.MaxTokens,
 		Temperature: cfg.Analyzer.Temperature,
+		Log:         logger,
 	})
 	systemPrompt, err := analyzer.LoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
 	if err != nil {
@@ -194,13 +197,13 @@ Respond with JSON only:
 		MaxToolResultChars:  cfg.Analyzer.MaxToolResultChars,
 		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
 		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
-	})
+	}, logger)
 	if err != nil {
 		return fmt.Errorf("build analyzer service: %w", err)
 	}
 
 	// Reporter (no-op in tests)
-	reporterSvc := notify.NewService(cfg.Notify.WebhookURL, cfg.Notify.MinSeverity, nil)
+	reporterSvc := notify.NewService(cfg.Notify.WebhookURL, cfg.Notify.MinSeverity, nil, logger)
 
 	// Inspector service
 	reportRepo := report.NewEntReportRepository(entClient)
@@ -208,6 +211,7 @@ Respond with JSON only:
 		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
 	}
 	inspectorSvc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10,
+		logger,
 		inspect.WithVectorsClient(nil), // explicitly no logs client in integration tests
 	)
 	if err != nil {
@@ -219,10 +223,9 @@ Respond with JSON only:
 	s.inspectorSvc = inspectorSvc
 
 	// Scheduler (disabled)
-	sched := schedule.NewService(inspectorSvc, cfg)
+	sched := schedule.NewService(inspectorSvc, cfg, logger)
 
 	// HTTP handler
-	logger := zerolog.New(nil)
 	h := httphandler.New(inspectorSvc, logger)
 
 	ogenServer, err := api.NewServer(h)

@@ -3,7 +3,6 @@ package inspect
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/notify"
@@ -12,12 +11,12 @@ import (
 
 func (s *service) worker(id int, ctx context.Context) {
 	defer s.wg.Done()
-	log.Printf("[inspector] worker %d started", id)
+	s.log.Info().Int("worker_id", id).Msg("worker started")
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("[inspector] worker %d shutting down", id)
+			s.log.Info().Int("worker_id", id).Msg("worker shutting down")
 			return
 		case job := <-s.queue:
 			if job == nil {
@@ -34,7 +33,7 @@ func (s *service) runAnalysis(ctx context.Context, rpt *report.Report, input *an
 	runningReport := rpt.Clone()
 	runningReport.Status = report.StatusRunning
 	if err := s.reportRepo.Update(ctx, &runningReport); err != nil {
-		log.Printf("[meerkat] failed to update report %s to running: %v", rpt.ID, err)
+		s.log.Error().Err(err).Str("report_id", rpt.ID).Msg("failed to update report to running")
 	}
 
 	// Run the agent loop
@@ -42,7 +41,7 @@ func (s *service) runAnalysis(ctx context.Context, rpt *report.Report, input *an
 
 	var finalReport report.Report
 	if err != nil {
-		log.Printf("[meerkat] analysis failed for report %s: %v", rpt.ID, err)
+		s.log.Error().Err(err).Str("report_id", rpt.ID).Msg("analysis failed")
 		finalReport = rpt.Clone()
 		finalReport.Status = report.StatusFailed
 		finalReport.Severity = report.SeverityInfo
@@ -60,7 +59,7 @@ func (s *service) runAnalysis(ctx context.Context, rpt *report.Report, input *an
 
 	// Save final result
 	if err := s.reportRepo.Update(ctx, &finalReport); err != nil {
-		log.Printf("[meerkat] failed to update report %s: %v", rpt.ID, err)
+		s.log.Error().Err(err).Str("report_id", rpt.ID).Msg("failed to update report")
 	}
 
 	// Send to reporter channels
@@ -76,10 +75,9 @@ func (s *service) runAnalysis(ctx context.Context, rpt *report.Report, input *an
 			Iterations:  finalReport.Iterations,
 			CreatedAt:   finalReport.CreatedAt,
 		}); err != nil {
-			log.Printf("[meerkat] failed to send report %s: %v", rpt.ID, err)
+			s.log.Error().Err(err).Str("report_id", rpt.ID).Msg("failed to send report")
 		}
 	}
 
-	log.Printf("[meerkat] report %s completed: status=%s severity=%s iterations=%d",
-		finalReport.ID, finalReport.Status, finalReport.Severity, finalReport.Iterations)
+	s.log.Info().Str("report_id", finalReport.ID).Str("status", string(finalReport.Status)).Str("severity", string(finalReport.Severity)).Int("iterations", finalReport.Iterations).Msg("report completed")
 }

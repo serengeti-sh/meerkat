@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
@@ -26,7 +27,7 @@ func TestNewService_InvalidInterval(t *testing.T) {
 		},
 	}
 
-	s := schedule.NewService(mockSvc, cfg)
+	s := schedule.NewService(mockSvc, cfg, zerolog.New(nil))
 	assert.NotNil(t, s)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
@@ -57,7 +58,7 @@ func TestCronScheduler_StartStop(t *testing.T) {
 		},
 	}
 
-	s := schedule.NewService(mockSvc, cfg)
+	s := schedule.NewService(mockSvc, cfg, zerolog.New(nil))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 	defer cancel()
@@ -80,7 +81,7 @@ func TestCronScheduler_StartStop_NoJobs(t *testing.T) {
 		},
 	}
 
-	s := schedule.NewService(mockSvc, cfg)
+	s := schedule.NewService(mockSvc, cfg, zerolog.New(nil))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()

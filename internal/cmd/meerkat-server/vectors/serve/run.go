@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 
 	"github.com/serengeti-sh/meerkat/internal/config"
@@ -24,6 +24,8 @@ import (
 
 // Run starts the Vectors server with OTLP ingestion and query services.
 func Run(cfgFile string, port int) error {
+	log := zerolog.New(os.Stderr).With().Timestamp().Str("component", "vectors-server").Logger()
+
 	cfg, err := loadConfig(cfgFile)
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
@@ -50,7 +52,7 @@ func Run(cfgFile string, port int) error {
 	}
 	defer func() {
 		if err := vstore.Close(); err != nil {
-			log.Printf("failed to close vector store: %v", err)
+			log.Error().Err(err).Msg("failed to close vector store")
 		}
 	}()
 
@@ -80,7 +82,7 @@ func Run(cfgFile string, port int) error {
 
 	// Start ingestors (currently OTLP only, extensible for Kafka, HTTP, file, etc.)
 	ingestors := []vectors.Ingestor{
-		vectors.NewOTLPIngestor(ml.GetAddress()),
+		vectors.NewOTLPIngestor(ml.GetAddress(), log),
 	}
 	for _, ing := range ingestors {
 		if err := ing.Start(context.Background(), vectorsSvc); err != nil {
@@ -104,9 +106,9 @@ func Run(cfgFile string, port int) error {
 	}
 
 	go func() {
-		log.Printf("Vectors query gRPC server listening on %s", grpcAddr)
+		log.Info().Str("addr", grpcAddr).Msg("Vectors query gRPC server listening")
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Printf("gRPC server error: %v", err)
+			log.Error().Err(err).Msg("gRPC server error")
 		}
 	}()
 
@@ -124,9 +126,9 @@ func Run(cfgFile string, port int) error {
 	}
 	httpServer := &http.Server{Addr: httpAddr, Handler: httpMux}
 	go func() {
-		log.Printf("Vectors metrics server listening on %s", httpAddr)
+		log.Info().Str("addr", httpAddr).Msg("Vectors metrics server listening")
 		if err := httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Printf("metrics server error: %v", err)
+			log.Error().Err(err).Msg("metrics server error")
 		}
 	}()
 
@@ -134,7 +136,7 @@ func Run(cfgFile string, port int) error {
 	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGTERM)
 
 	sig := <-shutdownCh
-	log.Printf("Received signal %v, shutting down...", sig)
+	log.Info().Str("signal", sig.String()).Msg("shutting down")
 
 	// Graceful shutdown with timeout.
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -143,7 +145,7 @@ func Run(cfgFile string, port int) error {
 	// Stop ingestors
 	for _, ing := range ingestors {
 		if err := ing.Stop(shutdownCtx); err != nil {
-			log.Printf("ingestor %q stop error: %v", ing.Name(), err)
+			log.Error().Err(err).Str("ingestor", ing.Name()).Msg("ingestor stop error")
 		}
 	}
 
@@ -158,10 +160,10 @@ func Run(cfgFile string, port int) error {
 		grpcServer.Stop()
 	}
 	if err := httpServer.Shutdown(shutdownCtx); err != nil {
-		log.Printf("metrics server shutdown error: %v", err)
+		log.Error().Err(err).Msg("metrics server shutdown error")
 	}
 
-	log.Println("Vectors server stopped gracefully")
+	log.Info().Msg("Vectors server stopped gracefully")
 	return nil
 }
 

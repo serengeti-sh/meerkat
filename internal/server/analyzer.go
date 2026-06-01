@@ -100,19 +100,20 @@ func NewAnalyzer(ctx context.Context, cfg *config.Config) (*Analyzer, error) {
 			MaxRetries: cfg.Analyzer.MaxRetries,
 			BaseDelay:  time.Duration(cfg.Analyzer.RetryBaseMs) * time.Millisecond,
 		},
+		Log: log,
 	})
 
 	if err := provider.HealthCheck(ctx); err != nil {
 		return nil, fmt.Errorf("llm provider health check failed: %w", err)
 	}
 
-	analyzerSvc, err := buildAnalyzerService(provider, toolRegistry, cfg)
+	analyzerSvc, err := buildAnalyzerService(provider, toolRegistry, cfg, log)
 	if err != nil {
 		return nil, fmt.Errorf("build analyzer service: %w", err)
 	}
 
 	// Reporter
-	reporterSvc := notify.NewService(cfg.Notify.WebhookURL, cfg.Notify.MinSeverity, nil)
+	reporterSvc := notify.NewService(cfg.Notify.WebhookURL, cfg.Notify.MinSeverity, nil, log)
 
 	// Inspector
 	var inspectorOpts []inspect.ServiceOption
@@ -128,6 +129,7 @@ func NewAnalyzer(ctx context.Context, cfg *config.Config) (*Analyzer, error) {
 		cfg.Inspect.GetDedupWindow(),
 		cfg.Inspect.QueueSize,
 		cfg.Inspect.WorkerCount,
+		log,
 		inspectorOpts...,
 	)
 	if err != nil {
@@ -137,7 +139,7 @@ func NewAnalyzer(ctx context.Context, cfg *config.Config) (*Analyzer, error) {
 	// HTTP handler
 	h := httphandler.New(inspectorSvc, log)
 
-	sched := schedule.NewService(inspectorSvc, cfg)
+	sched := schedule.NewService(inspectorSvc, cfg, log)
 
 	return &Analyzer{
 		cfg:     cfg,

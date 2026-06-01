@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -29,7 +30,7 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2, zerolog.New(nil))
 	require.NoError(t, err)
 	require.NoError(t, svc.Start())
 	defer svc.Stop()
@@ -69,7 +70,7 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2, zerolog.New(nil))
 	require.NoError(t, err)
 	require.NoError(t, svc.Start())
 	defer svc.Stop()
@@ -111,7 +112,7 @@ func TestService_Inspect_NoDatasources(t *testing.T) {
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	emptyRefs := func() []analyzer.DatasourceRef { return nil }
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, emptyRefs, 5*time.Minute, 100, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, emptyRefs, 5*time.Minute, 100, 2, zerolog.New(nil))
 	require.NoError(t, err)
 
 	_, err = svc.Inspect(context.Background(), inspect.Request{Query: "test"})
@@ -124,7 +125,7 @@ func TestService_GetReport(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2, zerolog.New(nil))
 	require.NoError(t, err)
 
 	expected := &report.Report{ID: "rpt-1", Trigger: report.TriggerManual, TriggerID: "t-1", Status: report.StatusCompleted, Severity: report.SeverityWarning, Summary: "test", Detail: "detail", Query: "test query", Iterations: 3, CreatedAt: time.Now()}
@@ -142,7 +143,7 @@ func TestService_ListReports(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2, zerolog.New(nil))
 	require.NoError(t, err)
 
 	r1 := &report.Report{ID: "rpt-1", Trigger: report.TriggerManual, TriggerID: "t-1", Status: report.StatusCompleted, Severity: report.SeverityInfo, Summary: "ok", Iterations: 1, CreatedAt: time.Now()}
@@ -171,7 +172,7 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 		return &analyzer.AnalysisResult{Severity: analyzer.SeverityInfo, Summary: "done", Iterations: 1}, nil
 	}).Twice()
 
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 1, 1)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 1, 1, zerolog.New(nil))
 	require.NoError(t, err)
 	require.NoError(t, svc.Start())
 	defer svc.Stop()
@@ -223,7 +224,7 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	// Queue size 10, 2 workers
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 10, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 10, 2, zerolog.New(nil))
 	require.NoError(t, err)
 	require.NoError(t, svc.Start())
 	defer svc.Stop()

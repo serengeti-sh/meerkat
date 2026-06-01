@@ -3,12 +3,12 @@ package inspect
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	errs "github.com/serengeti-sh/meerkat/internal/errs"
@@ -79,6 +79,7 @@ type service struct {
 	wg            sync.WaitGroup
 	cancel        context.CancelFunc
 	startOnce     sync.Once
+	log           zerolog.Logger
 }
 
 var _ Service = (*service)(nil)
@@ -96,6 +97,7 @@ func NewService(
 	dedupWindow time.Duration,
 	queueSize int,
 	workerCount int,
+	log zerolog.Logger,
 	opts ...ServiceOption,
 ) (*service, error) {
 	if analyzerSvc == nil {
@@ -127,6 +129,7 @@ func NewService(
 		queueSize:   queueSize,
 		workerCount: workerCount,
 		queue:       make(chan *analysisJob, queueSize),
+		log:         log,
 	}
 
 	for _, opt := range opts {
@@ -191,7 +194,7 @@ func (s *service) fetchLogsContext(ctx context.Context, payload WebhookPayload) 
 	now := time.Now()
 	results, err := s.vectorsClient.GetContext(ctx, service, now.Add(-logsContextWindow), now, logsContextLimit)
 	if err != nil {
-		log.Printf("[inspector] failed to fetch log context for service %q: %v", service, err)
+		s.log.Error().Err(err).Str("service", service).Msg("failed to fetch log context")
 		return ""
 	}
 	if len(results) == 0 {
@@ -251,7 +254,7 @@ func (s *service) enqueue(ctx context.Context, trigger report.TriggerType, query
 
 	select {
 	case s.queue <- job:
-		log.Printf("[inspector] report %s queued (queue: %d/%d)", rpt.ID, len(s.queue), s.queueSize)
+		s.log.Info().Str("report_id", rpt.ID).Int("queue_len", len(s.queue)).Int("queue_size", s.queueSize).Msg("report queued")
 		return rpt, nil
 	default:
 		// Queue is full — update report to failed and reject
@@ -261,7 +264,7 @@ func (s *service) enqueue(ctx context.Context, trigger report.TriggerType, query
 		failedReport.Summary = "Analysis queue is full, request rejected"
 		failedReport.Iterations = 0
 		if err := s.reportRepo.Update(ctx, &failedReport); err != nil {
-			log.Printf("[inspector] failed to update report %s: %v", rpt.ID, err)
+			s.log.Error().Err(err).Str("report_id", rpt.ID).Msg("failed to update report")
 		}
 		return nil, errs.New(errs.ErrRateLimit, "analysis queue is full, try again later")
 	}
@@ -312,7 +315,7 @@ loop:
 			failedReport.Status = report.StatusFailed
 			failedReport.Summary = "Analysis queue drained during shutdown"
 			if err := s.reportRepo.Update(drainCtx, &failedReport); err != nil {
-				log.Printf("[inspector] failed to update report %s on drain: %v", job.report.ID, err)
+				s.log.Error().Err(err).Str("report_id", job.report.ID).Msg("failed to update report on drain")
 			}
 			drained++
 		default:
@@ -321,7 +324,7 @@ loop:
 		}
 	}
 	if drained > 0 {
-		log.Printf("[inspector] drained %d queued reports on shutdown", drained)
+		s.log.Info().Int("drained", drained).Msg("drained queued reports on shutdown")
 	}
-	log.Printf("[inspector] all workers stopped")
+	s.log.Info().Msg("all workers stopped")
 }
