@@ -75,11 +75,13 @@ jobs:
         run: go mod download
       - name: Run unit tests
         run: make test
+      - name: Check coverage file
+        run: ls -la ${{ github.workspace }}/cover-unit.out || echo "Coverage file not found"
       - name: Upload coverage
         uses: codecov/codecov-action@v6.0.1
-        if: always()
+        if: success()
         with:
-          files: cover-unit.out
+          files: ${{ github.workspace }}/cover-unit.out
           fail_ci_if_error: false
 
   build:
