@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
-	"github.com/serengeti-sh/meerkat/internal/ent"
 	errs "github.com/serengeti-sh/meerkat/internal/errs"
 	"github.com/serengeti-sh/meerkat/internal/notify"
 	"github.com/serengeti-sh/meerkat/internal/report"
@@ -271,10 +270,10 @@ func (s *service) enqueue(ctx context.Context, trigger report.TriggerType, query
 func (s *service) GetReport(ctx context.Context, id string) (*report.Report, error) {
 	rpt, err := s.reportRepo.GetByID(ctx, id)
 	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, errs.Wrap(errs.ErrNotFound, "report not found", err)
-		}
 		return nil, errs.Wrap(errs.ErrInternal, "failed to get report", err)
+	}
+	if rpt == nil {
+		return nil, errs.New(errs.ErrNotFound, "report not found")
 	}
 	return rpt, nil
 }

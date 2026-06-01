@@ -177,9 +177,9 @@ func TestEntReportRepository_GetByID_NotFound(t *testing.T) {
 	ctx := context.Background()
 
 	// Get non-existent report
-	_, err := repo.GetByID(ctx, "nonexistent")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "get report by id")
+	result, err := repo.GetByID(ctx, "nonexistent")
+	require.NoError(t, err)
+	assert.Nil(t, result)
 }
 
 func TestEntReportRepository_List(t *testing.T) {
