@@ -42,7 +42,7 @@ jobs:
 
   trivy-image:
     name: Trivy Image Scan
-    runs-on: ubuntu-latest
+    runs-on: dawn-cluster-dind
     steps:
       - uses: actions/checkout@v6.0.2
 
