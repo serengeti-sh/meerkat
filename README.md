@@ -6,35 +6,67 @@ AI-powered observability agent that watches your infrastructure like a meerkat o
 
 Meerkat is an AI-driven observability platform consisting of **two independently deployable services**:
 
-- **Analyzer**: HTTP API server that orchestrates AI analysis, report management, and scheduling
-- **Vectors**: gRPC + OTLP server for log ingestion, semantic search, and vector storage
+- **Analyzer**: HTTP API server that orchestrates AI analysis, report management, scheduling, and webhook reception
+- **Vectors**: gRPC + OTLP server for log ingestion, semantic search, template extraction, and vector storage
 
 ## Architecture
 
 ```mermaid
 graph TB
-    subgraph "Data Sources"
-        App[Applications / SDKs]
+    subgraph External Infrastructure
+        Prometheus[Prometheus / VictoriaMetrics]
+        Loki[Loki]
+        VictoriaLogs[VictoriaLogs]
+        LLM[LLM Provider<br/>OpenAI / Anthropic / Ollama]
+        VectorDB[(Vector Store<br/>Milvus / Qdrant)]
+        PG[(PostgreSQL)]
     end
 
-    subgraph "Meerkat Platform"
-        Vectors[Vectors<br/>gRPC :50051 / OTLP :4317]
+    subgraph Meerkat Platform
         Analyzer[Analyzer<br/>HTTP API :8080]
-        PostgreSQL[(PostgreSQL<br/>Reports)]
-        VectorStore[(Vector Store<br/>Milvus / Qdrant)]
+        Vectors[Vectors<br/>gRPC/OTLP :50051<br/>Metrics :9090]
     end
 
-    subgraph "AI Engine"
-        LLM[LLM Provider<br/>OpenAI / Anthropic]
-        Tools[Tools<br/>Prometheus / Loki / VictoriaLogs]
+    subgraph Data Sources
+        App[Applications / SDKs]
+        AlertManager[Alertmanager<br/>Webhook]
     end
 
-    App -->|OTLP Push| Vectors
-    Vectors -->|Embed & Store| VectorStore
+    App -->|OTLP Logs| Vectors
+    AlertManager -->|Webhook| Analyzer
+    Analyzer -->|PromQL| Prometheus
+    Analyzer -->|LogQL| Loki
+    Analyzer -->|LogsQL| VictoriaLogs
     Analyzer -->|gRPC Search| Vectors
-    Analyzer -->|SQL| PostgreSQL
+    Vectors -->|Embed & Store| VectorDB
     Analyzer -->|HTTP| LLM
-    Analyzer -->|Query| Tools
+    Analyzer -->|SQL| PG
+```
+
+### Component Interaction
+
+```mermaid
+sequenceDiagram
+    participant Client as Client/Webhook
+    participant Analyzer as Analyzer (:8080)
+    participant Vectors as Vectors (:50051)
+    participant Tools as Observability Tools
+    participant LLM as LLM Provider
+    participant DB as PostgreSQL
+
+    Client->>Analyzer: POST /v1/inspect or /v1/webhook
+    Analyzer->>DB: Create Report (status: queued)
+    Analyzer-->>Client: 202 Accepted (Report ID)
+
+    Note over Analyzer: Worker picks up job
+    Analyzer->>Vectors: gRPC GetContext(service, time range)
+    Vectors-->>Analyzer: Relevant Log Context
+    Analyzer->>Tools: Query Metrics/Logs (if needed)
+    Tools-->>Analyzer: Tool Results
+    Analyzer->>LLM: Analysis Prompt + Context + Tool Results
+    LLM-->>Analyzer: Analysis Result (severity, summary, detail)
+    Analyzer->>DB: Update Report (status: completed)
+    Analyzer->>Analyzer: Notify (if webhook configured)
 ```
 
 ### Log Ingestion Flow
@@ -42,34 +74,52 @@ graph TB
 ```mermaid
 sequenceDiagram
     participant App as Application
-    participant Vectors as Vectors (:50051/:4317)
-    participant VS as Vector Store
+    participant Vectors as Vectors (:50051)
+    participant Embedder as Embedder (OpenAI)
+    participant VectorDB as Vector Store
 
     App->>Vectors: OTLP Log Export
-    Vectors->>Vectors: Filter (severity/template)
-    Vectors->>Vectors: Extract Template (Drain)
-    Vectors->>Vectors: Embed (OpenAI)
-    Vectors->>VS: Store Vector + Metadata
+    Vectors->>Vectors: Filter (severity/template mode)
+    Vectors->>Vectors: Extract Template (Drain algorithm)
+    Vectors->>Vectors: Deduplicate by template
+    Vectors->>Embedder: Embed log message
+    Embedder-->>Vectors: Vector embedding
+    Vectors->>VectorDB: Store Vector + Metadata
     Vectors-->>App: ExportResponse
 ```
 
-### Analysis Flow
+### Analysis Detail Flow
 
 ```mermaid
 sequenceDiagram
-    participant Client as Client / Webhook
-    participant Analyzer as Analyzer (:8080)
-    participant Vectors as Vectors (:50051)
+    participant Worker as Analysis Worker
+    participant Report as Report Repository
+    participant Analyzer as Analyzer Service
+    participant Vectors as Vectors Client
+    participant Tools as Tool Registry
     participant LLM as LLM Provider
-    participant DB as PostgreSQL
 
-    Client->>Analyzer: POST /v1/inspect or /v1/webhook
-    Analyzer->>Vectors: gRPC GetContext(service, time range)
-    Vectors-->>Analyzer: Log Context
-    Analyzer->>LLM: Analysis Prompt + Tools + Context
-    LLM-->>Analyzer: Analysis Result
-    Analyzer->>DB: Persist Report
-    Analyzer-->>Client: Report ID
+    Worker->>Report: Get report by ID
+    Worker->>Vectors: GetContext(query, time range)
+    Vectors-->>Worker: Log entries (semantic search)
+
+    loop Max Iterations
+        Worker->>Analyzer: Analyze with context
+        Analyzer->>LLM: Send prompt + available tools
+        LLM-->>Analyzer: Response (tool call or final answer)
+
+        alt Tool Call
+            Analyzer->>Tools: Execute tool (prometheus/loki/victorialogs/search_logs)
+            Tools-->>Analyzer: Tool result
+            Analyzer->>Analyzer: Truncate if needed
+        else Final Answer
+            Analyzer-->>Worker: Analysis result
+            break
+        end
+    end
+
+    Worker->>Report: Update with result
+    Worker->>Worker: Send notification (if configured)
 ```
 
 ## Services
@@ -77,7 +127,19 @@ sequenceDiagram
 | Service | Protocol | Default Port | Responsibility |
 |---------|----------|--------------|----------------|
 | **Analyzer** | HTTP (REST) | 8080 | AI analysis, report management, scheduling, webhook reception |
-| **Vectors** | gRPC + OTLP | 50051 (gRPC), 4317 (OTLP), 9090 (metrics) | Log ingestion, template extraction, semantic search, vector storage |
+| **Vectors** | gRPC + OTLP | 50051 | Log ingestion, semantic search, vector storage |
+| **Vectors** | HTTP | 9090 | Prometheus metrics, health checks |
+
+## Supported Tools
+
+The Analyzer can invoke the following tools during analysis:
+
+| Tool | Description | Query Language |
+|------|-------------|----------------|
+| **prometheus** | Query metrics from Prometheus or VictoriaMetrics | PromQL |
+| **loki** | Query logs from Loki | LogQL |
+| **victoria_logs** | Query logs from VictoriaLogs | LogsQL |
+| **search_logs** | Semantic search over ingested logs via Vectors | Natural language |
 
 ## Project Structure
 
@@ -87,40 +149,39 @@ sequenceDiagram
 │   ├── openapi.yaml              # OpenAPI 3.0 spec
 │   ├── paths/                    # OpenAPI path definitions
 │   ├── schemas/                  # OpenAPI schema definitions
-│   └── proto/vectors/v1/     # Protobuf service definitions
+│   └── proto/vectors/v1/         # Protobuf service definitions
 ├── build/docker/                 # Dockerfiles
 ├── cmd/                          # Entry points
 │   ├── meerkat/                  # CLI client
-│   └── meerkat-server/           # Server binaries
-│       ├── analyzer/             # Analyzer server commands
-│       └── vectors/              # Vectors server commands
+│   └── meerkat-server/           # Server binary commands
 ├── deployment/
 │   └── charts/meerkat/           # Helm chart
 │       ├── templates/            # K8s manifests
 │       └── values.yaml           # Default configuration
 ├── internal/                     # Private packages
-│   ├── analyzer/                 # AI analysis engine
+│   ├── analyzer/                 # AI analysis engine (LLM interaction, tool orchestration)
+│   ├── cmd/                      # Command implementations (Run functions)
 │   ├── config/                   # Configuration loading & validation
-│   ├── discovery/                # Auto-discovery (K8s, Docker, Static)
-│   ├── embed/                    # Text embedding (OpenAI)
+│   ├── embed/                    # Text embedding (OpenAI-compatible)
 │   ├── ent/                      # Ent ORM generated code
 │   ├── errs/                     # Custom error types
-│   ├── httphandler/              # HTTP handlers (analyzer API)
-│   ├── inspect/                  # Report lifecycle & worker pool
-│   ├── vectorsclient/               # gRPC client for Vectors
-│   ├── vectorspb/            # Generated protobuf code
-│   ├── notify/                   # Notification service (Slack)
+│   ├── httphandler/              # HTTP handlers (OpenAPI-generated server implementation)
+│   ├── inspect/                  # Report lifecycle & worker pool management
+│   ├── logger/                   # Structured logging utilities
+│   ├── notify/                   # Notification service (webhook)
 │   ├── report/                   # Report domain & repository
 │   ├── schedule/                 # Scheduled analysis jobs
-│   ├── server/                   # Server DI assembly
-│   ├── tool/                     # Observability tool integrations
-│   ├── vectors/                  # Log ingestion pipeline
+│   ├── server/                   # Server DI assembly (analyzer, database, tools, provider)
+│   ├── tool/                     # Observability tool integrations (prometheus, loki, victorialogs, search_logs)
+│   ├── vectors/                  # Log ingestion pipeline (OTLP, embedding, filtering)
+│   ├── vectorsclient/            # gRPC client for Vectors service
+│   ├── vectorspb/                # Generated protobuf code
 │   └── vectorstore/              # Vector store clients (Milvus, Qdrant)
-├── pkg/api/                      # Generated OpenAPI client/server
+├── pkg/api/                      # Generated OpenAPI client/server (ogen)
 ├── test/
-│   ├── deploy/                   # Helm deployment tests (Kind)
-│   ├── e2e/                      # End-to-end tests
-│   └── integration/              # Integration tests
+│   ├── e2e/                      # End-to-end tests (real binary)
+│   ├── integration/              # Integration tests (in-memory DI)
+│   └── kind/                     # Kind cluster deployment tests
 ├── Makefile                      # Build automation
 ├── config.example.yaml           # Example configuration
 └── go.mod                        # Go module definition
@@ -133,7 +194,7 @@ sequenceDiagram
 - Go 1.26+
 - PostgreSQL 14+
 - Milvus or Qdrant (vector store)
-- OpenAI API key (or compatible provider)
+- OpenAI API key (or compatible provider: Anthropic, Ollama, vLLM, etc.)
 - (Optional) Helm 3+ for Kubernetes deployment
 
 ### Configuration
@@ -149,6 +210,7 @@ cp config.example.yaml config.yaml
 app:
   name: meerkat
   env: development
+  debug: true
   log_level: info      # debug, info, warn, error
   log_format: json     # json, console
 
@@ -163,18 +225,46 @@ store:
   name: meerkat
   user: meerkat
   password: meerkat
+  sslmode: disable
 
-vectors:
-  enabled: true
-  address: ":50051"
-  otlp_bind_addr: ":4317"
-  filter_mode: template  # all | severity | template
-  min_severity: info
-  retention: 72h
+tools:
+  prometheus:
+    - name: vm
+      url: http://localhost:8428
 
-embedder:
+  victoria_logs:
+    - name: vl
+      url: http://localhost:9428
+
+analyzer:
   provider: openai
-  api_key: ${OPENAI_API_KEY}
+  url: https://api.openai.com
+  api_key: ""
+  model: gpt-4o
+  max_iterations: 10
+  max_tokens: 4096
+  temperature: 0.3
+  system_prompt_file: config/system_prompt.txt
+  skills_file: config/skills.yaml
+
+scheduler:
+  enabled: false
+  jobs:
+    - name: error-spike-check
+      interval: 5m
+      metric_query: "rate(http_errors_total[5m])"
+      log_query: "level:error"
+
+inspect:
+  dedup_window: 5m
+
+notify:
+  webhook_url: ""
+  min_severity: warning
+
+embed:
+  provider: openai
+  api_key: ""
   model: text-embedding-3-small
 
 vector_store:
@@ -182,6 +272,18 @@ vector_store:
     address: localhost:19530
     collection: logs
     dimension: 1536
+    retention: 72h
+
+vectors:
+  enabled: true
+  address: ":50051"
+  ingest_batch_size: 100
+  similarity_threshold: 0.7
+  max_context_logs: 20
+  filter_mode: template
+  min_severity: info
+  deduplicate_by_template: true
+  retention: 72h
 ```
 
 ### Running Services
@@ -190,7 +292,7 @@ vector_store:
 # Run database migrations
 go run ./cmd/meerkat-server analyzer migrate apply
 
-# Start Vectors server (log ingestion + search + OTLP)
+# Start Vectors server (log ingestion + search)
 go run ./cmd/meerkat-server vectors serve
 
 # Start Analyzer server (HTTP API + AI analysis)
@@ -239,18 +341,18 @@ Vectors supports three log filtering modes during ingestion:
 | Mode | Behavior |
 |------|----------|
 | **all** | All logs are vectorized (no filtering) |
-| **severity** | Only logs with severity ≥ `min_severity` are vectorized |
+| **severity** | Only logs with severity >= `min_severity` are vectorized |
 | **template** | Drain algorithm extracts templates; duplicates are deduplicated (default) |
 
 ## Metrics
 
 Vectors exposes Prometheus metrics on `:9090/metrics`:
 
-- `vectors_ingest_total` — Total ingested logs
-- `vectors_ingest_deduplicated_total` — Total deduplicated logs
-- `vectors_search_duration_seconds` — Search latency histogram
-- `vectors_search_total` — Total search requests
-- `vectors_embed_duration_seconds` — Embedding latency histogram
+- `vectors_ingest_total` -- Total ingested logs
+- `vectors_ingest_deduplicated_total` -- Total deduplicated logs
+- `vectors_search_duration_seconds` -- Search latency histogram
+- `vectors_search_total` -- Total search requests
+- `vectors_embed_duration_seconds` -- Embedding latency histogram
 
 ## Development
 
@@ -269,6 +371,9 @@ make test-integration
 
 # Run e2e tests (requires Docker)
 make test-e2e
+
+# Run Kind cluster tests (requires Docker + Kind)
+make test-kind
 
 # Run linter
 make lint
@@ -290,8 +395,7 @@ docker build -f build/docker/server.Dockerfile -t meerkat-server .
 ```bash
 # Install with default values
 helm install meerkat ./deployment/charts/meerkat \
-  --set vectors.enabled=true \
-  --set analyzer.enabled=true
+  --set vectors.enabled=true
 
 # Install with custom values
 helm install meerkat ./deployment/charts/meerkat \
@@ -303,8 +407,7 @@ helm install meerkat ./deployment/charts/meerkat \
 | Service | Port | Protocol | Purpose |
 |---------|------|----------|---------|
 | Analyzer | 8080 | HTTP | REST API |
-| Vectors | 50051 | gRPC | Search/Ingest/GetContext |
-| Vectors | 4317 | OTLP/gRPC | Log ingestion |
+| Vectors | 50051 | gRPC | Search / Ingest / GetContext / OTLP |
 | Vectors | 9090 | HTTP | Metrics & Health |
 
 ## Security
