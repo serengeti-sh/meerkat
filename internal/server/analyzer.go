@@ -157,7 +157,7 @@ func (a *Analyzer) Run(ctx context.Context) error {
 	}
 	defer a.inspect.Stop()
 
-	ogenServer, err := api.NewServer(a.handler)
+	ogenServer, err := api.NewServer(a.handler, api.WithPathPrefix("/v1"))
 	if err != nil {
 		return fmt.Errorf("create ogen server: %w", err)
 	}
