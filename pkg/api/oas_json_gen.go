@@ -980,6 +980,8 @@ func (s *ReportResponseStatus) Decode(d *jx.Decoder) error {
 	}
 	// Try to use constant string.
 	switch ReportResponseStatus(v) {
+	case ReportResponseStatusQueued:
+		*s = ReportResponseStatusQueued
 	case ReportResponseStatusPending:
 		*s = ReportResponseStatusPending
 	case ReportResponseStatusRunning:

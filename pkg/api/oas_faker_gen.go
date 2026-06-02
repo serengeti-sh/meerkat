@@ -199,7 +199,7 @@ func (s *ReportResponseSeverity) SetFake() {
 
 // SetFake set fake values.
 func (s *ReportResponseStatus) SetFake() {
-	*s = ReportResponseStatusPending
+	*s = ReportResponseStatusQueued
 }
 
 // SetFake set fake values.

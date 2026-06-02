@@ -10,7 +10,7 @@ ReportResponse:
       type: string
     status:
       type: string
-      enum: [pending, running, completed, failed]
+      enum: [queued, pending, running, completed, failed]
     severity:
       type: string
       enum: [info, warning, critical]

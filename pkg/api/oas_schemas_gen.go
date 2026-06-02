@@ -574,6 +574,7 @@ func (s *ReportResponseSeverity) UnmarshalText(data []byte) error {
 type ReportResponseStatus string
 
 const (
+	ReportResponseStatusQueued    ReportResponseStatus = "queued"
 	ReportResponseStatusPending   ReportResponseStatus = "pending"
 	ReportResponseStatusRunning   ReportResponseStatus = "running"
 	ReportResponseStatusCompleted ReportResponseStatus = "completed"
@@ -583,6 +584,7 @@ const (
 // AllValues returns all ReportResponseStatus values.
 func (ReportResponseStatus) AllValues() []ReportResponseStatus {
 	return []ReportResponseStatus{
+		ReportResponseStatusQueued,
 		ReportResponseStatusPending,
 		ReportResponseStatusRunning,
 		ReportResponseStatusCompleted,
@@ -593,6 +595,8 @@ func (ReportResponseStatus) AllValues() []ReportResponseStatus {
 // MarshalText implements encoding.TextMarshaler.
 func (s ReportResponseStatus) MarshalText() ([]byte, error) {
 	switch s {
+	case ReportResponseStatusQueued:
+		return []byte(s), nil
 	case ReportResponseStatusPending:
 		return []byte(s), nil
 	case ReportResponseStatusRunning:
@@ -609,6 +613,9 @@ func (s ReportResponseStatus) MarshalText() ([]byte, error) {
 // UnmarshalText implements encoding.TextUnmarshaler.
 func (s *ReportResponseStatus) UnmarshalText(data []byte) error {
 	switch ReportResponseStatus(data) {
+	case ReportResponseStatusQueued:
+		*s = ReportResponseStatusQueued
+		return nil
 	case ReportResponseStatusPending:
 		*s = ReportResponseStatusPending
 		return nil

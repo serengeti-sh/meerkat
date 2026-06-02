@@ -74,6 +74,8 @@ func (s ReportResponseSeverity) Validate() error {
 
 func (s ReportResponseStatus) Validate() error {
 	switch s {
+	case "queued":
+		return nil
 	case "pending":
 		return nil
 	case "running":
