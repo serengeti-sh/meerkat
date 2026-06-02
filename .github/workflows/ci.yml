@@ -28,13 +28,13 @@ jobs:
       - uses: actions/setup-go@v6.4.0
         with:
           go-version: "1.26.3"
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9.2.1
+        with:
+          version: v2.11.4
+          install-only: true
       - name: Check formatting
-        run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "The following files need formatting:"
-            gofmt -l .
-            exit 1
-          fi
+        run: golangci-lint fmt --diff
 
   vet:
     name: Go Vet
