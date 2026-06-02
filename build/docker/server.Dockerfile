@@ -1,5 +1,3 @@
-#syntax=docker/dockerfile:1.4
-
 ARG VERSION=0.0.1
 ARG GIT_COMMIT=unknown
 
@@ -18,8 +16,7 @@ RUN apk add --no-cache \
 WORKDIR /build
 
 COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod \
-    go mod download && go mod verify
+RUN go mod download && go mod verify
 
 COPY . .
 
@@ -30,10 +27,8 @@ ARG TARGETARCH
 ARG VERSION
 ARG GIT_COMMIT
 
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
-    go build -a \
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
+    go build \
     -ldflags="-w -s \
               -X main.version=${VERSION}" \
     -o meerkat-server ./cmd/meerkat-server
