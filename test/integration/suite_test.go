@@ -228,7 +228,7 @@ Respond with JSON only:
 	// HTTP handler
 	h := httphandler.New(inspectorSvc, logger)
 
-	ogenServer, err := api.NewServer(h)
+	ogenServer, err := api.NewServer(h, api.WithPathPrefix("/v1"))
 	if err != nil {
 		return fmt.Errorf("create ogen server: %w", err)
 	}
