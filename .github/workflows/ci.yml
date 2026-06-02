@@ -164,6 +164,8 @@ jobs:
     runs-on: dawn-cluster-dind
     container:
       image: golang:1.26.3
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: "true"
     steps:
       - uses: actions/checkout@v6.0.2
       - uses: actions/setup-go@v6.4.0
@@ -186,6 +188,8 @@ jobs:
     runs-on: dawn-cluster-dind
     container:
       image: golang:1.26.3
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: "true"
     steps:
       - uses: actions/checkout@v6.0.2
       - uses: actions/setup-go@v6.4.0

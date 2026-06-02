@@ -63,7 +63,7 @@ func (s *Suite) Start(ctx context.Context) error {
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
-				WithStartupTimeout(30*time.Second),
+				WithStartupTimeout(120*time.Second),
 		),
 	)
 	if err != nil {
@@ -352,7 +352,7 @@ func SetupSuite(t *testing.T) *Suite {
 		t.Skip("Skipping e2e test in short mode")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 
 	suite := NewSuite(t)
 	require.NoError(t, suite.Start(ctx), "Failed to start e2e test suite")
