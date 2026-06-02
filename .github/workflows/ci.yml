@@ -74,7 +74,7 @@ jobs:
       - name: Download dependencies
         run: go mod download
       - name: Run unit tests
-        run: make test
+        run: go test -v $(go list ./... | grep -v -e /mocks -e /test/integration -e /test/e2e -e /test/kind) --coverprofile cover-unit.out
       - name: Check coverage file
         run: ls -la ${{ github.workspace }}/cover-unit.out || echo "Coverage file not found"
       - name: Upload coverage
