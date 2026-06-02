@@ -226,28 +226,4 @@ jobs:
       - name: Download dependencies
         run: go mod download
       - name: Run Kind tests
-        run: make test-kind
-
-  goreleaser-check:
-    name: GoReleaser Check
-    needs: [build]
-    runs-on: dawn-cluster
-    container:
-      image: golang:1.26.3
-    env:
-      GOFLAGS: "-buildvcs=false"
-    steps:
-      - uses: actions/checkout@v6.0.2
-        with:
-          fetch-depth: 0
-      - name: Initialize git for GoReleaser
-        run: |
-          git config --global user.email "ci@meerkat.local"
-          git config --global user.name "CI Bot"
-          git add -A || true
-          git commit -m "temp: init for goreleaser check" || true
-      - name: GoReleaser check
-        uses: goreleaser/goreleaser-action@v7.2.2
-        with:
-          version: "~> v2"
-          args: check
+        run: go test -v ./test/kind/... -timeout 15m

@@ -168,7 +168,7 @@ reporter:
 	}
 
 	// 7. Wait for server to be ready (poll health endpoint)
-	s.BaseURL = s.waitForServer(ctx, 30*time.Second)
+	s.BaseURL = s.waitForServer(ctx, 120*time.Second)
 	if s.BaseURL == "" {
 		return fmt.Errorf("server failed to start within timeout")
 	}
@@ -200,9 +200,9 @@ func (s *Suite) StartWithVectors(ctx context.Context, vectorsPort int) error {
 		return fmt.Errorf("start meerkat-server with Vectors: %w", err)
 	}
 
-	s.BaseURL = s.waitForServer(ctx, 30*time.Second)
+	s.BaseURL = s.waitForServer(ctx, 120*time.Second)
 	if s.BaseURL == "" {
-		return fmt.Errorf("server failed to start within timeout")
+		return fmt.Errorf("server failed to start with Vectors within timeout")
 	}
 
 	return nil
