@@ -172,7 +172,7 @@ func installPostgres(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 			"volumePermissions.enabled":         "true",
 		},
 		ExtraArgs: map[string][]string{
-			"install": {"--wait", "--timeout", "120s"},
+			"install": {"--wait", "--timeout", "300s"},
 		},
 	}
 	helm.InstallContext(t, context.Background(), pgOptions, "bitnami/postgresql", "meerkat-postgres")
