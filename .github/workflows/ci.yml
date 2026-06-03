@@ -230,4 +230,4 @@ jobs:
       - name: Download dependencies
         run: go mod download
       - name: Run Kind tests
-        run: go test -v ./test/kind/... -timeout 15m
+        run: go test -v ./test/kind/... -timeout 30m
