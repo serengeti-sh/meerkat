@@ -71,7 +71,10 @@ func TestDeploy(t *testing.T) {
 	t.Log("Installing PostgreSQL")
 	installPostgres(t, kubectlOptions)
 	defer func() {
-		helm.DeleteContext(t, context.Background(), &helm.Options{KubectlOptions: kubectlOptions}, "meerkat-postgres", true)
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "kubectl",
+			Args:    []string{"delete", "-n", namespace, "statefulset/postgres", "svc/meerkat-postgres-postgresql", "configmap/postgres-init", "--ignore-not-found=true"},
+		})
 	}()
 
 	// Step 7: Install Meerkat chart
@@ -154,28 +157,132 @@ func loadImage(t *testing.T) {
 
 func installPostgres(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	t.Helper()
-	// Add Bitnami repo
-	helmOptions := &helm.Options{KubectlOptions: kubectlOptions}
-	helm.AddRepoContext(t, context.Background(), helmOptions, "bitnami", "https://charts.bitnami.com/bitnami")
+	pgYAML := fmt.Sprintf(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: %s
+data:
+  init.sql: |
+    CREATE DATABASE %s;
+    CREATE USER %s WITH PASSWORD '%s';
+    GRANT ALL PRIVILEGES ON DATABASE %s TO %s;
+    \c %s
+    GRANT ALL ON SCHEMA public TO %s;
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: meerkat-postgres-postgresql
+  namespace: %s
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: %s
+spec:
+  serviceName: meerkat-postgres-postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: %s
+            - name: POSTGRES_PASSWORD
+              value: %s
+            - name: POSTGRES_DB
+              value: %s
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - %s
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init
+              mountPath: /docker-entrypoint-initdb.d
+      volumes:
+        - name: init
+          configMap:
+            name: postgres-init
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+`, namespace, pgDatabase, pgUsername, pgPassword, pgDatabase, pgUsername, pgDatabase, pgUsername,
+		namespace, namespace, pgUsername, pgPassword, pgDatabase, pgUsername)
 
-	// Install PostgreSQL with --wait to ensure it's ready
-	pgOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"auth.username":                     pgUsername,
-			"auth.password":                     pgPassword,
-			"auth.database":                     pgDatabase,
-			"primary.resources.requests.cpu":    "50m",
-			"primary.resources.requests.memory": "128Mi",
-			"primary.resources.limits.cpu":      "500m",
-			"primary.resources.limits.memory":   "256Mi",
-			"volumePermissions.enabled":         "true",
+	// Write YAML to temp file and apply
+	tmpFile := filepath.Join(t.TempDir(), "postgres.yaml")
+	require.NoError(t, os.WriteFile(tmpFile, []byte(pgYAML), 0644))
+
+	shell.RunCommandContext(t, context.Background(), &shell.Command{
+		Command:    "kubectl",
+		Args:       []string{"apply", "-f", tmpFile},
+		WorkingDir: ".",
+		Env: map[string]string{
+			"KUBECONFIG": kubectlOptions.ConfigPath,
 		},
-		ExtraArgs: map[string][]string{
-			"install": {"--wait", "--timeout", "300s"},
-		},
+	})
+
+	// Wait for PostgreSQL pod to be ready
+	maxRetries := 60
+	for i := range maxRetries {
+		pods := k8s.ListPodsContext(t, context.Background(), kubectlOptions, metav1.ListOptions{LabelSelector: "app=postgres"})
+		if len(pods) > 0 && pods[0].Status.Phase == "Running" {
+			allReady := true
+			for _, cs := range pods[0].Status.ContainerStatuses {
+				if !cs.Ready {
+					allReady = false
+					break
+				}
+			}
+			if allReady {
+				t.Log("PostgreSQL is ready")
+				return
+			}
+		}
+		t.Logf("PostgreSQL not ready (retry %d/%d), sleeping 5s", i+1, maxRetries)
+		time.Sleep(5 * time.Second)
 	}
-	helm.InstallContext(t, context.Background(), pgOptions, "bitnami/postgresql", "meerkat-postgres")
+	t.Fatal("PostgreSQL failed to become ready within timeout")
 }
 
 func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
