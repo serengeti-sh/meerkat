@@ -73,7 +73,7 @@ func TestDeploy(t *testing.T) {
 	defer func() {
 		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
 			Command: "kubectl",
-			Args:    []string{"delete", "-n", namespace, "statefulset/postgres", "svc/meerkat-postgres-postgresql", "configmap/postgres-init", "--ignore-not-found=true"},
+			Args:    []string{"delete", "-n", namespace, "statefulset/postgres", "svc/meerkat-postgres-postgresql", "--ignore-not-found=true"},
 		})
 	}()
 
@@ -158,19 +158,6 @@ func loadImage(t *testing.T) {
 func installPostgres(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	t.Helper()
 	pgYAML := fmt.Sprintf(`apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: postgres-init
-  namespace: %s
-data:
-  init.sql: |
-    CREATE DATABASE %s;
-    CREATE USER %s WITH PASSWORD '%s';
-    GRANT ALL PRIVILEGES ON DATABASE %s TO %s;
-    \c %s
-    GRANT ALL ON SCHEMA public TO %s;
----
-apiVersion: v1
 kind: Service
 metadata:
   name: meerkat-postgres-postgresql
@@ -232,22 +219,10 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
-            - name: init
-              mountPath: /docker-entrypoint-initdb.d
       volumes:
-        - name: init
-          configMap:
-            name: postgres-init
-  volumeClaimTemplates:
-    - metadata:
-        name: data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 1Gi
-`, namespace, pgDatabase, pgUsername, pgPassword, pgDatabase, pgUsername, pgDatabase, pgUsername,
-		namespace, namespace, pgUsername, pgPassword, pgDatabase, pgUsername)
+        - name: data
+          emptyDir: {}
+`, namespace, namespace, pgUsername, pgPassword, pgDatabase, pgUsername)
 
 	// Write YAML to temp file and apply
 	tmpFile := filepath.Join(t.TempDir(), "postgres.yaml")
@@ -282,6 +257,22 @@ spec:
 		t.Logf("PostgreSQL not ready (retry %d/%d), sleeping 5s", i+1, maxRetries)
 		time.Sleep(5 * time.Second)
 	}
+
+	// Print diagnostics on failure
+	t.Log("=== PostgreSQL failure diagnostics ===")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"describe", "pod", "-l", "app=postgres", "-n", namespace},
+	})
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"logs", "-l", "app=postgres", "-n", namespace, "--tail=200"},
+	})
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "events", "-n", namespace, "--sort-by=.lastTimestamp"},
+	})
+
 	t.Fatal("PostgreSQL failed to become ready within timeout")
 }
 
