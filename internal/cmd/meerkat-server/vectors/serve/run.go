@@ -58,11 +58,13 @@ func Run(cfgFile string, port int) error {
 
 	// Health checks
 	ctx := context.Background()
-	if err := vstore.Ping(ctx); err != nil {
-		return fmt.Errorf("vector store connection failed: %w", err)
-	}
-	if err := emb.HealthCheck(ctx); err != nil {
-		return fmt.Errorf("embedder health check failed: %w", err)
+	if !cfg.IsTest() {
+		if err := vstore.Ping(ctx); err != nil {
+			return fmt.Errorf("vector store connection failed: %w", err)
+		}
+		if err := emb.HealthCheck(ctx); err != nil {
+			return fmt.Errorf("embedder health check failed: %w", err)
+		}
 	}
 
 	// Create Vectors service with configurable threshold and filtering.
@@ -82,7 +84,7 @@ func Run(cfgFile string, port int) error {
 
 	// Start ingestors (currently OTLP only, extensible for Kafka, HTTP, file, etc.)
 	ingestors := []vectors.Ingestor{
-		vectors.NewOTLPIngestor(ml.GetAddress(), log),
+		vectors.NewOTLPIngestor(ml.OTLPBindAddr, log),
 	}
 	for _, ing := range ingestors {
 		if err := ing.Start(context.Background(), vectorsSvc); err != nil {

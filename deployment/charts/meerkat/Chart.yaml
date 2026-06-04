@@ -21,3 +21,10 @@ maintainers:
 home: https://github.com/serengeti-sh/meerkat
 sources:
   - https://github.com/serengeti-sh/meerkat
+
+dependencies:
+  - name: milvus
+    version: "4.2.36"
+    repository: "https://zilliztech.github.io/milvus-helm"
+    condition: milvus.enabled
+    alias: milvus

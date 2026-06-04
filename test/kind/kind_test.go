@@ -281,7 +281,7 @@ func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	maxRetries := 60
 	retrySleep := 5 * time.Second
 
-	deployments := []string{"meerkat-analyzer"}
+	deployments := []string{"meerkat-analyzer", "meerkat-vectors"}
 
 	for i := range maxRetries {
 		allReady := true
@@ -374,6 +374,29 @@ func verifyHealthEndpoints(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 		},
 	)
 
-	// Vectors service is disabled in Kind tests (requires Milvus)
-	// Only analyzer health is verified
+	// Verify vectors health endpoint
+	t.Log("Verifying vectors health endpoint")
+	pfCmdVectors := exec.Command("kubectl", "port-forward",
+		"-n", namespace,
+		"svc/meerkat-vectors", "19090:9090",
+	)
+	pfCmdVectors.Stdout = os.Stderr
+	pfCmdVectors.Stderr = os.Stderr
+	require.NoError(t, pfCmdVectors.Start(), "Failed to start vectors port-forward")
+	defer func() {
+		_ = pfCmdVectors.Process.Kill()
+		_ = pfCmdVectors.Wait()
+	}()
+
+	http_helper.HTTPGetWithRetryWithCustomValidationContext(
+		t,
+		context.Background(),
+		"http://localhost:19090/healthz",
+		nil,
+		60,
+		3*time.Second,
+		func(statusCode int, body string) bool {
+			return statusCode == 200
+		},
+	)
 }

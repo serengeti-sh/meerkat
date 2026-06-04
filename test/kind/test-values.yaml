@@ -48,7 +48,36 @@ analyzer:
     enabled: false
 
 vectors:
-  enabled: false
+  enabled: true
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+milvus:
+  enabled: true
+  cluster:
+    enabled: false
+  standalone:
+    persistence:
+      enabled: false
+  etcd:
+    persistence:
+      enabled: false
+  minio:
+    mode: standalone
+    persistence:
+      enabled: false
+  pulsar:
+    enabled: false
+  pulsarv3:
+    enabled: false
+  kafka:
+    enabled: false
 
 image:
   repository: meerkat-server
@@ -132,10 +161,18 @@ config:
     min_severity: warning
 
   vectors:
-    enabled: false
+    enabled: true
     address: ":50051"
     filter_mode: template
     min_severity: info
+
+  vector_store:
+    driver: milvus
+    milvus:
+      address: meerkat-milvus:19530
+      collection: logs
+      dimension: 1536
+      retention: 72h
 
 secrets:
   database:
