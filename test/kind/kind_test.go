@@ -107,9 +107,6 @@ func buildImage(t *testing.T, repoRoot string) {
 			"-t", fmt.Sprintf("%s:%s", imageName, imageTag),
 			repoRoot,
 		},
-		Env: map[string]string{
-			"DOCKER_BUILDKIT": "0",
-		},
 	}
 	shell.RunCommandContext(t, context.Background(), cmd)
 }
