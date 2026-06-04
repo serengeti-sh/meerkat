@@ -296,3 +296,11 @@ func (c *Config) Validate() error {
 func (c *Config) IsDevelopment() bool {
 	return strings.ToLower(c.App.Env) == "development"
 }
+
+func (c *Config) IsProduction() bool {
+	return strings.ToLower(c.App.Env) == "production"
+}
+
+func (c *Config) IsTest() bool {
+	return strings.ToLower(c.App.Env) == "test"
+}

@@ -53,6 +53,10 @@ func TestLoadFromPath_Defaults(t *testing.T) {
 	content := `
 app:
   name: minimal
+store:
+  host: localhost
+  name: testdb
+  user: testuser
 `
 	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
 
@@ -67,7 +71,7 @@ app:
 	assert.Equal(t, 100, cfg.Vectors.IngestBatchSize)
 }
 
-func TestLoadFromPath_(t *testing.T) {
+func TestLoadFromPath_EmbedAndVectorStore(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
 
@@ -81,6 +85,10 @@ vector_store:
     collection: test-logs
     dimension: 768
     retention: 24h
+store:
+  host: localhost
+  name: testdb
+  user: testuser
 `
 	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
 
@@ -103,6 +111,10 @@ app:
 analyzer:
   maxIterations: 5
   maxTokens: 2048
+store:
+  host: localhost
+  name: testdb
+  user: testuser
 `
 	require.NoError(t, os.WriteFile(path, []byte(content), 0644))
 

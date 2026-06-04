@@ -132,7 +132,7 @@ config:
     min_severity: warning
 
   vectors:
-    enabled: true
+    enabled: false
     address: ":50051"
     filter_mode: template
     min_severity: info

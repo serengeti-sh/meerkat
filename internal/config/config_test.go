@@ -6,6 +6,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestConfig_IsDevelopment(t *testing.T) {
+	cfg := &Config{App: AppConfig{Env: "development"}}
+	assert.True(t, cfg.IsDevelopment())
+	assert.False(t, cfg.IsProduction())
+	assert.False(t, cfg.IsTest())
+}
+
+func TestConfig_IsProduction(t *testing.T) {
+	cfg := &Config{App: AppConfig{Env: "production"}}
+	assert.False(t, cfg.IsDevelopment())
+	assert.True(t, cfg.IsProduction())
+	assert.False(t, cfg.IsTest())
+}
+
+func TestConfig_IsTest(t *testing.T) {
+	cfg := &Config{App: AppConfig{Env: "test"}}
+	assert.False(t, cfg.IsDevelopment())
+	assert.False(t, cfg.IsProduction())
+	assert.True(t, cfg.IsTest())
+}
+
 func TestConfig_Validate(t *testing.T) {
 	valid := func() *Config {
 		return &Config{

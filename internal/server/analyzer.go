@@ -103,8 +103,10 @@ func NewAnalyzer(ctx context.Context, cfg *config.Config) (*Analyzer, error) {
 		Log: log,
 	})
 
-	if err := provider.HealthCheck(ctx); err != nil {
-		return nil, fmt.Errorf("llm provider health check failed: %w", err)
+	if !cfg.IsTest() {
+		if err := provider.HealthCheck(ctx); err != nil {
+			return nil, fmt.Errorf("llm provider health check failed: %w", err)
+		}
 	}
 
 	analyzerSvc, err := buildAnalyzerService(provider, toolRegistry, cfg, log)
