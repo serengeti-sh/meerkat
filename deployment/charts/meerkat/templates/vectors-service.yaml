@@ -17,6 +17,10 @@ spec:
       targetPort: otlp
       protocol: TCP
       name: otlp
+    - port: {{ .Values.vectors.service.metricsPort }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
   selector:
     {{- include "meerkat.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: vectors
