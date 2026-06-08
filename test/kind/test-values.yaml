@@ -58,26 +58,17 @@ vectors:
       cpu: 50m
       memory: 64Mi
 
-milvus:
+qdrant:
   enabled: true
-  cluster:
+  persistence:
     enabled: false
-  standalone:
-    persistence:
-      enabled: false
-  etcd:
-    persistence:
-      enabled: false
-  minio:
-    mode: standalone
-    persistence:
-      enabled: false
-  pulsar:
-    enabled: false
-  pulsarv3:
-    enabled: false
-  kafka:
-    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
 
 image:
   repository: meerkat-server
@@ -167,12 +158,11 @@ config:
     min_severity: info
 
   vector_store:
-    driver: milvus
-    milvus:
-      address: meerkat-milvus:19530
+    driver: qdrant
+    qdrant:
+      address: qdrant:6334
       collection: logs
       dimension: 1536
-      retention: 72h
 
 secrets:
   database:

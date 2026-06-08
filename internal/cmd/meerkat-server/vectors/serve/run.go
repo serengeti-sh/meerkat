@@ -58,10 +58,10 @@ func Run(cfgFile string, port int) error {
 
 	// Health checks
 	ctx := context.Background()
+	if err := vstore.Ping(ctx); err != nil {
+		return fmt.Errorf("vector store connection failed: %w", err)
+	}
 	if !cfg.IsTest() {
-		if err := vstore.Ping(ctx); err != nil {
-			return fmt.Errorf("vector store connection failed: %w", err)
-		}
 		if err := emb.HealthCheck(ctx); err != nil {
 			return fmt.Errorf("embedder health check failed: %w", err)
 		}

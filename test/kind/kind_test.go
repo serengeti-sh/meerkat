@@ -77,7 +77,17 @@ func TestDeploy(t *testing.T) {
 		})
 	}()
 
-	// Step 7: Install Meerkat chart
+	// Step 7: Install Qdrant for vector store
+	t.Log("Installing Qdrant")
+	installQdrant(t, kubectlOptions)
+	defer func() {
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "helm",
+			Args:    []string{"delete", "--namespace", namespace, "qdrant"},
+		})
+	}()
+
+	// Step 8: Install Meerkat chart
 	t.Log("Installing Meerkat Helm chart")
 	helmOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -274,6 +284,61 @@ spec:
 	})
 
 	t.Fatal("PostgreSQL failed to become ready within timeout")
+}
+
+func installQdrant(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
+	t.Helper()
+
+	// Add Qdrant Helm repo
+	cmd := &shell.Command{
+		Command: "helm",
+		Args:    []string{"repo", "add", "qdrant", "https://qdrant.github.io/qdrant-helm"},
+	}
+	_ = shell.RunCommandContextE(t, context.Background(), cmd)
+
+	cmd = &shell.Command{
+		Command: "helm",
+		Args:    []string{"repo", "update"},
+	}
+	shell.RunCommandContext(t, context.Background(), cmd)
+
+	// Install Qdrant
+	cmd = &shell.Command{
+		Command: "helm",
+		Args: []string{
+			"install", "qdrant", "qdrant/qdrant",
+			"--namespace", namespace,
+			"--set", "persistence.enabled=false",
+			"--set", "resources.requests.cpu=50m",
+			"--set", "resources.requests.memory=128Mi",
+			"--set", "resources.limits.cpu=500m",
+			"--set", "resources.limits.memory=256Mi",
+		},
+	}
+	shell.RunCommandContext(t, context.Background(), cmd)
+
+	// Wait for Qdrant to be ready
+	maxRetries := 60
+	for i := range maxRetries {
+		pods := k8s.ListPodsContext(t, context.Background(), kubectlOptions, metav1.ListOptions{LabelSelector: "app.kubernetes.io/name=qdrant"})
+		if len(pods) > 0 && pods[0].Status.Phase == "Running" {
+			allReady := true
+			for _, cs := range pods[0].Status.ContainerStatuses {
+				if !cs.Ready {
+					allReady = false
+					break
+				}
+			}
+			if allReady {
+				t.Log("Qdrant is ready")
+				return
+			}
+		}
+		t.Logf("Qdrant not ready (retry %d/%d), sleeping 5s", i+1, maxRetries)
+		time.Sleep(5 * time.Second)
+	}
+
+	t.Fatal("Qdrant failed to become ready within timeout")
 }
 
 func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
