@@ -303,16 +303,21 @@ func installQdrant(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	shell.RunCommandContext(t, context.Background(), cmd)
 
 	// Install Qdrant
+	// Note: Qdrant chart always creates a PVC; there is no persistence.enabled.
+	// We shrink the PVC to 100Mi so the Kind local-path provisioner binds it
+	// quickly, and we use --wait so helm blocks until the StatefulSet is ready.
 	cmd = &shell.Command{
 		Command: "helm",
 		Args: []string{
 			"install", "qdrant", "qdrant/qdrant",
 			"--namespace", namespace,
-			"--set", "persistence.enabled=false",
+			"--set", "persistence.size=100Mi",
 			"--set", "resources.requests.cpu=50m",
 			"--set", "resources.requests.memory=128Mi",
 			"--set", "resources.limits.cpu=500m",
 			"--set", "resources.limits.memory=256Mi",
+			"--wait",
+			"--timeout", "5m",
 		},
 	}
 	shell.RunCommandContext(t, context.Background(), cmd)
