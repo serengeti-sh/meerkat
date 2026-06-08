@@ -338,6 +338,21 @@ func installQdrant(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 		time.Sleep(5 * time.Second)
 	}
 
+	// Print diagnostics on failure
+	t.Log("=== Qdrant failure diagnostics ===")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"describe", "pod", "-l", "app.kubernetes.io/name=qdrant", "-n", namespace},
+	})
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"logs", "-l", "app.kubernetes.io/name=qdrant", "-n", namespace, "--tail=200"},
+	})
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "events", "-n", namespace, "--sort-by=.lastTimestamp"},
+	})
+
 	t.Fatal("Qdrant failed to become ready within timeout")
 }
 
