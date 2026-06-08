@@ -3,6 +3,7 @@ package report_test
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -17,7 +18,15 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/report"
 )
 
-func setupTestDB(t *testing.T) (*ent.Client, func()) {
+// sharedTestContainer holds the single postgres container used across all
+// tests in this package. TestMain creates it once and terminates it after
+// all tests finish, eliminating ryuk reaper races.
+var (
+	sharedTestDSN string
+	sharedCleanup func()
+)
+
+func TestMain(m *testing.M) {
 	ctx := context.Background()
 
 	c, err := postgres.Run(ctx,
@@ -31,20 +40,53 @@ func setupTestDB(t *testing.T) (*ent.Client, func()) {
 				WithStartupTimeout(30*time.Second),
 		),
 	)
-	require.NoError(t, err)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to start postgres container: %v\n", err)
+		os.Exit(1)
+	}
 
 	dsn, err := c.ConnectionString(ctx, "sslmode=disable")
-	require.NoError(t, err)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to get connection string: %v\n", err)
+		_ = c.Terminate(ctx)
+		os.Exit(1)
+	}
 
 	client, err := ent.Open("postgres", dsn)
-	require.NoError(t, err)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to open ent client: %v\n", err)
+		_ = c.Terminate(ctx)
+		os.Exit(1)
+	}
 
-	err = inspect.Migrate(ctx, client)
+	if err := inspect.Migrate(ctx, client); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to run migrations: %v\n", err)
+		_ = client.Close()
+		_ = c.Terminate(ctx)
+		os.Exit(1)
+	}
+	_ = client.Close()
+
+	sharedTestDSN = dsn
+	sharedCleanup = func() { _ = c.Terminate(ctx) }
+
+	code := m.Run()
+
+	sharedCleanup()
+	os.Exit(code)
+}
+
+func setupTestDB(t *testing.T) (*ent.Client, func()) {
+	ctx := context.Background()
+
+	client, err := ent.Open("postgres", sharedTestDSN)
 	require.NoError(t, err)
 
 	cleanup := func() {
+		// Delete all reports so each test starts with a clean slate,
+		// while keeping the shared container alive.
+		_, _ = client.Report.Delete().Exec(ctx)
 		_ = client.Close()
-		_ = c.Terminate(ctx)
 	}
 
 	return client, cleanup

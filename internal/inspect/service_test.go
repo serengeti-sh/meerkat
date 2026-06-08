@@ -3,6 +3,7 @@ package inspect_test
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	analyzerMocks "github.com/serengeti-sh/meerkat/internal/analyzer/mocks"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
+	"github.com/serengeti-sh/meerkat/internal/notify"
 	reporterMocks "github.com/serengeti-sh/meerkat/internal/notify/mocks"
 	"github.com/serengeti-sh/meerkat/internal/report"
 	reportMocks "github.com/serengeti-sh/meerkat/internal/report/mocks"
@@ -227,7 +229,7 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 10, 2, zerolog.New(nil))
 	require.NoError(t, err)
 	require.NoError(t, svc.Start())
-	defer svc.Stop()
+	// Do not defer svc.Stop() — stop explicitly after verifying completion.
 
 	// Submit 3 jobs
 	for range 3 {
@@ -235,16 +237,25 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 		reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 	}
 
+	var analyzeCount atomic.Int32
+	var reportCount atomic.Int32
+
 	// Each job gets processed: running + completed updates
 	for i := range 3 {
 		reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running
 		reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // completed
-		analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).Return(&analyzer.AnalysisResult{
-			Severity:   analyzer.SeverityInfo,
-			Summary:    fmt.Sprintf("result-%d", i),
-			Iterations: 1,
-		}, nil)
-		reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
+		analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, input *analyzer.AnalysisInput) (*analyzer.AnalysisResult, error) {
+			analyzeCount.Add(1)
+			return &analyzer.AnalysisResult{
+				Severity:   analyzer.SeverityInfo,
+				Summary:    fmt.Sprintf("result-%d", i),
+				Iterations: 1,
+			}, nil
+		})
+		reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, rpt *notify.ReportData) error {
+			reportCount.Add(1)
+			return nil
+		})
 	}
 
 	reports := make([]*report.Report, 3)
@@ -257,12 +268,10 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 		assert.Equal(t, report.StatusQueued, rpt.Status)
 	}
 
-	// Wait for all workers to finish - use Eventually for determinism
+	// Wait deterministically for all async work to complete.
 	require.Eventually(t, func() bool {
-		// If we can submit another job without queue full, workers are done
-		// But queue size is 10 and we only submitted 3, so this isn't reliable.
-		// Instead, rely on mock expectations being satisfied via testify/mock
-		// which happens synchronously when the mock method returns.
-		return true
-	}, 300*time.Millisecond, 10*time.Millisecond)
+		return analyzeCount.Load() == 3 && reportCount.Load() == 3
+	}, 500*time.Millisecond, 10*time.Millisecond)
+
+	svc.Stop()
 }
