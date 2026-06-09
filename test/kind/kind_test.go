@@ -128,6 +128,8 @@ func createKindCluster(t *testing.T, configPath string) {
 		Command: "kind",
 		Args:    []string{"delete", "cluster", "--name", clusterName},
 	})
+	// Give Docker a moment to release resources before recreating.
+	time.Sleep(5 * time.Second)
 
 	cmd := &shell.Command{
 		Command: "kind",
@@ -135,10 +137,23 @@ func createKindCluster(t *testing.T, configPath string) {
 			"create", "cluster",
 			"--name", clusterName,
 			"--config", configPath,
-			"--wait", "120s",
+			"--wait", "300s",
 		},
 	}
-	shell.RunCommandContext(t, context.Background(), cmd)
+
+	const maxRetries = 3
+	var lastErr error
+	for i := 0; i < maxRetries; i++ {
+		if i > 0 {
+			t.Logf("Kind cluster creation failed, retrying (%d/%d) in 10s...", i, maxRetries-1)
+			time.Sleep(10 * time.Second)
+		}
+		lastErr = shell.RunCommandContextE(t, context.Background(), cmd)
+		if lastErr == nil {
+			return
+		}
+	}
+	t.Fatalf("Failed to create Kind cluster after %d attempts: %v", maxRetries, lastErr)
 }
 
 func deleteKindCluster(t *testing.T) {
