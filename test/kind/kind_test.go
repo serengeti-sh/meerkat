@@ -320,7 +320,8 @@ func installQdrant(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	// Install Qdrant
 	// Note: Qdrant chart always creates a PVC; there is no persistence.enabled.
 	// We shrink the PVC to 100Mi so the Kind local-path provisioner binds it
-	// quickly, and we use --wait so helm blocks until the StatefulSet is ready.
+	// quickly. We do NOT use --wait because we need to collect diagnostics via
+	// the manual wait loop below if the pod fails to become ready.
 	cmd = &shell.Command{
 		Command: "helm",
 		Args: []string{
@@ -331,14 +332,12 @@ func installQdrant(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 			"--set", "resources.requests.memory=128Mi",
 			"--set", "resources.limits.cpu=500m",
 			"--set", "resources.limits.memory=256Mi",
-			"--wait",
-			"--timeout", "5m",
 		},
 	}
 	shell.RunCommandContext(t, context.Background(), cmd)
 
-	// Wait for Qdrant to be ready
-	maxRetries := 60
+	// Wait for Qdrant to be ready (10 min max = 120 retries × 5s)
+	maxRetries := 120
 	for i := range maxRetries {
 		pods := k8s.ListPodsContext(t, context.Background(), kubectlOptions, metav1.ListOptions{LabelSelector: "app.kubernetes.io/name=qdrant"})
 		if len(pods) > 0 && pods[0].Status.Phase == "Running" {
