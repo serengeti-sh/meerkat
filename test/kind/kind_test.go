@@ -324,9 +324,9 @@ func installQdrant(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 
 	// Install Qdrant
 	// Note: Qdrant chart always creates a PVC; there is no persistence.enabled.
-	// We shrink the PVC to 100Mi so the Kind local-path provisioner binds it
-	// quickly. We do NOT use --wait because we need to collect diagnostics via
-	// the manual wait loop below if the pod fails to become ready.
+	// We keep the PVC small and bind it to the static PV we create in this test.
+	// We do NOT use --wait because we need to collect diagnostics via the manual
+	// wait loop below if the pod fails to become ready.
 	cmd = &shell.Command{
 		Command: "helm",
 		Args: []string{
