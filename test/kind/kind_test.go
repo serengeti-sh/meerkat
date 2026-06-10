@@ -67,6 +67,11 @@ func TestDeploy(t *testing.T) {
 	k8s.CreateNamespaceContext(t, context.Background(), kubectlOptions, namespace)
 	defer k8s.DeleteNamespaceContext(t, context.Background(), kubectlOptions, namespace)
 
+	// Pre-create a static PV for Qdrant to avoid relying on dynamic provisioning
+	// in ephemeral CI Kind clusters.
+	t.Log("Creating static PV for Qdrant")
+	createQdrantPersistentVolume(t)
+
 	// Step 6: Install PostgreSQL
 	t.Log("Installing PostgreSQL")
 	installPostgres(t, kubectlOptions)
@@ -328,6 +333,7 @@ func installQdrant(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 			"install", "qdrant", "qdrant/qdrant",
 			"--namespace", namespace,
 			"--set", "persistence.size=100Mi",
+			"--set", "persistence.storageClassName=manual",
 			"--set", "resources.requests.cpu=50m",
 			"--set", "resources.requests.memory=128Mi",
 			"--set", "resources.limits.cpu=500m",
@@ -373,6 +379,34 @@ func installQdrant(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	})
 
 	t.Fatal("Qdrant failed to become ready within timeout")
+}
+
+func createQdrantPersistentVolume(t *testing.T) {
+	t.Helper()
+
+	manifest := `apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: qdrant-storage-pv
+spec:
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  persistentVolumeReclaimPolicy: Delete
+  hostPath:
+    path: /tmp/qdrant-storage
+    type: DirectoryOrCreate
+`
+
+	pvFile := filepath.Join(t.TempDir(), "qdrant-pv.yaml")
+	require.NoError(t, os.WriteFile(pvFile, []byte(manifest), 0o600))
+
+	shell.RunCommandContext(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"apply", "-f", pvFile},
+	})
 }
 
 func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
