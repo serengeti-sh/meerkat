@@ -41,7 +41,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 ############################
 # 2. Runtime Stage
 ############################
-FROM alpine:3.23.4 AS runtime
+FROM alpine:3.24.0 AS runtime
 
 ARG VERSION
 
