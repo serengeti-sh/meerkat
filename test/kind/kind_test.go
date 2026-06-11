@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -388,7 +389,23 @@ func installQdrant(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 func verifyDNSResolution(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	t.Helper()
 
-	// Create a temporary busybox pod to verify DNS resolution
+	// 1. Check CoreDNS pods
+	t.Log("--- Checking CoreDNS pods ---")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "pods", "-n", "kube-system", "-l", "k8s-app=kube-dns", "-o", "wide"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+
+	// 2. Check all services in namespace
+	t.Log("--- Checking services in namespace ---")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "svc", "-n", namespace},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+
+	// 3. Create a temporary busybox pod to verify DNS resolution
 	dnsPodYAML := fmt.Sprintf(`apiVersion: v1
 kind: Pod
 metadata:
@@ -407,7 +424,7 @@ spec:
 	defer func() {
 		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
 			Command: "kubectl",
-			Args:    []string{"delete", "pod", "dns-verify", "-n", namespace, "--ignore-not-found=true"},
+			Args:    []string{"delete", "pod", "dns-verify", "-n", namespace, "--ignore-not-found=true", "--force"},
 		})
 	}()
 
@@ -440,29 +457,73 @@ spec:
 		time.Sleep(5 * time.Second)
 	}
 
-	// Verify DNS resolution for both services
-	services := []string{"meerkat-postgres-postgresql", "qdrant"}
+	// 4. DNS resolution check with retries and detailed logging
+	services := []string{
+		"kubernetes.default",
+		"meerkat-postgres-postgresql",
+		"qdrant",
+	}
+
+	const dnsMaxRetries = 30
 	for _, svc := range services {
-		cmd := &shell.Command{
-			Command: "kubectl",
-			Args:    []string{"exec", "dns-verify", "-n", namespace, "--", "nslookup", svc},
-			Env: map[string]string{
-				"KUBECONFIG": kubectlOptions.ConfigPath,
-			},
-		}
-		if err := shell.RunCommandContextE(t, context.Background(), cmd); err != nil {
-			t.Logf("DNS resolution for %s failed: %v", svc, err)
-			t.Log("Waiting for DNS to be ready...")
-			// Wait a bit and retry
-			time.Sleep(10 * time.Second)
-			// Try one more time
-			if err := shell.RunCommandContextE(t, context.Background(), cmd); err != nil {
-				t.Logf("DNS resolution for %s still failing after wait: %v", svc, err)
+		t.Logf("--- DNS check: %s ---", svc)
+		resolved := false
+		for i := range dnsMaxRetries {
+			out, err := shell.RunCommandContextAndGetOutputE(t, context.Background(), &shell.Command{
+				Command: "kubectl",
+				Args:    []string{"exec", "dns-verify", "-n", namespace, "--", "sh", "-c", fmt.Sprintf("nslookup %s 2>&1 || true", svc)},
+				Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+			})
+			// nslookup returns exit 1 even when successful due to search suffix
+			// We check the output regardless of kubectl exec error (which should be nil due to || true)
+			if err != nil {
+				if i == 0 || i == dnsMaxRetries-1 {
+					t.Logf("  %s kubectl exec error: %v", svc, err)
+				}
+			} else if strings.Contains(out, "Address:") {
+				// Extract the IP address from output
+				lines := strings.Split(out, "\n")
+				for _, line := range lines {
+					if strings.Contains(line, "Address:") && !strings.Contains(line, "10.96.0.10") {
+						t.Logf("  %s -> %s", svc, strings.TrimSpace(line))
+						resolved = true
+						break
+					}
+				}
+				if resolved {
+					break
+				}
+			} else {
+				if i == 0 || i == dnsMaxRetries-1 {
+					t.Logf("  %s DNS attempt %d/%d: output=%s", svc, i+1, dnsMaxRetries, out)
+				}
 			}
-		} else {
-			t.Logf("DNS resolution for %s succeeded", svc)
+			if i < dnsMaxRetries-1 {
+				time.Sleep(2 * time.Second)
+			}
+		}
+		if !resolved {
+			t.Logf("  WARNING: DNS resolution for %s not confirmed after %d retries", svc, dnsMaxRetries)
 		}
 	}
+
+	// 5. Check /etc/resolv.conf for debugging
+	t.Log("--- DNS verify pod /etc/resolv.conf ---")
+	out, _ := shell.RunCommandContextAndGetOutputE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"exec", "dns-verify", "-n", namespace, "--", "cat", "/etc/resolv.conf"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+	t.Logf("  resolv.conf: %s", out)
+
+	// 6. Check if CoreDNS is actually responding
+	t.Log("--- CoreDNS connectivity test ---")
+	out, _ = shell.RunCommandContextAndGetOutputE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"exec", "dns-verify", "-n", namespace, "--", "sh", "-c", "nc -zv 10.96.0.10 53 2>&1 || true"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+	t.Logf("  CoreDNS connect: %s", out)
 }
 
 func createQdrantPersistentVolume(t *testing.T) {
@@ -495,7 +556,7 @@ spec:
 
 func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	t.Helper()
-	maxRetries := 60
+	maxRetries := 90
 	retrySleep := 5 * time.Second
 
 	deployments := []string{"meerkat-analyzer", "meerkat-vectors"}

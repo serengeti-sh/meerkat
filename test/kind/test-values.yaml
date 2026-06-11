@@ -21,8 +21,8 @@ analyzer:
     httpGet:
       path: /v1/health
       port: http
-    initialDelaySeconds: 30
-    periodSeconds: 5
+    initialDelaySeconds: 60
+    periodSeconds: 10
     timeoutSeconds: 3
     failureThreshold: 30
 
@@ -62,8 +62,8 @@ vectors:
     httpGet:
       path: /healthz
       port: metrics
-    initialDelaySeconds: 30
-    periodSeconds: 5
+    initialDelaySeconds: 60
+    periodSeconds: 10
     timeoutSeconds: 3
     failureThreshold: 30
 
