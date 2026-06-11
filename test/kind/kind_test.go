@@ -558,7 +558,7 @@ spec:
 
 	// 6. Check if CoreDNS is actually responding (avoid busybox nc -zv which hangs)
 	t.Log("--- CoreDNS connectivity test ---")
-	out, _ := shell.RunCommandContextAndGetOutputE(t, context.Background(), &shell.Command{
+	out, _ = shell.RunCommandContextAndGetOutputE(t, context.Background(), &shell.Command{
 		Command: "kubectl",
 		Args:    []string{"exec", "dns-verify", "-n", namespace, "--", "sh", "-c", "echo | nc -w 3 10.96.0.10 53 2>&1 || true"},
 		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
