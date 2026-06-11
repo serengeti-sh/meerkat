@@ -24,7 +24,7 @@ jobs:
     name: Trivy Code Scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
 
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@v0.36.0
@@ -44,7 +44,7 @@ jobs:
     name: Trivy Image Scan
     runs-on: dawn-cluster-dind
     steps:
-      - uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4.1.0
