@@ -92,6 +92,10 @@ func TestDeploy(t *testing.T) {
 		})
 	}()
 
+	// Step 7.5: Verify cluster DNS resolution works before installing Meerkat
+	t.Log("Verifying cluster DNS resolution")
+	verifyDNSResolution(t, kubectlOptions)
+
 	// Step 8: Install Meerkat chart
 	t.Log("Installing Meerkat Helm chart")
 	helmOptions := &helm.Options{
@@ -379,6 +383,86 @@ func installQdrant(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	})
 
 	t.Fatal("Qdrant failed to become ready within timeout")
+}
+
+func verifyDNSResolution(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
+	t.Helper()
+
+	// Create a temporary busybox pod to verify DNS resolution
+	dnsPodYAML := fmt.Sprintf(`apiVersion: v1
+kind: Pod
+metadata:
+  name: dns-verify
+  namespace: %s
+spec:
+  containers:
+    - name: dns-verify
+      image: busybox:1.36
+      command: ["sh", "-c", "while true; do sleep 1; done"]
+`, namespace)
+
+	dnsPodFile := filepath.Join(t.TempDir(), "dns-verify.yaml")
+	require.NoError(t, os.WriteFile(dnsPodFile, []byte(dnsPodYAML), 0644))
+
+	defer func() {
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "kubectl",
+			Args:    []string{"delete", "pod", "dns-verify", "-n", namespace, "--ignore-not-found=true"},
+		})
+	}()
+
+	shell.RunCommandContext(t, context.Background(), &shell.Command{
+		Command:    "kubectl",
+		Args:       []string{"apply", "-f", dnsPodFile},
+		WorkingDir: ".",
+		Env: map[string]string{
+			"KUBECONFIG": kubectlOptions.ConfigPath,
+		},
+	})
+
+	// Wait for the pod to be running
+	maxRetries := 60
+	for i := range maxRetries {
+		pod, err := k8s.GetPodContextE(t, context.Background(), kubectlOptions, "dns-verify")
+		if err == nil && pod.Status.Phase == "Running" {
+			allReady := true
+			for _, cs := range pod.Status.ContainerStatuses {
+				if !cs.Ready {
+					allReady = false
+					break
+				}
+			}
+			if allReady {
+				break
+			}
+		}
+		t.Logf("DNS verify pod not ready (retry %d/%d), sleeping 5s", i+1, maxRetries)
+		time.Sleep(5 * time.Second)
+	}
+
+	// Verify DNS resolution for both services
+	services := []string{"meerkat-postgres-postgresql", "qdrant"}
+	for _, svc := range services {
+		cmd := &shell.Command{
+			Command: "kubectl",
+			Args:    []string{"exec", "dns-verify", "-n", namespace, "--", "nslookup", svc},
+			Env: map[string]string{
+				"KUBECONFIG": kubectlOptions.ConfigPath,
+			},
+		}
+		if err := shell.RunCommandContextE(t, context.Background(), cmd); err != nil {
+			t.Logf("DNS resolution for %s failed: %v", svc, err)
+			t.Log("Waiting for DNS to be ready...")
+			// Wait a bit and retry
+			time.Sleep(10 * time.Second)
+			// Try one more time
+			if err := shell.RunCommandContextE(t, context.Background(), cmd); err != nil {
+				t.Logf("DNS resolution for %s still failing after wait: %v", svc, err)
+			}
+		} else {
+			t.Logf("DNS resolution for %s succeeded", svc)
+		}
+	}
 }
 
 func createQdrantPersistentVolume(t *testing.T) {
