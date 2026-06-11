@@ -397,6 +397,26 @@ func verifyDNSResolution(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
 	})
 
+	// 1a. Check CoreDNS logs and describe for why they're not ready
+	t.Log("--- CoreDNS logs ---")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"logs", "-n", "kube-system", "-l", "k8s-app=kube-dns", "--tail=200"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+	t.Log("--- CoreDNS describe ---")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"describe", "pods", "-n", "kube-system", "-l", "k8s-app=kube-dns"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+	t.Log("--- kube-dns endpoints ---")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "endpoints", "kube-dns", "-n", "kube-system"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+
 	// 2. Check all services in namespace
 	t.Log("--- Checking services in namespace ---")
 	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
@@ -464,7 +484,8 @@ spec:
 		"qdrant",
 	}
 
-	const dnsMaxRetries = 30
+	const dnsMaxRetries = 10
+	var dnsCompletelyBroken = false
 	for _, svc := range services {
 		t.Logf("--- DNS check: %s ---", svc)
 		resolved := false
@@ -498,6 +519,9 @@ spec:
 					t.Logf("  %s DNS attempt %d/%d: output=%s", svc, i+1, dnsMaxRetries, out)
 				}
 			}
+			if strings.Contains(out, "connection timed out") || strings.Contains(out, "no servers could be reached") {
+				dnsCompletelyBroken = true
+			}
 			if i < dnsMaxRetries-1 {
 				time.Sleep(2 * time.Second)
 			}
@@ -505,6 +529,22 @@ spec:
 		if !resolved {
 			t.Logf("  WARNING: DNS resolution for %s not confirmed after %d retries", svc, dnsMaxRetries)
 		}
+		// If kubernetes.default can't resolve, DNS is fundamentally broken; skip remaining checks
+		if svc == "kubernetes.default" && !resolved {
+			t.Log("  FUNDAMENTAL DNS FAILURE: kubernetes.default cannot resolve. Skipping remaining DNS checks.")
+			break
+		}
+	}
+
+	if dnsCompletelyBroken {
+		t.Log("\n=== DNS IS COMPLETELY BROKEN ===")
+		t.Log("CoreDNS pods are not responding. This is likely due to:")
+		t.Log("  1. CoreDNS readiness probe failure (pods shown as 0/1)")
+		t.Log("  2. OOMKill or resource starvation on the Kind node")
+		t.Log("  3. Network plugin (CNI) not fully initialized")
+		t.Log("CoreDNS logs and describe output were captured above.")
+		t.Log("Aborting test early because DNS-dependent services cannot start.")
+		t.Fatal("Cluster DNS is not functional. See CoreDNS logs above.")
 	}
 
 	// 5. Check /etc/resolv.conf for debugging
@@ -516,11 +556,11 @@ spec:
 	})
 	t.Logf("  resolv.conf: %s", out)
 
-	// 6. Check if CoreDNS is actually responding
+	// 6. Check if CoreDNS is actually responding (avoid busybox nc -zv which hangs)
 	t.Log("--- CoreDNS connectivity test ---")
-	out, _ = shell.RunCommandContextAndGetOutputE(t, context.Background(), &shell.Command{
+	out, _ := shell.RunCommandContextAndGetOutputE(t, context.Background(), &shell.Command{
 		Command: "kubectl",
-		Args:    []string{"exec", "dns-verify", "-n", namespace, "--", "sh", "-c", "nc -zv 10.96.0.10 53 2>&1 || true"},
+		Args:    []string{"exec", "dns-verify", "-n", namespace, "--", "sh", "-c", "echo | nc -w 3 10.96.0.10 53 2>&1 || true"},
 		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
 	})
 	t.Logf("  CoreDNS connect: %s", out)
