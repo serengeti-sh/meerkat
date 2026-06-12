@@ -160,10 +160,77 @@ func createKindCluster(t *testing.T, configPath string) {
 		}
 		lastErr = shell.RunCommandContextE(t, context.Background(), cmd)
 		if lastErr == nil {
-			return
+			break
 		}
 	}
-	t.Fatalf("Failed to create Kind cluster after %d attempts: %v", maxRetries, lastErr)
+	if lastErr != nil {
+		t.Fatalf("Failed to create Kind cluster after %d attempts: %v", maxRetries, lastErr)
+	}
+
+	// In Docker-in-Docker environments, CoreDNS may start before the API server
+	// certificate is fully distributed, causing it to fail TLS verification
+	// indefinitely. Wait for CoreDNS to be ready, and if it isn't, restart it.
+	waitForCoreDNS(t)
+}
+
+func waitForCoreDNS(t *testing.T) {
+	t.Helper()
+
+	t.Log("Waiting for CoreDNS to be ready")
+	waitCmd := &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"wait", "--for=condition=ready", "pod", "-l", "k8s-app=kube-dns", "-n", "kube-system", "--timeout=180s"},
+	}
+
+	if err := shell.RunCommandContextE(t, context.Background(), waitCmd); err == nil {
+		t.Log("CoreDNS is ready")
+		return
+	}
+
+	t.Log("CoreDNS not ready after 180s, collecting diagnostics and restarting")
+
+	// Collect diagnostics before restart
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "pods", "-n", "kube-system", "-l", "k8s-app=kube-dns", "-o", "wide"},
+	})
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"logs", "-n", "kube-system", "-l", "k8s-app=kube-dns", "--tail=100"},
+	})
+
+	// Restart CoreDNS deployment
+	t.Log("Restarting CoreDNS deployment")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"rollout", "restart", "deployment/coredns", "-n", "kube-system"},
+	})
+
+	// Wait again after restart
+	waitCmd = &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"wait", "--for=condition=ready", "pod", "-l", "k8s-app=kube-dns", "-n", "kube-system", "--timeout=180s"},
+	}
+	if err := shell.RunCommandContextE(t, context.Background(), waitCmd); err != nil {
+		t.Log("CoreDNS still not ready after restart, collecting final diagnostics")
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "kubectl",
+			Args:    []string{"get", "pods", "-n", "kube-system", "-l", "k8s-app=kube-dns", "-o", "wide"},
+		})
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "kubectl",
+			Args:    []string{"describe", "pods", "-n", "kube-system", "-l", "k8s-app=kube-dns"},
+		})
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "kubectl",
+			Args:    []string{"logs", "-n", "kube-system", "-l", "k8s-app=kube-dns", "--tail=200"},
+		})
+		// Don't fatal here; let verifyDNSResolution collect more context and fail
+		// with its own detailed diagnostics.
+		return
+	}
+
+	t.Log("CoreDNS is ready after restart")
 }
 
 func deleteKindCluster(t *testing.T) {
