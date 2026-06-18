@@ -36,7 +36,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
 ############################
 # 2. Runtime Stage
 ############################
-FROM alpine:3.23.4 AS runtime
+FROM alpine:3.24.0 AS runtime
 
 ARG VERSION
 
