@@ -13,15 +13,6 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
-// CreateDatasource implements createDatasource operation.
-//
-// Add a datasource.
-//
-// POST /datasources
-func (UnimplementedHandler) CreateDatasource(ctx context.Context, req *CreateDatasourceRequest) (r CreateDatasourceRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // CreateInspect implements createInspect operation.
 //
 // Trigger a manual inspection.
@@ -49,15 +40,6 @@ func (UnimplementedHandler) GetReport(ctx context.Context, params GetReportParam
 	return r, ht.ErrNotImplemented
 }
 
-// ListDatasources implements listDatasources operation.
-//
-// List datasources.
-//
-// GET /datasources
-func (UnimplementedHandler) ListDatasources(ctx context.Context) (r []DatasourceResponse, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
 // ListReports implements listReports operation.
 //
 // List inspection reports.
@@ -73,14 +55,5 @@ func (UnimplementedHandler) ListReports(ctx context.Context, params ListReportsP
 //
 // POST /webhook
 func (UnimplementedHandler) ReceiveWebhook(ctx context.Context, req *ReceiveWebhookReq) (r ReceiveWebhookRes, _ error) {
-	return r, ht.ErrNotImplemented
-}
-
-// TestDatasource implements testDatasource operation.
-//
-// Test datasource connection.
-//
-// GET /datasources/{id}/test
-func (UnimplementedHandler) TestDatasource(ctx context.Context, params TestDatasourceParams) (r TestDatasourceRes, _ error) {
 	return r, ht.ErrNotImplemented
 }

@@ -16,6 +16,9 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  GOFLAGS: "-buildvcs=false"
+
 jobs:
   fmt-check:
     name: Format Check
@@ -25,13 +28,13 @@ jobs:
       - uses: actions/setup-go@v6.4.0
         with:
           go-version: "1.26.3"
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v9.2.1
+        with:
+          version: v2.11.4
+          install-only: true
       - name: Check formatting
-        run: |
-          if [ -n "$(gofmt -l .)" ]; then
-            echo "The following files need formatting:"
-            gofmt -l .
-            exit 1
-          fi
+        run: golangci-lint fmt --diff
 
   vet:
     name: Go Vet
@@ -63,7 +66,9 @@ jobs:
   unit-test:
     name: Unit Tests
     needs: [fmt-check, vet, lint]
-    runs-on: ubuntu-latest
+    runs-on: dawn-cluster-dind
+    env:
+      GOFLAGS: "-buildvcs=false"
     steps:
       - uses: actions/checkout@v6.0.3
       - uses: actions/setup-go@v6.4.0
@@ -72,18 +77,24 @@ jobs:
       - name: Download dependencies
         run: go mod download
       - name: Run unit tests
-        run: make test
+        run: go test -v $(go list ./... | grep -v -e /mocks -e /test/integration -e /test/e2e -e /test/kind) --coverprofile cover-unit.out
+      - name: Check coverage file
+        run: ls -la ${{ github.workspace }}/cover-unit.out || echo "Coverage file not found"
       - name: Upload coverage
         uses: codecov/codecov-action@v6.0.1
-        if: always()
+        if: success()
         with:
-          files: cover-unit.out
+          files: ${{ github.workspace }}/cover-unit.out
           fail_ci_if_error: false
 
   build:
     name: Build
     needs: [unit-test]
-    runs-on: ubuntu-latest
+    runs-on: dawn-cluster
+    container:
+      image: golang:1.26.3
+    env:
+      GOFLAGS: "-buildvcs=false"
     steps:
       - uses: actions/checkout@v6.0.3
       - uses: actions/setup-go@v6.4.0
@@ -99,7 +110,7 @@ jobs:
   docker-build:
     name: Docker Build
     needs: [unit-test]
-    runs-on: ubuntu-latest
+    runs-on: dawn-cluster-dind
     steps:
       - uses: actions/checkout@v6.0.3
       - name: Set up Docker Buildx
@@ -153,7 +164,11 @@ jobs:
   integration-test:
     name: Integration Tests
     needs: [build]
-    runs-on: ubuntu-latest
+    runs-on: dawn-cluster-dind
+    container:
+      image: golang:1.26.3
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: "true"
     steps:
       - uses: actions/checkout@v6.0.3
       - uses: actions/setup-go@v6.4.0
@@ -173,7 +188,11 @@ jobs:
   e2e-test:
     name: E2E Tests
     needs: [build]
-    runs-on: ubuntu-latest
+    runs-on: dawn-cluster-dind
+    container:
+      image: golang:1.26.3
+    env:
+      TESTCONTAINERS_RYUK_DISABLED: "true"
     steps:
       - uses: actions/checkout@v6.0.3
       - uses: actions/setup-go@v6.4.0
@@ -190,9 +209,9 @@ jobs:
           files: cover-e2e.out
           fail_ci_if_error: false
 
-  goreleaser-check:
-    name: GoReleaser Check
-    needs: [build]
+  kind-test:
+    name: Kind Cluster Test
+    needs: [unit-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6.0.3
@@ -201,8 +220,21 @@ jobs:
       - uses: actions/setup-go@v6.4.0
         with:
           go-version: "1.26.3"
-      - name: GoReleaser check
-        uses: goreleaser/goreleaser-action@v7.2.2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4.1.0
+      - name: Install Kind
+        uses: helm/kind-action@v1.14.0
         with:
-          version: "~> v2"
-          args: check
+          install_only: true
+      - name: Install Helm
+        uses: azure/setup-helm@v4.3.0
+        with:
+          version: v3.17.0
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.32.0
+      - name: Download dependencies
+        run: go mod download
+      - name: Run Kind tests
+        run: go test -v ./test/kind/... -timeout 30m

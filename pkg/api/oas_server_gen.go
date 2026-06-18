@@ -8,12 +8,6 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
-	// CreateDatasource implements createDatasource operation.
-	//
-	// Add a datasource.
-	//
-	// POST /datasources
-	CreateDatasource(ctx context.Context, req *CreateDatasourceRequest) (CreateDatasourceRes, error)
 	// CreateInspect implements createInspect operation.
 	//
 	// Trigger a manual inspection.
@@ -32,12 +26,6 @@ type Handler interface {
 	//
 	// GET /reports/{id}
 	GetReport(ctx context.Context, params GetReportParams) (GetReportRes, error)
-	// ListDatasources implements listDatasources operation.
-	//
-	// List datasources.
-	//
-	// GET /datasources
-	ListDatasources(ctx context.Context) ([]DatasourceResponse, error)
 	// ListReports implements listReports operation.
 	//
 	// List inspection reports.
@@ -50,12 +38,6 @@ type Handler interface {
 	//
 	// POST /webhook
 	ReceiveWebhook(ctx context.Context, req *ReceiveWebhookReq) (ReceiveWebhookRes, error)
-	// TestDatasource implements testDatasource operation.
-	//
-	// Test datasource connection.
-	//
-	// GET /datasources/{id}/test
-	TestDatasource(ctx context.Context, params TestDatasourceParams) (TestDatasourceRes, error)
 }
 
 // Server implements http server based on OpenAPI v3 specification and

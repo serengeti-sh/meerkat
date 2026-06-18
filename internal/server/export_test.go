@@ -1,6 +1,8 @@
 package server
 
 import (
+	"github.com/rs/zerolog"
+
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/tool"
@@ -18,7 +20,7 @@ func ExportBuildToolRegistry(cfg *config.Config, vectorsClient vectorsclient.Cli
 }
 
 func ExportBuildAnalyzerService(provider analyzer.LLMProvider, registry *tool.Registry, cfg *config.Config) (analyzer.Service, error) {
-	return buildAnalyzerService(provider, registry, cfg)
+	return buildAnalyzerService(provider, registry, cfg, zerolog.New(nil))
 }
 
 func ExportBuildDatasourceRefs(cfg *config.Config) func() []analyzer.DatasourceRef {

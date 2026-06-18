@@ -9,6 +9,7 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
+	"github.com/rs/zerolog"
 )
 
 // anthropicProvider implements LLMProvider for Anthropic Messages API.
@@ -18,6 +19,7 @@ type anthropicProvider struct {
 	maxTokens   int64
 	temperature float64
 	retryCfg    RetryConfig
+	log         zerolog.Logger
 }
 
 var _ LLMProvider = (*anthropicProvider)(nil)
@@ -39,6 +41,7 @@ func newAnthropicProvider(cfg ProviderConfig) LLMProvider {
 		maxTokens:   int64(cfg.MaxTokens),
 		temperature: cfg.Temperature,
 		retryCfg:    cfg.Retry,
+		log:         cfg.Log,
 	}
 }
 
@@ -56,7 +59,7 @@ func (p *anthropicProvider) HealthCheck(ctx context.Context) error {
 }
 
 func (p *anthropicProvider) Complete(ctx context.Context, req *CompletionRequest) (*CompletionResponse, error) {
-	return retryWithBackoff(ctx, p.retryCfg, func() (*CompletionResponse, error) {
+	return retryWithBackoff(ctx, p.log, p.retryCfg, func() (*CompletionResponse, error) {
 		var systemContent string
 		messages := make([]anthropic.MessageParam, 0, len(req.Messages))
 

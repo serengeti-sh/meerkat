@@ -5,8 +5,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strconv"
+
+	"github.com/rs/zerolog"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +38,7 @@ type milvusStore struct {
 	retention  time.Duration
 	initOnce   sync.Once
 	initErr    error
+	log        zerolog.Logger
 }
 
 var _ Store = (*milvusStore)(nil)
@@ -61,6 +63,8 @@ func NewMilvusClient(cfg *config.Config) (*milvusStore, error) {
 		}
 	}
 
+	log := zerolog.New(nil).With().Str("component", "milvus").Logger()
+
 	if mc.TLS.Enabled {
 		clientCfg.EnableTLSAuth = true
 		if mc.TLS.CAFile != "" {
@@ -70,7 +74,7 @@ func NewMilvusClient(cfg *config.Config) (*milvusStore, error) {
 			}
 			clientCfg.DialOptions = append(clientCfg.DialOptions, grpc.WithTransportCredentials(cred))
 		} else if mc.TLS.SkipVerify {
-			log.Printf("[milvus] WARNING: TLS skip_verify is enabled. This is insecure and should only be used for development.")
+			log.Warn().Msg("TLS skip_verify is enabled. This is insecure and should only be used for development.")
 			clientCfg.DialOptions = append(clientCfg.DialOptions, grpc.WithTransportCredentials(
 				credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})),
 			)
@@ -88,6 +92,7 @@ func NewMilvusClient(cfg *config.Config) (*milvusStore, error) {
 		collection: mc.Collection,
 		dimension:  mc.Dimension,
 		retention:  mc.Retention,
+		log:        log,
 	}, nil
 }
 

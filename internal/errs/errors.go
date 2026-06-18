@@ -26,14 +26,14 @@ type appError struct {
 	cause     error
 }
 
-func New(errType ErrorType, message string) Error {
+func New(errType ErrorType, message string) AppError {
 	return &appError{
 		errorType: errType,
 		message:   message,
 	}
 }
 
-func Wrap(errType ErrorType, message string, cause error) Error {
+func Wrap(errType ErrorType, message string, cause error) AppError {
 	return &appError{
 		errorType: errType,
 		message:   message,
@@ -56,13 +56,13 @@ func (e *appError) Type() ErrorType {
 	return e.errorType
 }
 
-type Error interface {
+type AppError interface {
 	error
 	Type() ErrorType
 }
 
 func Is(err error, target ErrorType) bool {
-	var appErr Error
+	var appErr AppError
 	if errors.As(err, &appErr) {
 		return appErr.Type() == target
 	}

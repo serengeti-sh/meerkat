@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -26,7 +27,7 @@ func TestService_Report_Success(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	svc := notify.NewService(srv.URL, "warning", http.DefaultClient)
+	svc := notify.NewService(srv.URL, "warning", http.DefaultClient, zerolog.New(nil))
 	err := svc.Report(context.Background(), &notify.ReportData{
 		ID:       "r-1",
 		Severity: "critical",
@@ -41,7 +42,7 @@ func TestService_Report_Success(t *testing.T) {
 }
 
 func TestService_Report_EmptyWebhookURL(t *testing.T) {
-	svc := notify.NewService("", "warning", http.DefaultClient)
+	svc := notify.NewService("", "warning", http.DefaultClient, zerolog.New(nil))
 	err := svc.Report(context.Background(), &notify.ReportData{
 		ID:       "r-1",
 		Severity: "critical",
@@ -58,7 +59,7 @@ func TestService_Report_SeverityFilter(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	svc := notify.NewService(srv.URL, "warning", http.DefaultClient)
+	svc := notify.NewService(srv.URL, "warning", http.DefaultClient, zerolog.New(nil))
 
 	// info severity is below warning threshold
 	err := svc.Report(context.Background(), &notify.ReportData{
@@ -85,7 +86,7 @@ func TestService_Report_ServerError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	svc := notify.NewService(srv.URL, "info", http.DefaultClient)
+	svc := notify.NewService(srv.URL, "info", http.DefaultClient, zerolog.New(nil))
 	err := svc.Report(context.Background(), &notify.ReportData{
 		ID:       "r-1",
 		Severity: "critical",
@@ -103,7 +104,7 @@ func TestService_Report_ContextCancelled(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	svc := notify.NewService(srv.URL, "info", http.DefaultClient)
+	svc := notify.NewService(srv.URL, "info", http.DefaultClient, zerolog.New(nil))
 	ctx, cancel := context.WithCancel(context.Background())
 
 	var reportErr error
@@ -140,7 +141,7 @@ func TestBuildSlackPayload(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	svc := notify.NewService(srv.URL, "info", http.DefaultClient)
+	svc := notify.NewService(srv.URL, "info", http.DefaultClient, zerolog.New(nil))
 	_ = svc.Report(context.Background(), report)
 
 	assert.Contains(t, payload["text"], "critical")

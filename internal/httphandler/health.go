@@ -1,11 +1,11 @@
 package httphandler
 
-import "net/http"
+import (
+	"context"
 
-type healthResponse struct {
-	Status string `json:"status"`
-}
+	"github.com/serengeti-sh/meerkat/pkg/api"
+)
 
-func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, healthResponse{Status: "ok"})
+func (h *Handler) GetHealth(ctx context.Context) (*api.GetHealthOK, error) {
+	return &api.GetHealthOK{Status: "ok"}, nil
 }

@@ -27,12 +27,6 @@ func trimTrailingSlashes(u *url.URL) {
 
 // Invoker invokes operations described by OpenAPI v3 specification.
 type Invoker interface {
-	// CreateDatasource invokes createDatasource operation.
-	//
-	// Add a datasource.
-	//
-	// POST /datasources
-	CreateDatasource(ctx context.Context, request *CreateDatasourceRequest) (CreateDatasourceRes, error)
 	// CreateInspect invokes createInspect operation.
 	//
 	// Trigger a manual inspection.
@@ -51,12 +45,6 @@ type Invoker interface {
 	//
 	// GET /reports/{id}
 	GetReport(ctx context.Context, params GetReportParams) (GetReportRes, error)
-	// ListDatasources invokes listDatasources operation.
-	//
-	// List datasources.
-	//
-	// GET /datasources
-	ListDatasources(ctx context.Context) ([]DatasourceResponse, error)
 	// ListReports invokes listReports operation.
 	//
 	// List inspection reports.
@@ -69,12 +57,6 @@ type Invoker interface {
 	//
 	// POST /webhook
 	ReceiveWebhook(ctx context.Context, request *ReceiveWebhookReq) (ReceiveWebhookRes, error)
-	// TestDatasource invokes testDatasource operation.
-	//
-	// Test datasource connection.
-	//
-	// GET /datasources/{id}/test
-	TestDatasource(ctx context.Context, params TestDatasourceParams) (TestDatasourceRes, error)
 }
 
 // Client implements OAS client.
@@ -114,92 +96,6 @@ func (c *Client) requestURL(ctx context.Context) *url.URL {
 		return c.serverURL
 	}
 	return u
-}
-
-// CreateDatasource invokes createDatasource operation.
-//
-// Add a datasource.
-//
-// POST /datasources
-func (c *Client) CreateDatasource(ctx context.Context, request *CreateDatasourceRequest) (CreateDatasourceRes, error) {
-	res, err := c.sendCreateDatasource(ctx, request)
-	return res, err
-}
-
-func (c *Client) sendCreateDatasource(ctx context.Context, request *CreateDatasourceRequest) (res CreateDatasourceRes, err error) {
-	// Validate request before sending.
-	if err := func() error {
-		if err := request.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		return res, errors.Wrap(err, "validate")
-	}
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("createDatasource"),
-		semconv.HTTPRequestMethodKey.String("POST"),
-		semconv.URLTemplateKey.String("/datasources"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, CreateDatasourceOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [1]string
-	pathParts[0] = "/datasources"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "POST", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-	if err := encodeCreateDatasourceRequest(request, r); err != nil {
-		return res, errors.Wrap(err, "encode request")
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeCreateDatasourceResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
 }
 
 // CreateInspect invokes createInspect operation.
@@ -445,80 +341,6 @@ func (c *Client) sendGetReport(ctx context.Context, params GetReportParams) (res
 	return result, nil
 }
 
-// ListDatasources invokes listDatasources operation.
-//
-// List datasources.
-//
-// GET /datasources
-func (c *Client) ListDatasources(ctx context.Context) ([]DatasourceResponse, error) {
-	res, err := c.sendListDatasources(ctx)
-	return res, err
-}
-
-func (c *Client) sendListDatasources(ctx context.Context) (res []DatasourceResponse, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("listDatasources"),
-		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/datasources"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, ListDatasourcesOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [1]string
-	pathParts[0] = "/datasources"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "GET", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeListDatasourcesResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
 // ListReports invokes listReports operation.
 //
 // List inspection reports.
@@ -684,99 +506,6 @@ func (c *Client) sendReceiveWebhook(ctx context.Context, request *ReceiveWebhook
 
 	stage = "DecodeResponse"
 	result, err := decodeReceiveWebhookResponse(resp)
-	if err != nil {
-		return res, errors.Wrap(err, "decode response")
-	}
-
-	return result, nil
-}
-
-// TestDatasource invokes testDatasource operation.
-//
-// Test datasource connection.
-//
-// GET /datasources/{id}/test
-func (c *Client) TestDatasource(ctx context.Context, params TestDatasourceParams) (TestDatasourceRes, error) {
-	res, err := c.sendTestDatasource(ctx, params)
-	return res, err
-}
-
-func (c *Client) sendTestDatasource(ctx context.Context, params TestDatasourceParams) (res TestDatasourceRes, err error) {
-	otelAttrs := []attribute.KeyValue{
-		otelogen.OperationID("testDatasource"),
-		semconv.HTTPRequestMethodKey.String("GET"),
-		semconv.URLTemplateKey.String("/datasources/{id}/test"),
-	}
-	otelAttrs = append(otelAttrs, c.cfg.Attributes...)
-
-	// Run stopwatch.
-	startTime := time.Now()
-	defer func() {
-		// Use floating point division here for higher precision (instead of Millisecond method).
-		elapsedDuration := time.Since(startTime)
-		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
-	}()
-
-	// Increment request counter.
-	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-
-	// Start a span for this request.
-	ctx, span := c.cfg.Tracer.Start(ctx, TestDatasourceOperation,
-		trace.WithAttributes(otelAttrs...),
-		clientSpanKind,
-	)
-	// Track stage for error reporting.
-	var stage string
-	defer func() {
-		if err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, stage)
-			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
-		}
-		span.End()
-	}()
-
-	stage = "BuildURL"
-	u := uri.Clone(c.requestURL(ctx))
-	var pathParts [3]string
-	pathParts[0] = "/datasources/"
-	{
-		// Encode "id" parameter.
-		e := uri.NewPathEncoder(uri.PathEncoderConfig{
-			Param:   "id",
-			Style:   uri.PathStyleSimple,
-			Explode: false,
-		})
-		if err := func() error {
-			return e.EncodeValue(conv.StringToString(params.ID))
-		}(); err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		encoded, err := e.Result()
-		if err != nil {
-			return res, errors.Wrap(err, "encode path")
-		}
-		pathParts[1] = encoded
-	}
-	pathParts[2] = "/test"
-	uri.AddPathParts(u, pathParts[:]...)
-
-	stage = "EncodeRequest"
-	r, err := ht.NewRequest(ctx, "GET", u)
-	if err != nil {
-		return res, errors.Wrap(err, "create request")
-	}
-
-	stage = "SendRequest"
-	resp, err := c.cfg.Client.Do(r)
-	if err != nil {
-		return res, errors.Wrap(err, "do request")
-	}
-	body := resp.Body
-	defer body.Close()
-
-	stage = "DecodeResponse"
-	result, err := decodeTestDatasourceResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

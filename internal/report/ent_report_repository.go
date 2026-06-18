@@ -57,11 +57,11 @@ func (r *entReportRepository) GetByID(ctx context.Context, id string) (*Report, 
 	ds, err := r.client.Report.Get(ctx, id)
 	if err != nil {
 		if ent.IsNotFound(err) {
-			return nil, fmt.Errorf("get report by id %s: %w", id, err)
+			return nil, nil
 		}
 		return nil, fmt.Errorf("get report by id %s: %w", id, err)
 	}
-	return entToReport(ds)
+	return entToReport(ds), nil
 }
 
 func (r *entReportRepository) List(ctx context.Context, limit int) ([]*Report, error) {
@@ -80,11 +80,7 @@ func (r *entReportRepository) List(ctx context.Context, limit int) ([]*Report, e
 
 	result := make([]*Report, 0, len(list))
 	for _, r := range list {
-		report, err := entToReport(r)
-		if err != nil {
-			return nil, fmt.Errorf("convert report: %w", err)
-		}
-		result = append(result, report)
+		result = append(result, entToReport(r))
 	}
 	return result, nil
 }
@@ -107,10 +103,10 @@ func (r *entReportRepository) FindActiveByQuery(ctx context.Context, trigger str
 		}
 		return nil, fmt.Errorf("find active report: %w", err)
 	}
-	return entToReport(ds)
+	return entToReport(ds), nil
 }
 
-func entToReport(r *ent.Report) (*Report, error) {
+func entToReport(r *ent.Report) *Report {
 	return &Report{
 		ID:          r.ID,
 		Trigger:     TriggerType(r.Trigger),
@@ -123,5 +119,5 @@ func entToReport(r *ent.Report) (*Report, error) {
 		Datasources: r.Datasources,
 		Iterations:  r.Iterations,
 		CreatedAt:   r.CreateTime,
-	}, nil
+	}
 }

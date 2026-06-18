@@ -3,9 +3,11 @@ package inspect_test
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -13,6 +15,7 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	analyzerMocks "github.com/serengeti-sh/meerkat/internal/analyzer/mocks"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
+	"github.com/serengeti-sh/meerkat/internal/notify"
 	reporterMocks "github.com/serengeti-sh/meerkat/internal/notify/mocks"
 	"github.com/serengeti-sh/meerkat/internal/report"
 	reportMocks "github.com/serengeti-sh/meerkat/internal/report/mocks"
@@ -29,22 +32,26 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2, zerolog.New(nil))
 	require.NoError(t, err)
 	require.NoError(t, svc.Start())
 	defer svc.Stop()
 
+	callCount := 0
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "manual", "check for errors", mock.Anything).Return(nil, nil)
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 	// Goroutine expectations
 	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running
 	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // completed
-	analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).Return(&analyzer.AnalysisResult{
-		Severity:   analyzer.SeverityWarning,
-		Summary:    "test summary",
-		Detail:     "test detail",
-		Iterations: 1,
-	}, nil)
+	analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, input *analyzer.AnalysisInput) (*analyzer.AnalysisResult, error) {
+		callCount++
+		return &analyzer.AnalysisResult{
+			Severity:   analyzer.SeverityWarning,
+			Summary:    "test summary",
+			Detail:     "test detail",
+			Iterations: 1,
+		}, nil
+	})
 	reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
 
 	rpt, err := svc.Inspect(context.Background(), inspect.Request{
@@ -57,7 +64,7 @@ func TestService_Inspect_ReturnsPending(t *testing.T) {
 	assert.NotEmpty(t, rpt.ID)
 
 	// Wait for async worker to process the job
-	time.Sleep(200 * time.Millisecond)
+	require.Eventually(t, func() bool { return callCount >= 1 }, 500*time.Millisecond, 10*time.Millisecond)
 }
 
 func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
@@ -65,22 +72,26 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2, zerolog.New(nil))
 	require.NoError(t, err)
 	require.NoError(t, svc.Start())
 	defer svc.Stop()
 
+	callCount := 0
 	reportRepo.EXPECT().FindActiveByQuery(mock.Anything, "webhook", "HighErrorRate", mock.Anything).Return(nil, nil)
 	reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 	// Goroutine expectations
 	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running
 	reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // completed
-	analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).Return(&analyzer.AnalysisResult{
-		Severity:   analyzer.SeverityWarning,
-		Summary:    "webhook analysis",
-		Detail:     "test detail",
-		Iterations: 1,
-	}, nil)
+	analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, input *analyzer.AnalysisInput) (*analyzer.AnalysisResult, error) {
+		callCount++
+		return &analyzer.AnalysisResult{
+			Severity:   analyzer.SeverityWarning,
+			Summary:    "webhook analysis",
+			Detail:     "test detail",
+			Iterations: 1,
+		}, nil
+	})
 	reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
 
 	rpt, err := svc.InspectByWebhook(context.Background(), inspect.WebhookPayload{
@@ -94,7 +105,7 @@ func TestService_InspectByWebhook_ReturnsPending(t *testing.T) {
 	assert.Equal(t, report.TriggerWebhook, rpt.Trigger)
 
 	// Wait for async worker to process the job
-	time.Sleep(200 * time.Millisecond)
+	require.Eventually(t, func() bool { return callCount >= 1 }, 500*time.Millisecond, 10*time.Millisecond)
 }
 
 func TestService_Inspect_NoDatasources(t *testing.T) {
@@ -103,7 +114,7 @@ func TestService_Inspect_NoDatasources(t *testing.T) {
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	emptyRefs := func() []analyzer.DatasourceRef { return nil }
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, emptyRefs, 5*time.Minute, 100, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, emptyRefs, 5*time.Minute, 100, 2, zerolog.New(nil))
 	require.NoError(t, err)
 
 	_, err = svc.Inspect(context.Background(), inspect.Request{Query: "test"})
@@ -116,7 +127,7 @@ func TestService_GetReport(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2, zerolog.New(nil))
 	require.NoError(t, err)
 
 	expected := &report.Report{ID: "rpt-1", Trigger: report.TriggerManual, TriggerID: "t-1", Status: report.StatusCompleted, Severity: report.SeverityWarning, Summary: "test", Detail: "detail", Query: "test query", Iterations: 3, CreatedAt: time.Now()}
@@ -134,7 +145,7 @@ func TestService_ListReports(t *testing.T) {
 	analyzerSvc := analyzerMocks.NewServiceMock(t)
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 100, 2, zerolog.New(nil))
 	require.NoError(t, err)
 
 	r1 := &report.Report{ID: "rpt-1", Trigger: report.TriggerManual, TriggerID: "t-1", Status: report.StatusCompleted, Severity: report.SeverityInfo, Summary: "ok", Iterations: 1, CreatedAt: time.Now()}
@@ -163,7 +174,7 @@ func TestService_Inspect_QueueFull_Returns429(t *testing.T) {
 		return &analyzer.AnalysisResult{Severity: analyzer.SeverityInfo, Summary: "done", Iterations: 1}, nil
 	}).Twice()
 
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 1, 1)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 1, 1, zerolog.New(nil))
 	require.NoError(t, err)
 	require.NoError(t, svc.Start())
 	defer svc.Stop()
@@ -215,10 +226,10 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 	reporterSvc := reporterMocks.NewServiceMock(t)
 
 	// Queue size 10, 2 workers
-	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 10, 2)
+	svc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, testRefs(), 5*time.Minute, 10, 2, zerolog.New(nil))
 	require.NoError(t, err)
 	require.NoError(t, svc.Start())
-	defer svc.Stop()
+	// Do not defer svc.Stop() — stop explicitly after verifying completion.
 
 	// Submit 3 jobs
 	for range 3 {
@@ -226,16 +237,25 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 		reportRepo.EXPECT().Create(mock.Anything, mock.Anything).Return(nil)
 	}
 
+	var analyzeCount atomic.Int32
+	var reportCount atomic.Int32
+
 	// Each job gets processed: running + completed updates
 	for i := range 3 {
 		reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // running
 		reportRepo.EXPECT().Update(mock.Anything, mock.Anything).Return(nil) // completed
-		analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).Return(&analyzer.AnalysisResult{
-			Severity:   analyzer.SeverityInfo,
-			Summary:    fmt.Sprintf("result-%d", i),
-			Iterations: 1,
-		}, nil)
-		reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).Return(nil)
+		analyzerSvc.EXPECT().Analyze(mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, input *analyzer.AnalysisInput) (*analyzer.AnalysisResult, error) {
+			analyzeCount.Add(1)
+			return &analyzer.AnalysisResult{
+				Severity:   analyzer.SeverityInfo,
+				Summary:    fmt.Sprintf("result-%d", i),
+				Iterations: 1,
+			}, nil
+		})
+		reporterSvc.EXPECT().Report(mock.Anything, mock.Anything).RunAndReturn(func(ctx context.Context, rpt *notify.ReportData) error {
+			reportCount.Add(1)
+			return nil
+		})
 	}
 
 	reports := make([]*report.Report, 3)
@@ -248,12 +268,10 @@ func TestService_WorkerPool_ProcessesMultipleJobs(t *testing.T) {
 		assert.Equal(t, report.StatusQueued, rpt.Status)
 	}
 
-	// Wait for all workers to finish - use Eventually for determinism
+	// Wait deterministically for all async work to complete.
 	require.Eventually(t, func() bool {
-		// If we can submit another job without queue full, workers are done
-		// But queue size is 10 and we only submitted 3, so this isn't reliable.
-		// Instead, rely on mock expectations being satisfied via testify/mock
-		// which happens synchronously when the mock method returns.
-		return true
-	}, 300*time.Millisecond, 10*time.Millisecond)
+		return analyzeCount.Load() == 3 && reportCount.Load() == 3
+	}, 500*time.Millisecond, 10*time.Millisecond)
+
+	svc.Stop()
 }

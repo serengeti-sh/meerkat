@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -19,15 +18,18 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
 
+	"github.com/rs/zerolog"
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/ent"
+
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
 	"github.com/serengeti-sh/meerkat/internal/notify"
 	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/schedule"
 	"github.com/serengeti-sh/meerkat/internal/tool"
+	"github.com/serengeti-sh/meerkat/pkg/api"
 	"github.com/serengeti-sh/meerkat/test/integration/mock"
 
 	_ "github.com/lib/pq"
@@ -87,7 +89,7 @@ Respond with JSON only:
 		testcontainers.WithWaitStrategy(
 			wait.ForLog("database system is ready to accept connections").
 				WithOccurrence(2).
-				WithStartupTimeout(30*time.Second),
+				WithStartupTimeout(120*time.Second),
 		),
 	)
 	if err != nil {
@@ -174,6 +176,8 @@ Respond with JSON only:
 	toolRegistry := tool.NewRegistry(promTool)
 
 	// Analyzer
+	logger := zerolog.New(nil)
+
 	llmProvider := analyzer.NewLLMProvider(analyzer.ProviderConfig{
 		Provider:    cfg.Analyzer.Provider,
 		URL:         cfg.Analyzer.URL,
@@ -181,6 +185,7 @@ Respond with JSON only:
 		Model:       cfg.Analyzer.Model,
 		MaxTokens:   cfg.Analyzer.MaxTokens,
 		Temperature: cfg.Analyzer.Temperature,
+		Log:         logger,
 	})
 	systemPrompt, err := analyzer.LoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
 	if err != nil {
@@ -192,13 +197,13 @@ Respond with JSON only:
 		MaxToolResultChars:  cfg.Analyzer.MaxToolResultChars,
 		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
 		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
-	})
+	}, logger)
 	if err != nil {
 		return fmt.Errorf("build analyzer service: %w", err)
 	}
 
 	// Reporter (no-op in tests)
-	reporterSvc := notify.NewService(cfg.Notify.WebhookURL, cfg.Notify.MinSeverity, nil)
+	reporterSvc := notify.NewService(cfg.Notify.WebhookURL, cfg.Notify.MinSeverity, nil, logger)
 
 	// Inspector service
 	reportRepo := report.NewEntReportRepository(entClient)
@@ -206,6 +211,7 @@ Respond with JSON only:
 		return []analyzer.DatasourceRef{{Name: "test-vm", Type: "victoria-metrics"}}
 	}
 	inspectorSvc, err := inspect.NewService(analyzerSvc, reportRepo, reporterSvc, dsRefs, 5*time.Minute, 1000, 10,
+		logger,
 		inspect.WithVectorsClient(nil), // explicitly no logs client in integration tests
 	)
 	if err != nil {
@@ -217,25 +223,24 @@ Respond with JSON only:
 	s.inspectorSvc = inspectorSvc
 
 	// Scheduler (disabled)
-	sched := schedule.NewService(inspectorSvc, cfg)
+	sched := schedule.NewService(inspectorSvc, cfg, logger)
 
 	// HTTP handler
-	h, err := httphandler.New(inspectorSvc)
+	h := httphandler.New(inspectorSvc, logger)
+
+	ogenServer, err := api.NewServer(h, api.WithPathPrefix("/v1"))
 	if err != nil {
-		return fmt.Errorf("create http handler: %w", err)
+		return fmt.Errorf("create ogen server: %w", err)
 	}
 
 	// Start HTTP server on random port
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return fmt.Errorf("listen: %w", err)
 	}
 
 	s.server = &http.Server{
-		Handler:           mux,
+		Handler:           ogenServer,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      60 * time.Second,
@@ -244,7 +249,7 @@ Respond with JSON only:
 
 	go func() {
 		if err := s.server.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Printf("server error: %v", err)
+			logger.Error().Err(err).Msg("server error")
 		}
 	}()
 
@@ -350,7 +355,7 @@ func SetupSuite(t *testing.T) *Suite {
 		t.Skip("Skipping e2e test in short mode")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
 	suite := NewSuite(t)

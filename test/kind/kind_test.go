@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -67,14 +68,36 @@ func TestDeploy(t *testing.T) {
 	k8s.CreateNamespaceContext(t, context.Background(), kubectlOptions, namespace)
 	defer k8s.DeleteNamespaceContext(t, context.Background(), kubectlOptions, namespace)
 
+	// Pre-create a static PV for Qdrant to avoid relying on dynamic provisioning
+	// in ephemeral CI Kind clusters.
+	t.Log("Creating static PV for Qdrant")
+	createQdrantPersistentVolume(t)
+
 	// Step 6: Install PostgreSQL
 	t.Log("Installing PostgreSQL")
 	installPostgres(t, kubectlOptions)
 	defer func() {
-		helm.DeleteContext(t, context.Background(), &helm.Options{KubectlOptions: kubectlOptions}, "meerkat-postgres", true)
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "kubectl",
+			Args:    []string{"delete", "-n", namespace, "statefulset/postgres", "svc/meerkat-postgres-postgresql", "--ignore-not-found=true"},
+		})
 	}()
 
-	// Step 7: Install Meerkat chart
+	// Step 7: Install Qdrant for vector store
+	t.Log("Installing Qdrant")
+	installQdrant(t, kubectlOptions)
+	defer func() {
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "helm",
+			Args:    []string{"delete", "--namespace", namespace, "qdrant"},
+		})
+	}()
+
+	// Step 7.5: Verify cluster DNS resolution works before installing Meerkat
+	t.Log("Verifying cluster DNS resolution")
+	verifyDNSResolution(t, kubectlOptions)
+
+	// Step 8: Install Meerkat chart
 	t.Log("Installing Meerkat Helm chart")
 	helmOptions := &helm.Options{
 		KubectlOptions: kubectlOptions,
@@ -115,6 +138,8 @@ func createKindCluster(t *testing.T, configPath string) {
 		Command: "kind",
 		Args:    []string{"delete", "cluster", "--name", clusterName},
 	})
+	// Give Docker a moment to release resources before recreating.
+	time.Sleep(5 * time.Second)
 
 	cmd := &shell.Command{
 		Command: "kind",
@@ -122,10 +147,90 @@ func createKindCluster(t *testing.T, configPath string) {
 			"create", "cluster",
 			"--name", clusterName,
 			"--config", configPath,
-			"--wait", "120s",
+			"--wait", "300s",
 		},
 	}
-	shell.RunCommandContext(t, context.Background(), cmd)
+
+	const maxRetries = 3
+	var lastErr error
+	for i := 0; i < maxRetries; i++ {
+		if i > 0 {
+			t.Logf("Kind cluster creation failed, retrying (%d/%d) in 10s...", i, maxRetries-1)
+			time.Sleep(10 * time.Second)
+		}
+		lastErr = shell.RunCommandContextE(t, context.Background(), cmd)
+		if lastErr == nil {
+			break
+		}
+	}
+	if lastErr != nil {
+		t.Fatalf("Failed to create Kind cluster after %d attempts: %v", maxRetries, lastErr)
+	}
+
+	// In Docker-in-Docker environments, CoreDNS may start before the API server
+	// certificate is fully distributed, causing it to fail TLS verification
+	// indefinitely. Wait for CoreDNS to be ready, and if it isn't, restart it.
+	waitForCoreDNS(t)
+}
+
+func waitForCoreDNS(t *testing.T) {
+	t.Helper()
+
+	t.Log("Waiting for CoreDNS to be ready")
+	waitCmd := &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"wait", "--for=condition=ready", "pod", "-l", "k8s-app=kube-dns", "-n", "kube-system", "--timeout=180s"},
+	}
+
+	if err := shell.RunCommandContextE(t, context.Background(), waitCmd); err == nil {
+		t.Log("CoreDNS is ready")
+		return
+	}
+
+	t.Log("CoreDNS not ready after 180s, collecting diagnostics and restarting")
+
+	// Collect diagnostics before restart
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "pods", "-n", "kube-system", "-l", "k8s-app=kube-dns", "-o", "wide"},
+	})
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"logs", "-n", "kube-system", "-l", "k8s-app=kube-dns", "--tail=100"},
+	})
+
+	// Restart CoreDNS deployment
+	t.Log("Restarting CoreDNS deployment")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"rollout", "restart", "deployment/coredns", "-n", "kube-system"},
+	})
+
+	// Wait again after restart
+	waitCmd = &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"wait", "--for=condition=ready", "pod", "-l", "k8s-app=kube-dns", "-n", "kube-system", "--timeout=180s"},
+	}
+	if err := shell.RunCommandContextE(t, context.Background(), waitCmd); err != nil {
+		t.Log("CoreDNS still not ready after restart, collecting final diagnostics")
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "kubectl",
+			Args:    []string{"get", "pods", "-n", "kube-system", "-l", "k8s-app=kube-dns", "-o", "wide"},
+		})
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "kubectl",
+			Args:    []string{"describe", "pods", "-n", "kube-system", "-l", "k8s-app=kube-dns"},
+		})
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "kubectl",
+			Args:    []string{"logs", "-n", "kube-system", "-l", "k8s-app=kube-dns", "--tail=200"},
+		})
+		// Don't fatal here; let verifyDNSResolution collect more context and fail
+		// with its own detailed diagnostics.
+		return
+	}
+
+	t.Log("CoreDNS is ready after restart")
 }
 
 func deleteKindCluster(t *testing.T) {
@@ -154,33 +259,411 @@ func loadImage(t *testing.T) {
 
 func installPostgres(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	t.Helper()
-	// Add Bitnami repo
-	helmOptions := &helm.Options{KubectlOptions: kubectlOptions}
-	helm.AddRepoContext(t, context.Background(), helmOptions, "bitnami", "https://charts.bitnami.com/bitnami")
+	pgYAML := fmt.Sprintf(`apiVersion: v1
+kind: Service
+metadata:
+  name: meerkat-postgres-postgresql
+  namespace: %s
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: postgres
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: %s
+spec:
+  serviceName: meerkat-postgres-postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: %s
+            - name: POSTGRES_PASSWORD
+              value: %s
+            - name: POSTGRES_DB
+              value: %s
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - %s
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          emptyDir: {}
+`, namespace, namespace, pgUsername, pgPassword, pgDatabase, pgUsername)
 
-	// Install PostgreSQL with --wait to ensure it's ready
-	pgOptions := &helm.Options{
-		KubectlOptions: kubectlOptions,
-		SetValues: map[string]string{
-			"auth.username":                     pgUsername,
-			"auth.password":                     pgPassword,
-			"auth.database":                     pgDatabase,
-			"primary.resources.requests.cpu":    "50m",
-			"primary.resources.requests.memory": "128Mi",
-			"primary.resources.limits.cpu":      "500m",
-			"primary.resources.limits.memory":   "256Mi",
-			"volumePermissions.enabled":         "true",
+	// Write YAML to temp file and apply
+	tmpFile := filepath.Join(t.TempDir(), "postgres.yaml")
+	require.NoError(t, os.WriteFile(tmpFile, []byte(pgYAML), 0644))
+
+	shell.RunCommandContext(t, context.Background(), &shell.Command{
+		Command:    "kubectl",
+		Args:       []string{"apply", "-f", tmpFile},
+		WorkingDir: ".",
+		Env: map[string]string{
+			"KUBECONFIG": kubectlOptions.ConfigPath,
 		},
-		ExtraArgs: map[string][]string{
-			"install": {"--wait", "--timeout", "120s"},
+	})
+
+	// Wait for PostgreSQL pod to be ready
+	maxRetries := 60
+	for i := range maxRetries {
+		pods := k8s.ListPodsContext(t, context.Background(), kubectlOptions, metav1.ListOptions{LabelSelector: "app=postgres"})
+		if len(pods) > 0 && pods[0].Status.Phase == "Running" {
+			allReady := true
+			for _, cs := range pods[0].Status.ContainerStatuses {
+				if !cs.Ready {
+					allReady = false
+					break
+				}
+			}
+			if allReady {
+				t.Log("PostgreSQL is ready")
+				return
+			}
+		}
+		t.Logf("PostgreSQL not ready (retry %d/%d), sleeping 5s", i+1, maxRetries)
+		time.Sleep(5 * time.Second)
+	}
+
+	// Print diagnostics on failure
+	t.Log("=== PostgreSQL failure diagnostics ===")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"describe", "pod", "-l", "app=postgres", "-n", namespace},
+	})
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"logs", "-l", "app=postgres", "-n", namespace, "--tail=200"},
+	})
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "events", "-n", namespace, "--sort-by=.lastTimestamp"},
+	})
+
+	t.Fatal("PostgreSQL failed to become ready within timeout")
+}
+
+func installQdrant(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
+	t.Helper()
+
+	// Add Qdrant Helm repo
+	cmd := &shell.Command{
+		Command: "helm",
+		Args:    []string{"repo", "add", "qdrant", "https://qdrant.github.io/qdrant-helm"},
+	}
+	_ = shell.RunCommandContextE(t, context.Background(), cmd)
+
+	cmd = &shell.Command{
+		Command: "helm",
+		Args:    []string{"repo", "update"},
+	}
+	shell.RunCommandContext(t, context.Background(), cmd)
+
+	// Install Qdrant
+	// Note: Qdrant chart always creates a PVC; there is no persistence.enabled.
+	// We keep the PVC small and bind it to the static PV we create in this test.
+	// We do NOT use --wait because we need to collect diagnostics via the manual
+	// wait loop below if the pod fails to become ready.
+	cmd = &shell.Command{
+		Command: "helm",
+		Args: []string{
+			"install", "qdrant", "qdrant/qdrant",
+			"--namespace", namespace,
+			"--set", "persistence.size=100Mi",
+			"--set", "persistence.storageClassName=manual",
+			"--set", "resources.requests.cpu=50m",
+			"--set", "resources.requests.memory=128Mi",
+			"--set", "resources.limits.cpu=500m",
+			"--set", "resources.limits.memory=256Mi",
 		},
 	}
-	helm.InstallContext(t, context.Background(), pgOptions, "bitnami/postgresql", "meerkat-postgres")
+	shell.RunCommandContext(t, context.Background(), cmd)
+
+	// Wait for Qdrant to be ready (10 min max = 120 retries × 5s)
+	maxRetries := 120
+	for i := range maxRetries {
+		pods := k8s.ListPodsContext(t, context.Background(), kubectlOptions, metav1.ListOptions{LabelSelector: "app.kubernetes.io/name=qdrant"})
+		if len(pods) > 0 && pods[0].Status.Phase == "Running" {
+			allReady := true
+			for _, cs := range pods[0].Status.ContainerStatuses {
+				if !cs.Ready {
+					allReady = false
+					break
+				}
+			}
+			if allReady {
+				t.Log("Qdrant is ready")
+				return
+			}
+		}
+		t.Logf("Qdrant not ready (retry %d/%d), sleeping 5s", i+1, maxRetries)
+		time.Sleep(5 * time.Second)
+	}
+
+	// Print diagnostics on failure
+	t.Log("=== Qdrant failure diagnostics ===")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"describe", "pod", "-l", "app.kubernetes.io/name=qdrant", "-n", namespace},
+	})
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"logs", "-l", "app.kubernetes.io/name=qdrant", "-n", namespace, "--tail=200"},
+	})
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "events", "-n", namespace, "--sort-by=.lastTimestamp"},
+	})
+
+	t.Fatal("Qdrant failed to become ready within timeout")
+}
+
+func verifyDNSResolution(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
+	t.Helper()
+
+	// 1. Check CoreDNS pods
+	t.Log("--- Checking CoreDNS pods ---")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "pods", "-n", "kube-system", "-l", "k8s-app=kube-dns", "-o", "wide"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+
+	// 1a. Check CoreDNS logs and describe for why they're not ready
+	t.Log("--- CoreDNS logs ---")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"logs", "-n", "kube-system", "-l", "k8s-app=kube-dns", "--tail=200"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+	t.Log("--- CoreDNS describe ---")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"describe", "pods", "-n", "kube-system", "-l", "k8s-app=kube-dns"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+	t.Log("--- kube-dns endpoints ---")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "endpoints", "kube-dns", "-n", "kube-system"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+
+	// 2. Check all services in namespace
+	t.Log("--- Checking services in namespace ---")
+	_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"get", "svc", "-n", namespace},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+
+	// 3. Create a temporary busybox pod to verify DNS resolution
+	dnsPodYAML := fmt.Sprintf(`apiVersion: v1
+kind: Pod
+metadata:
+  name: dns-verify
+  namespace: %s
+spec:
+  containers:
+    - name: dns-verify
+      image: busybox:1.36
+      command: ["sh", "-c", "while true; do sleep 1; done"]
+`, namespace)
+
+	dnsPodFile := filepath.Join(t.TempDir(), "dns-verify.yaml")
+	require.NoError(t, os.WriteFile(dnsPodFile, []byte(dnsPodYAML), 0644))
+
+	defer func() {
+		_ = shell.RunCommandContextE(t, context.Background(), &shell.Command{
+			Command: "kubectl",
+			Args:    []string{"delete", "pod", "dns-verify", "-n", namespace, "--ignore-not-found=true", "--force"},
+		})
+	}()
+
+	shell.RunCommandContext(t, context.Background(), &shell.Command{
+		Command:    "kubectl",
+		Args:       []string{"apply", "-f", dnsPodFile},
+		WorkingDir: ".",
+		Env: map[string]string{
+			"KUBECONFIG": kubectlOptions.ConfigPath,
+		},
+	})
+
+	// Wait for the pod to be running
+	maxRetries := 60
+	for i := range maxRetries {
+		pod, err := k8s.GetPodContextE(t, context.Background(), kubectlOptions, "dns-verify")
+		if err == nil && pod.Status.Phase == "Running" {
+			allReady := true
+			for _, cs := range pod.Status.ContainerStatuses {
+				if !cs.Ready {
+					allReady = false
+					break
+				}
+			}
+			if allReady {
+				break
+			}
+		}
+		t.Logf("DNS verify pod not ready (retry %d/%d), sleeping 5s", i+1, maxRetries)
+		time.Sleep(5 * time.Second)
+	}
+
+	// 4. DNS resolution check with retries and detailed logging
+	services := []string{
+		"kubernetes.default",
+		"meerkat-postgres-postgresql",
+		"qdrant",
+	}
+
+	const dnsMaxRetries = 10
+	var dnsCompletelyBroken = false
+	for _, svc := range services {
+		t.Logf("--- DNS check: %s ---", svc)
+		resolved := false
+		for i := range dnsMaxRetries {
+			out, err := shell.RunCommandContextAndGetOutputE(t, context.Background(), &shell.Command{
+				Command: "kubectl",
+				Args:    []string{"exec", "dns-verify", "-n", namespace, "--", "sh", "-c", fmt.Sprintf("nslookup %s 2>&1 || true", svc)},
+				Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+			})
+			// nslookup returns exit 1 even when successful due to search suffix
+			// We check the output regardless of kubectl exec error (which should be nil due to || true)
+			if err != nil {
+				if i == 0 || i == dnsMaxRetries-1 {
+					t.Logf("  %s kubectl exec error: %v", svc, err)
+				}
+			} else if strings.Contains(out, "Address:") {
+				// Extract the IP address from output
+				lines := strings.Split(out, "\n")
+				for _, line := range lines {
+					if strings.Contains(line, "Address:") && !strings.Contains(line, "10.96.0.10") {
+						t.Logf("  %s -> %s", svc, strings.TrimSpace(line))
+						resolved = true
+						break
+					}
+				}
+				if resolved {
+					break
+				}
+			} else {
+				if i == 0 || i == dnsMaxRetries-1 {
+					t.Logf("  %s DNS attempt %d/%d: output=%s", svc, i+1, dnsMaxRetries, out)
+				}
+			}
+			if strings.Contains(out, "connection timed out") || strings.Contains(out, "no servers could be reached") {
+				dnsCompletelyBroken = true
+			}
+			if i < dnsMaxRetries-1 {
+				time.Sleep(2 * time.Second)
+			}
+		}
+		if !resolved {
+			t.Logf("  WARNING: DNS resolution for %s not confirmed after %d retries", svc, dnsMaxRetries)
+		}
+		// If kubernetes.default can't resolve, DNS is fundamentally broken; skip remaining checks
+		if svc == "kubernetes.default" && !resolved {
+			t.Log("  FUNDAMENTAL DNS FAILURE: kubernetes.default cannot resolve. Skipping remaining DNS checks.")
+			break
+		}
+	}
+
+	if dnsCompletelyBroken {
+		t.Log("\n=== DNS IS COMPLETELY BROKEN ===")
+		t.Log("CoreDNS pods are not responding. This is likely due to:")
+		t.Log("  1. CoreDNS readiness probe failure (pods shown as 0/1)")
+		t.Log("  2. OOMKill or resource starvation on the Kind node")
+		t.Log("  3. Network plugin (CNI) not fully initialized")
+		t.Log("CoreDNS logs and describe output were captured above.")
+		t.Log("Aborting test early because DNS-dependent services cannot start.")
+		t.Fatal("Cluster DNS is not functional. See CoreDNS logs above.")
+	}
+
+	// 5. Check /etc/resolv.conf for debugging
+	t.Log("--- DNS verify pod /etc/resolv.conf ---")
+	out, _ := shell.RunCommandContextAndGetOutputE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"exec", "dns-verify", "-n", namespace, "--", "cat", "/etc/resolv.conf"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+	t.Logf("  resolv.conf: %s", out)
+
+	// 6. Check if CoreDNS is actually responding (avoid busybox nc -zv which hangs)
+	t.Log("--- CoreDNS connectivity test ---")
+	out, _ = shell.RunCommandContextAndGetOutputE(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"exec", "dns-verify", "-n", namespace, "--", "sh", "-c", "echo | nc -w 3 10.96.0.10 53 2>&1 || true"},
+		Env:     map[string]string{"KUBECONFIG": kubectlOptions.ConfigPath},
+	})
+	t.Logf("  CoreDNS connect: %s", out)
+}
+
+func createQdrantPersistentVolume(t *testing.T) {
+	t.Helper()
+
+	manifest := `apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: qdrant-storage-pv
+spec:
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  persistentVolumeReclaimPolicy: Delete
+  hostPath:
+    path: /tmp/qdrant-storage
+    type: DirectoryOrCreate
+`
+
+	pvFile := filepath.Join(t.TempDir(), "qdrant-pv.yaml")
+	require.NoError(t, os.WriteFile(pvFile, []byte(manifest), 0o600))
+
+	shell.RunCommandContext(t, context.Background(), &shell.Command{
+		Command: "kubectl",
+		Args:    []string{"apply", "-f", pvFile},
+	})
 }
 
 func waitForDeployments(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 	t.Helper()
-	maxRetries := 60
+	maxRetries := 90
 	retrySleep := 5 * time.Second
 
 	deployments := []string{"meerkat-analyzer", "meerkat-vectors"}
@@ -276,18 +759,18 @@ func verifyHealthEndpoints(t *testing.T, kubectlOptions *k8s.KubectlOptions) {
 		},
 	)
 
-	// Verify vectors health endpoint (metrics server)
+	// Verify vectors health endpoint
 	t.Log("Verifying vectors health endpoint")
-	pfCmdLogs := exec.Command("kubectl", "port-forward",
+	pfCmdVectors := exec.Command("kubectl", "port-forward",
 		"-n", namespace,
 		"svc/meerkat-vectors", "19090:9090",
 	)
-	pfCmdLogs.Stdout = os.Stderr
-	pfCmdLogs.Stderr = os.Stderr
-	require.NoError(t, pfCmdLogs.Start(), "Failed to start logs port-forward")
+	pfCmdVectors.Stdout = os.Stderr
+	pfCmdVectors.Stderr = os.Stderr
+	require.NoError(t, pfCmdVectors.Start(), "Failed to start vectors port-forward")
 	defer func() {
-		_ = pfCmdLogs.Process.Kill()
-		_ = pfCmdLogs.Wait()
+		_ = pfCmdVectors.Process.Kill()
+		_ = pfCmdVectors.Wait()
 	}()
 
 	http_helper.HTTPGetWithRetryWithCustomValidationContext(

@@ -1,13 +1,11 @@
 package httphandler_test
 
 import (
-	"bytes"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
+	"context"
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -17,28 +15,24 @@ import (
 	"github.com/serengeti-sh/meerkat/internal/inspect"
 	inspectorMocks "github.com/serengeti-sh/meerkat/internal/inspect/mocks"
 	"github.com/serengeti-sh/meerkat/internal/report"
+	"github.com/serengeti-sh/meerkat/pkg/api"
 )
 
-func TestHandler_Health(t *testing.T) {
-	mockSvc := inspectorMocks.NewServiceMock(t)
-	h, err := httphandler.New(mockSvc)
-	require.NoError(t, err)
-
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	req := httptest.NewRequest(http.MethodGet, "/v1/health", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusOK, rec.Code)
-
-	var result map[string]string
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &result))
-	assert.Equal(t, "ok", result["status"])
+func newTestLogger() zerolog.Logger {
+	return zerolog.New(nil)
 }
 
-func TestHandler_Inspect(t *testing.T) {
+func TestHandler_GetHealth(t *testing.T) {
+	mockSvc := inspectorMocks.NewServiceMock(t)
+	h := httphandler.New(mockSvc, newTestLogger())
+
+	res, err := h.GetHealth(context.Background())
+
+	require.NoError(t, err)
+	assert.Equal(t, "ok", res.Status)
+}
+
+func TestHandler_CreateInspect(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("Inspect", mock.Anything, inspect.Request{
 		MetricQuery: "up",
@@ -49,41 +43,20 @@ func TestHandler_Inspect(t *testing.T) {
 		nil,
 	)
 
-	h, err := httphandler.New(mockSvc)
+	h := httphandler.New(mockSvc, newTestLogger())
+	res, err := h.CreateInspect(context.Background(), &api.CreateInspectReq{
+		Query:       api.NewOptString("check status"),
+		MetricQuery: api.NewOptString("up"),
+	})
+
 	require.NoError(t, err)
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	body := `{"metric_query": "up", "query": "check status"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/inspect", bytes.NewReader([]byte(body)))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusAccepted, rec.Code)
-
-	var result map[string]any
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &result))
-	assert.Equal(t, "r-1", result["id"])
-	assert.Equal(t, "pending", result["status"])
+	ok, isOK := res.(*api.ReportResponse)
+	require.True(t, isOK)
+	assert.Equal(t, "r-1", ok.ID)
+	assert.Equal(t, api.ReportResponseStatus(report.StatusPending), ok.Status)
 }
 
-func TestHandler_Inspect_InvalidBody(t *testing.T) {
-	mockSvc := inspectorMocks.NewServiceMock(t)
-	h, err := httphandler.New(mockSvc)
-	require.NoError(t, err)
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	req := httptest.NewRequest(http.MethodPost, "/v1/inspect", bytes.NewReader([]byte("not json")))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
-}
-
-func TestHandler_Inspect_ServiceError(t *testing.T) {
+func TestHandler_CreateInspect_ServiceError(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("Inspect", mock.Anything, inspect.Request{
 		Query: "check status",
@@ -92,90 +65,56 @@ func TestHandler_Inspect_ServiceError(t *testing.T) {
 		errs.New(errs.ErrInternal, "database error"),
 	)
 
-	h, err := httphandler.New(mockSvc)
+	h := httphandler.New(mockSvc, newTestLogger())
+	res, err := h.CreateInspect(context.Background(), &api.CreateInspectReq{
+		Query: api.NewOptString("check status"),
+	})
+
 	require.NoError(t, err)
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	body := `{"query": "check status"}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/inspect", bytes.NewReader([]byte(body)))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	errRes, isErr := res.(*api.ErrorStatusCode)
+	require.True(t, isErr)
+	assert.Equal(t, 500, errRes.StatusCode)
 }
 
-func TestHandler_Webhook(t *testing.T) {
+func TestHandler_ReceiveWebhook(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("InspectByWebhook", mock.Anything, inspect.WebhookPayload{
 		Source:  "grafana",
 		Alert:   "High CPU",
 		Message: "CPU > 80%",
-		Data:    json.RawMessage(`{"value": 85}`),
 	}).Return(
 		&report.Report{ID: "r-2", Trigger: report.TriggerWebhook, Status: report.StatusCompleted, Severity: report.SeverityWarning, Summary: "high cpu", Datasources: []string{"vm"}, Iterations: 1, CreatedAt: time.Now()},
 		nil,
 	)
 
-	h, err := httphandler.New(mockSvc)
+	h := httphandler.New(mockSvc, newTestLogger())
+	res, err := h.ReceiveWebhook(context.Background(), &api.ReceiveWebhookReq{
+		Source:  api.NewOptString("grafana"),
+		Alert:   api.NewOptString("High CPU"),
+		Message: api.NewOptString("CPU > 80%"),
+	})
+
 	require.NoError(t, err)
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	body := `{"source": "grafana", "alert": "High CPU", "message": "CPU > 80%", "data": {"value": 85}}`
-	req := httptest.NewRequest(http.MethodPost, "/v1/webhook", bytes.NewReader([]byte(body)))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusAccepted, rec.Code)
-
-	var result map[string]any
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &result))
-	assert.Equal(t, "r-2", result["id"])
-	assert.Equal(t, "warning", result["severity"])
-}
-
-func TestHandler_Webhook_InvalidBody(t *testing.T) {
-	mockSvc := inspectorMocks.NewServiceMock(t)
-	h, err := httphandler.New(mockSvc)
-	require.NoError(t, err)
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	req := httptest.NewRequest(http.MethodPost, "/v1/webhook", bytes.NewReader([]byte("not json")))
-	req.Header.Set("Content-Type", "application/json")
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	ok, isOK := res.(*api.ReportResponse)
+	require.True(t, isOK)
+	assert.Equal(t, "r-2", ok.ID)
 }
 
 func TestHandler_ListReports(t *testing.T) {
 	mockSvc := inspectorMocks.NewServiceMock(t)
 	mockSvc.On("ListReports", mock.Anything, 50).Return(
 		[]*report.Report{
-			&report.Report{ID: "r-1", Trigger: report.TriggerManual, Status: report.StatusCompleted, Severity: report.SeverityInfo, Summary: "ok", Datasources: []string{}, Iterations: 1, CreatedAt: time.Now()},
+			{ID: "r-1", Trigger: report.TriggerManual, Status: report.StatusCompleted, Severity: report.SeverityInfo, Summary: "ok", Datasources: []string{}, Iterations: 1, CreatedAt: time.Now()},
 		},
 		nil,
 	)
 
-	h, err := httphandler.New(mockSvc)
+	h := httphandler.New(mockSvc, newTestLogger())
+	res, err := h.ListReports(context.Background(), api.ListReportsParams{})
+
 	require.NoError(t, err)
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	req := httptest.NewRequest(http.MethodGet, "/v1/reports", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusOK, rec.Code)
-
-	var result []map[string]any
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &result))
-	require.Len(t, result, 1)
-	assert.Equal(t, "r-1", result[0]["id"])
+	require.Len(t, res, 1)
+	assert.Equal(t, "r-1", res[0].ID)
 }
 
 func TestHandler_ListReports_WithLimit(t *testing.T) {
@@ -185,16 +124,13 @@ func TestHandler_ListReports_WithLimit(t *testing.T) {
 		nil,
 	)
 
-	h, err := httphandler.New(mockSvc)
+	h := httphandler.New(mockSvc, newTestLogger())
+	res, err := h.ListReports(context.Background(), api.ListReportsParams{
+		Limit: api.NewOptInt(10),
+	})
+
 	require.NoError(t, err)
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	req := httptest.NewRequest(http.MethodGet, "/v1/reports?limit=10", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Empty(t, res)
 }
 
 func TestHandler_ListReports_ServiceError(t *testing.T) {
@@ -204,16 +140,10 @@ func TestHandler_ListReports_ServiceError(t *testing.T) {
 		errs.New(errs.ErrInternal, "database error"),
 	)
 
-	h, err := httphandler.New(mockSvc)
-	require.NoError(t, err)
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
+	h := httphandler.New(mockSvc, newTestLogger())
+	_, err := h.ListReports(context.Background(), api.ListReportsParams{})
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/reports", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	require.Error(t, err)
 }
 
 func TestHandler_GetReport(t *testing.T) {
@@ -223,22 +153,15 @@ func TestHandler_GetReport(t *testing.T) {
 		nil,
 	)
 
-	h, err := httphandler.New(mockSvc)
+	h := httphandler.New(mockSvc, newTestLogger())
+	res, err := h.GetReport(context.Background(), api.GetReportParams{ID: "r-1"})
+
 	require.NoError(t, err)
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	req := httptest.NewRequest(http.MethodGet, "/v1/reports/r-1", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusOK, rec.Code)
-
-	var result map[string]any
-	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &result))
-	assert.Equal(t, "r-1", result["id"])
-	assert.Equal(t, "critical", result["severity"])
-	assert.Equal(t, float64(3), result["iterations"])
+	ok, isOK := res.(*api.ReportResponse)
+	require.True(t, isOK)
+	assert.Equal(t, "r-1", ok.ID)
+	assert.Equal(t, api.ReportResponseSeverity(report.SeverityCritical), ok.Severity.Value)
+	assert.Equal(t, 3, ok.Iterations.Value)
 }
 
 func TestHandler_GetReport_NotFound(t *testing.T) {
@@ -248,20 +171,17 @@ func TestHandler_GetReport_NotFound(t *testing.T) {
 		errs.New(errs.ErrNotFound, "report not found"),
 	)
 
-	h, err := httphandler.New(mockSvc)
+	h := httphandler.New(mockSvc, newTestLogger())
+	res, err := h.GetReport(context.Background(), api.GetReportParams{ID: "r-missing"})
+
 	require.NoError(t, err)
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	req := httptest.NewRequest(http.MethodGet, "/v1/reports/r-missing", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	assert.Equal(t, http.StatusNotFound, rec.Code)
+	errRes, isErr := res.(*api.ErrorStatusCode)
+	require.True(t, isErr)
+	assert.Equal(t, 404, errRes.StatusCode)
 }
 
 func TestHandler_New_NilInspector(t *testing.T) {
-	_, err := httphandler.New(nil)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "inspectorSvc is required")
+	assert.Panics(t, func() {
+		httphandler.New(nil, newTestLogger())
+	})
 }

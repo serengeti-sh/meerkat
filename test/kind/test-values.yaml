@@ -21,8 +21,8 @@ analyzer:
     httpGet:
       path: /v1/health
       port: http
-    initialDelaySeconds: 5
-    periodSeconds: 5
+    initialDelaySeconds: 60
+    periodSeconds: 10
     timeoutSeconds: 3
     failureThreshold: 30
 
@@ -49,6 +49,23 @@ analyzer:
 
 vectors:
   enabled: true
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+  startupProbe:
+    httpGet:
+      path: /healthz
+      port: metrics
+    initialDelaySeconds: 60
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 30
 
 image:
   repository: meerkat-server
@@ -137,6 +154,13 @@ config:
     filter_mode: template
     min_severity: info
 
+  vector_store:
+    driver: qdrant
+    qdrant:
+      address: qdrant:6334
+      collection: logs
+      dimension: 1536
+
 secrets:
   database:
     password: "test-deploy-password"
@@ -161,4 +185,4 @@ systemPrompt: |
 skills: []
 
 migration:
-  enabled: true
+  enabled: false

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -23,7 +24,7 @@ func TestService_Analyze_SingleResponse(t *testing.T) {
 	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations: 5,
 		SystemPrompt:  "",
-	})
+	}, zerolog.New(nil))
 	require.NoError(t, err)
 
 	provider.EXPECT().Complete(mock.Anything, mock.Anything).Return(&analyzer.CompletionResponse{
@@ -59,7 +60,7 @@ func TestService_Analyze_ToolCalls(t *testing.T) {
 		MaxIterations:       10,
 		MaxToolResultChars:  30000,
 		SummarizeOnOverflow: true,
-	})
+	}, zerolog.New(nil))
 	require.NoError(t, err)
 
 	// Use RunAndReturn for Execute to handle multiple calls
@@ -137,7 +138,7 @@ func TestService_Analyze_MaxIterations(t *testing.T) {
 	registry := tool.NewRegistry(mockTool)
 	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations: 2,
-	})
+	}, zerolog.New(nil))
 	require.NoError(t, err)
 
 	mockTool.EXPECT().Execute(mock.Anything, mock.Anything).Return("ok", nil).Twice()
@@ -180,7 +181,7 @@ func TestService_Analyze_ToolResultTruncation(t *testing.T) {
 	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:      5,
 		MaxToolResultChars: 100, // small limit for testing
-	})
+	}, zerolog.New(nil))
 	require.NoError(t, err)
 
 	// Tool returns a very long result
@@ -237,7 +238,7 @@ func TestService_Analyze_ContextOverflowRecovery(t *testing.T) {
 	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:       10,
 		SummarizeOnOverflow: true,
-	})
+	}, zerolog.New(nil))
 	require.NoError(t, err)
 
 	// Need 3+ tool calls to have enough exchanges for summarization to trim
@@ -287,7 +288,7 @@ func TestService_Analyze_ContextOverflowUnrecoverable(t *testing.T) {
 	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
 		MaxIterations:       5,
 		SummarizeOnOverflow: true,
-	})
+	}, zerolog.New(nil))
 	require.NoError(t, err)
 
 	// Immediately fail with context overflow — only system+user messages, nothing to trim

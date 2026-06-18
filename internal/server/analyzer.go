@@ -9,7 +9,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -17,15 +16,17 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/rs/zerolog"
+
 	"github.com/serengeti-sh/meerkat/internal/analyzer"
 	"github.com/serengeti-sh/meerkat/internal/config"
 	"github.com/serengeti-sh/meerkat/internal/httphandler"
 	"github.com/serengeti-sh/meerkat/internal/inspect"
+	"github.com/serengeti-sh/meerkat/internal/logger"
 	"github.com/serengeti-sh/meerkat/internal/notify"
 	"github.com/serengeti-sh/meerkat/internal/report"
 	"github.com/serengeti-sh/meerkat/internal/schedule"
-	"github.com/serengeti-sh/meerkat/internal/tool"
-	"github.com/serengeti-sh/meerkat/internal/vectorsclient"
+	"github.com/serengeti-sh/meerkat/pkg/api"
 )
 
 const (
@@ -39,21 +40,36 @@ const (
 // Analyzer assembles and runs the analyzer HTTP server.
 type Analyzer struct {
 	cfg     *config.Config
-	server  *http.Server
 	sched   schedule.Service
 	inspect inspect.Service
+	handler *httphandler.Handler
+	log     zerolog.Logger
 }
 
 // NewAnalyzer creates an Analyzer with all dependencies wired.
-func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
+func NewAnalyzer(ctx context.Context, cfg *config.Config) (*Analyzer, error) {
+	logCfg := logger.Config{
+		Level:  cfg.App.LogLevel,
+		Format: cfg.App.LogFormat,
+	}
+	if cfg.App.Debug {
+		logCfg.Level = "debug"
+	}
+	log := logger.New(logCfg)
+	ctx = logger.WithContext(ctx, log)
+
+	log.Info().Str("version", cfg.App.Version).Msg("initializing analyzer")
+
 	// Database
 	client, err := inspect.NewEntClient(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("create db client: %w", err)
 	}
 
-	if err := inspect.Migrate(context.Background(), client); err != nil {
-		_ = client.Close()
+	if err := inspect.Migrate(ctx, client); err != nil {
+		if closeErr := client.Close(); closeErr != nil {
+			log.Error().Err(closeErr).Msg("failed to close database client after migration failure")
+		}
 		return nil, fmt.Errorf("migrate db: %w", err)
 	}
 
@@ -84,19 +100,22 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 			MaxRetries: cfg.Analyzer.MaxRetries,
 			BaseDelay:  time.Duration(cfg.Analyzer.RetryBaseMs) * time.Millisecond,
 		},
+		Log: log,
 	})
 
-	if err := provider.HealthCheck(context.Background()); err != nil {
-		return nil, fmt.Errorf("llm provider health check failed: %w", err)
+	if !cfg.IsTest() {
+		if err := provider.HealthCheck(ctx); err != nil {
+			return nil, fmt.Errorf("llm provider health check failed: %w", err)
+		}
 	}
 
-	analyzerSvc, err := buildAnalyzerService(provider, toolRegistry, cfg)
+	analyzerSvc, err := buildAnalyzerService(provider, toolRegistry, cfg, log)
 	if err != nil {
 		return nil, fmt.Errorf("build analyzer service: %w", err)
 	}
 
 	// Reporter
-	reporterSvc := notify.NewService(cfg.Notify.WebhookURL, cfg.Notify.MinSeverity, nil)
+	reporterSvc := notify.NewService(cfg.Notify.WebhookURL, cfg.Notify.MinSeverity, nil, log)
 
 	// Inspector
 	var inspectorOpts []inspect.ServiceOption
@@ -112,6 +131,7 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 		cfg.Inspect.GetDedupWindow(),
 		cfg.Inspect.QueueSize,
 		cfg.Inspect.WorkerCount,
+		log,
 		inspectorOpts...,
 	)
 	if err != nil {
@@ -119,45 +139,42 @@ func NewAnalyzer(cfg *config.Config) (*Analyzer, error) {
 	}
 
 	// HTTP handler
-	h, err := httphandler.New(inspectorSvc)
+	h := httphandler.New(inspectorSvc, log)
+
+	sched := schedule.NewService(inspectorSvc, cfg, log)
+
+	return &Analyzer{
+		cfg:     cfg,
+		sched:   sched,
+		inspect: inspectorSvc,
+		handler: h,
+		log:     log,
+	}, nil
+}
+
+// Run starts the analyzer server and blocks until shutdown.
+func (a *Analyzer) Run(ctx context.Context) error {
+	if err := a.inspect.Start(); err != nil {
+		return fmt.Errorf("start inspector: %w", err)
+	}
+	defer a.inspect.Stop()
+
+	ogenServer, err := api.NewServer(a.handler, api.WithPathPrefix("/v1"))
 	if err != nil {
-		return nil, fmt.Errorf("create http handler: %w", err)
+		return fmt.Errorf("create ogen server: %w", err)
 	}
 
-	mux := http.NewServeMux()
-	h.RegisterRoutes(mux)
-
-	addr := fmt.Sprintf("%s:%d", cfg.HTTP.Host, cfg.HTTP.Port)
+	addr := fmt.Sprintf("%s:%d", a.cfg.HTTP.Host, a.cfg.HTTP.Port)
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           mux,
+		Handler:           ogenServer,
 		ReadHeaderTimeout: httpReadHeaderTimeout,
 		ReadTimeout:       httpReadTimeout,
 		WriteTimeout:      httpWriteTimeout,
 		IdleTimeout:       httpIdleTimeout,
 	}
 
-	sched := schedule.NewService(inspectorSvc, cfg)
-
-	return &Analyzer{
-		cfg:     cfg,
-		server:  srv,
-		sched:   sched,
-		inspect: inspectorSvc,
-	}, nil
-}
-
-// Run starts the analyzer server and blocks until shutdown.
-func (a *Analyzer) Run() error {
-	if err := a.inspect.Start(); err != nil {
-		return fmt.Errorf("start inspector: %w", err)
-	}
-	defer a.inspect.Stop()
-
-	addr := a.server.Addr
 	var ln net.Listener
-	var err error
-
 	if a.cfg.HTTP.TLS.CertFile != "" && a.cfg.HTTP.TLS.KeyFile != "" {
 		cert, err := tls.LoadX509KeyPair(a.cfg.HTTP.TLS.CertFile, a.cfg.HTTP.TLS.KeyFile)
 		if err != nil {
@@ -170,21 +187,21 @@ func (a *Analyzer) Run() error {
 		if err != nil {
 			return fmt.Errorf("failed to listen on %s: %w", addr, err)
 		}
-		log.Printf("Starting meerkat server on https://%s", addr)
+		a.log.Info().Str("addr", addr).Msg("starting meerkat server")
 	} else {
 		ln, err = net.Listen("tcp", addr)
 		if err != nil {
 			return fmt.Errorf("failed to listen on %s: %w", addr, err)
 		}
-		log.Printf("Starting meerkat server on http://%s", addr)
+		a.log.Info().Str("addr", addr).Msg("starting meerkat server")
 	}
 
-	go func() { _ = a.server.Serve(ln) }()
+	go func() { _ = srv.Serve(ln) }()
 
 	if a.cfg.Schedule.Enabled {
-		log.Println("Starting scheduler...")
-		if err := a.sched.Start(context.Background()); err != nil {
-			log.Printf("Scheduler error: %v", err)
+		a.log.Info().Msg("starting scheduler")
+		if err := a.sched.Start(ctx); err != nil {
+			a.log.Error().Err(err).Msg("scheduler error")
 		}
 	}
 
@@ -193,137 +210,17 @@ func (a *Analyzer) Run() error {
 	signal.Notify(shutdownCh, os.Interrupt, syscall.SIGTERM)
 
 	sig := <-shutdownCh
-	log.Printf("Received signal %v, shutting down...", sig)
+	a.log.Info().Str("signal", sig.String()).Msg("shutting down")
 
 	a.sched.Stop()
 
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
-	if err := a.server.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("server shutdown: %w", err)
 	}
 
-	log.Println("Server stopped gracefully")
+	a.log.Info().Msg("server stopped gracefully")
 	return nil
-}
-
-func newVectorsClient(cfg *config.Config) (vectorsclient.Client, error) {
-	if !cfg.Vectors.Enabled || cfg.Vectors.Address == "" {
-		return nil, nil
-	}
-	client, err := vectorsclient.New(cfg.Vectors.Address)
-	if err != nil {
-		return nil, fmt.Errorf("create vectors client: %w", err)
-	}
-	return client, nil
-}
-
-func buildToolRegistry(cfg *config.Config, vectorsClient vectorsclient.Client) (*tool.Registry, error) {
-	var tools []tool.Plugin
-
-	for _, pc := range cfg.Tools.Prometheus {
-		httpClient, err := tool.NewHTTPClient(pc.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
-		}
-		description := cfg.Tools.PrometheusDescription
-		if description == "" {
-			description = "Query metrics using PromQL. Returns time series data."
-		}
-		schemaFile := cfg.Tools.PrometheusParamSchemaFile
-		if schemaFile == "" {
-			schemaFile = "internal/tool/schemas/prometheus.json"
-		}
-		t, err := tool.NewPrometheusTool(pc.Name, description, schemaFile, pc.URL, httpClient)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", pc.Name, err)
-		}
-		tools = append(tools, t)
-	}
-
-	for _, vc := range cfg.Tools.VictoriaLogs {
-		httpClient, err := tool.NewHTTPClient(vc.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", vc.Name, err)
-		}
-		description := cfg.Tools.VictoriaLogsDescription
-		if description == "" {
-			description = "Query logs using LogsQL. Returns log entries."
-		}
-		schemaFile := cfg.Tools.VictoriaLogsParamSchemaFile
-		if schemaFile == "" {
-			schemaFile = "internal/tool/schemas/victorialogs.json"
-		}
-		t, err := tool.NewVictoriaLogsTool(vc.Name, description, schemaFile, vc.URL, httpClient)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", vc.Name, err)
-		}
-		tools = append(tools, t)
-	}
-
-	for _, lc := range cfg.Tools.Loki {
-		httpClient, err := tool.NewHTTPClient(lc.CAFile)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
-		}
-		description := cfg.Tools.LokiDescription
-		if description == "" {
-			description = "Query logs using LogQL. Returns log entries with timestamps and labels."
-		}
-		schemaFile := cfg.Tools.LokiParamSchemaFile
-		if schemaFile == "" {
-			schemaFile = "internal/tool/schemas/loki.json"
-		}
-		t, err := tool.NewLokiTool(lc.Name, description, schemaFile, lc.URL, httpClient)
-		if err != nil {
-			return nil, fmt.Errorf("tool %q: %w", lc.Name, err)
-		}
-		tools = append(tools, t)
-	}
-
-	if vectorsClient != nil {
-		tools = append(tools, tool.NewSearchLogsTool(vectorsClient))
-	}
-
-	return tool.NewRegistry(tools...), nil
-}
-
-func buildAnalyzerService(provider analyzer.LLMProvider, registry *tool.Registry, cfg *config.Config) (analyzer.Service, error) {
-	systemPrompt, err := analyzer.LoadSystemPrompt(cfg.Analyzer.SystemPromptFile)
-	if err != nil {
-		return nil, fmt.Errorf("load system prompt: %w", err)
-	}
-	skills, err := analyzer.LoadSkills(cfg.Analyzer.SkillsFile)
-	if err != nil {
-		return nil, fmt.Errorf("load skills: %w", err)
-	}
-	prompt := analyzer.MergeSkillsIntoPrompt(systemPrompt, skills)
-	svc, err := analyzer.NewService(provider, registry, analyzer.ServiceConfig{
-		MaxIterations:       cfg.Analyzer.MaxIterations,
-		SystemPrompt:        prompt,
-		MaxToolResultChars:  cfg.Analyzer.MaxToolResultChars,
-		SummarizeOnOverflow: cfg.Analyzer.SummarizeOnOverflow,
-		MaxContextMessages:  cfg.Analyzer.MaxContextMessages,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("create analyzer service: %w", err)
-	}
-	return svc, nil
-}
-
-func buildDatasourceRefs(cfg *config.Config) func() []analyzer.DatasourceRef {
-	return func() []analyzer.DatasourceRef {
-		var refs []analyzer.DatasourceRef
-		for _, pc := range cfg.Tools.Prometheus {
-			refs = append(refs, analyzer.DatasourceRef{Name: pc.Name, Type: "prometheus"})
-		}
-		for _, vc := range cfg.Tools.VictoriaLogs {
-			refs = append(refs, analyzer.DatasourceRef{Name: vc.Name, Type: "victoria-logs"})
-		}
-		for _, lc := range cfg.Tools.Loki {
-			refs = append(refs, analyzer.DatasourceRef{Name: lc.Name, Type: "loki"})
-		}
-		return refs
-	}
 }
