@@ -231,7 +231,7 @@ jobs:
         with:
           version: v3.17.0
       - name: Install kubectl
-        uses: azure/setup-kubectl@v4
+        uses: azure/setup-kubectl@v5
         with:
           version: v1.32.0
       - name: Download dependencies
