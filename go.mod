@@ -19,6 +19,7 @@ require (
 	github.com/prometheus/client_golang v1.23.2
 	github.com/prometheus/common v0.68.1
 	github.com/qdrant/go-client v1.18.2
+	github.com/rs/zerolog v1.35.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
@@ -32,7 +33,7 @@ require (
 	google.golang.org/grpc v1.81.1
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/apimachinery v0.36.1
+	k8s.io/apimachinery v0.36.2
 )
 
 require (
@@ -184,7 +185,6 @@ require (
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
 	github.com/rogpeppe/go-internal v1.15.0 // indirect
-	github.com/rs/zerolog v1.35.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
@@ -238,7 +238,7 @@ require (
 	k8s.io/client-go v0.35.0 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a // indirect
-	k8s.io/streaming v0.36.1 // indirect
+	k8s.io/streaming v0.36.2 // indirect
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
