@@ -81,7 +81,7 @@ jobs:
       - name: Check coverage file
         run: ls -la ${{ github.workspace }}/cover-unit.out || echo "Coverage file not found"
       - name: Upload coverage
-        uses: codecov/codecov-action@v6.0.1
+        uses: codecov/codecov-action@v7.0.0
         if: success()
         with:
           files: ${{ github.workspace }}/cover-unit.out
@@ -179,7 +179,7 @@ jobs:
       - name: Run integration tests
         run: make test-integration
       - name: Upload coverage
-        uses: codecov/codecov-action@v6.0.1
+        uses: codecov/codecov-action@v7.0.0
         if: always()
         with:
           files: cover-integration.out
@@ -203,7 +203,7 @@ jobs:
       - name: Run e2e tests
         run: make test-e2e
       - name: Upload coverage
-        uses: codecov/codecov-action@v6.0.1
+        uses: codecov/codecov-action@v7.0.0
         if: always()
         with:
           files: cover-e2e.out
