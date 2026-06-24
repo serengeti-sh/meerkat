@@ -17,7 +17,7 @@ permissions:
 jobs:
   docker-push:
     name: Docker Push to Harbor
-    runs-on: dawn-cluster-dind
+    runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
