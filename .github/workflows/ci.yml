@@ -66,7 +66,7 @@ jobs:
   unit-test:
     name: Unit Tests
     needs: [fmt-check, vet, lint]
-    runs-on: dawn-cluster-dind
+    runs-on: ubuntu-latest
     env:
       GOFLAGS: "-buildvcs=false"
     steps:
@@ -90,7 +90,7 @@ jobs:
   build:
     name: Build
     needs: [unit-test]
-    runs-on: dawn-cluster
+    runs-on: ubuntu-latest
     container:
       image: golang:1.26.3
     env:
@@ -110,7 +110,7 @@ jobs:
   docker-build:
     name: Docker Build
     needs: [unit-test]
-    runs-on: dawn-cluster-dind
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.0
       - name: Set up Docker Buildx
@@ -164,7 +164,7 @@ jobs:
   integration-test:
     name: Integration Tests
     needs: [build]
-    runs-on: dawn-cluster-dind
+    runs-on: ubuntu-latest
     container:
       image: golang:1.26.3
     env:
@@ -188,7 +188,7 @@ jobs:
   e2e-test:
     name: E2E Tests
     needs: [build]
-    runs-on: dawn-cluster-dind
+    runs-on: ubuntu-latest
     container:
       image: golang:1.26.3
     env:
