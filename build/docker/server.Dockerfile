@@ -4,7 +4,7 @@ ARG GIT_COMMIT=unknown
 ############################
 # 1. Build Stage
 ############################
-FROM golang:1.26.4-alpine3.23 AS builder
+FROM golang:1.27.1-alpine3.23 AS builder
 
 RUN apk add --no-cache \
       git \
